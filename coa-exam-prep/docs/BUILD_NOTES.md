@@ -32,3 +32,11 @@ Diagram registry: every `diagrams[]` entry is indexed into `window.DIAG[id]` by 
 - GATE tags only where certain; default 'GATE-style'.
 - Template literals: never write `${` inside content.
 EOF
+## Mock papers (data/mock1.js, mock2.js)
+`window.MOCKS[n] = { title, minutes, instructions, passages: [{id, title, unit, html}], sections: {A..F: [Q]} }`. Every question needs a unique `id` and `marks`; section B questions name their `passage`. E = `sub` (6 marks), F = `type: 'diag'` (5 marks, `svg` and/or `refs`, `model`, `scheme`, `draw`). Totals must be 100 (verify.py checks).
+
+## Extras (data/extras.js)
+`window.EXTRAS = { home: html, plan: {html}, revision: fn, bonus: fn }`. A function page is rendered at view time (so it can read window.DIAG / window.COA); attach `.questions` to wire practice questions.
+
+## Verification
+`python3 verify.py` (text + schema, needs node) and `python3 verify.py --browser` (adds the Chromium smoke test; needs Playwright, set CHROMIUM_PATH if the bundled browser is elsewhere). docs/lint.sh is the old quick grep.
