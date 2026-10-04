@@ -179,7 +179,7 @@
 - p19 DIAGRAM 2 reads + 1 write. p20 TABLE read = combinational vs write = synchronous (read-before-write in one cycle).
 - p21 RISC-V x0 hardwired zero; hierarchy RF -> L1 -> L2 -> RAM.
 - p22 mistakes incl. resetting detector to S0 after 1011 (should go to prefix state), Moore needs one more state, tri-state contention.
-- p24 homework: 8×16 register file (3->8 decoder); Mealy '10' detector; Mealy->Moore conversion. Exit: read comb vs write sync; Moore 1011 needs 5 states; trace Mealy detector on 101011 (pulses at bit 4 and bit 6 with overlap).
+- p24 homework: 8×16 register file (3->8 decoder); Mealy '10' detector; Mealy->Moore conversion. Exit: read comb vs write sync; Moore 1011 needs 5 states; trace Mealy detector on 101011 (answer not on slide; for the 1011 overlap detector it pulses only at bit 6 — verified by simulation).
 
 ## [01] Labs/L11 Lab8_Sequence_Detector_FSMs.pdf — 9 pp
 - Pattern 1011, shared stream IN = 10110110; overlap -> 2 matches (bits 1-4, 4-7), non-overlap -> 1. Telecom framing context (DS1 001011, SONET 11110110).

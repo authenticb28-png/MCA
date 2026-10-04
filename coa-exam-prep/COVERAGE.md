@@ -40,8 +40,9 @@ Badges: **class** = From class slides · **researched** = ⚠ Not covered in cla
 | [ART] | Lectures/links.md → claude.ai artifact "MIPS teaching guide" |
 
 ## Build status (resume here)
-- DONE: Phase 0 inventory; Phase 1 (data/diagrams.js: 4 samples, pattern analysis, 5 predicted, top-35 list); site engine (index.html, css, js/svglib.js, js/app.js, js/tools.js with 6 tools); Units 1–5 content (data/unit01–05.js).
-- TODO: Units 6–15 content (data/unit06–15.js are stubs), data/mock1.js, data/mock2.js, data/extras.js (home, study plan, last-night revision, bonus 14–15), verify.py + Playwright check, then tick the Done column.
+- DONE: Phase 0 inventory; Phase 1 (data/diagrams.js: 4 samples, pattern analysis, 5 predicted, top-35 list); site engine (index.html, css, js/svglib.js, js/app.js, js/tools.js with 6 tools); Units 1–5 content (data/unit01–05.js); Units 6–15 content (data/unit06–15.js: every subtopic, diagram id and code id in the table below is present; ticked ☑).
+- Units 6–15 checks run: schema check (answers in range, ≥ 3 practice per subtopic, sourceLine on researched/extra, no banned phrases, no `${`), every diagram rendered in Chromium and inspected, every `refs`/`ref` id in data/diagrams.js resolves, all 15 unit pages load with no console errors, tools (mips, datapath, pipeline) mount. MIPS encodings verified with a script; FSM outputs and pipeline cycle counts verified by simulation (pipeline numbers match js/tools.js PIPE).
+- TODO: data/mock1.js, data/mock2.js, data/extras.js (home, study plan, last-night revision, bonus 14–15), verify.py (formal checker), then tick the Done column for Units 1–5.
 
 ## Coverage table
 | ID | Syllabus subtopic | Source file(s) + pages | Badge | Diagrams found (SVG id) | Code / programs found (code id) | Done |
@@ -79,62 +80,62 @@ Badges: **class** = From class slides · **researched** = ⚠ Not covered in cla
 | 5.4 | D flip-flop (edge-triggered) | [L07] p2-5, p12; [LB6] p18-28; [L08] p5-12; [SP3]; [SP4] quiz 6-7 | class | D5.4a clock waveform; D5.4b ring oscillator; D5.4c master-slave D FF; D5.4d D FF symbol; D5.4e D FF waveform trace; D5.4f latch vs FF waveform | C5.4a d_ff.v; C5.4b ff_tb.v; C5.4c dff_enable; C5.4d master-slave D FF | ☐ |
 | 5.5 | Setup time, hold time, metastability | [L07] p6-15; [LB6] p29-31; [SP4] quiz 7 | class | D5.5a setup/hold window; D5.5b metastability ball; D5.5c 2-FF synchronizer | — | ☐ |
 | 5.E1 | JK & T flip-flops, characteristic & excitation tables (extra from slides) | [L08] p5-12; [LB7] p19 | extra | D5.E1a JK latch; D5.E1b T FF from JK and from D | — | ☐ |
-| 6.1 | Scaling from flip-flops to registers | [L08] p14-16; [LB7] p4 | class | D6.1a 4-bit register (4 D FFs) | — | ☐ |
-| 6.2 | Registers: load enable, reset, CPU preview | [L08] p13, p16-17; [LB7] p4, p12; [LB8] Q1-Q2; [SP3] | class | D6.2a load-enable MUX per bit; D6.2b 8-bit register block | C6.2a register_8bit; C6.2b register_8bit_rst | ☐ |
-| 6.3 | Asynchronous (ripple) vs synchronous counters | [L08] p21-27; [CNT] p2-8; [LB7] p14-17, p25; [SP4] quiz 8 | class | D6.3a 3-bit ripple counter; D6.3b counter waveforms; D6.3c ripple 7→8 glitch timeline | C6.3a ripple counter (Verilog) | ☐ |
-| 6.4 | 4-bit synchronous up-counter design | [L08] p23, p26; [CNT] p4, p7; [LB7] p18-22; [LB8] Q5-Q6; [SP3] | class | D6.4a 4-bit synchronous counter (T FFs + AND chain) | C6.4a up2; C6.4b up3; C6.4c updown4; C6.4d up_counter4; C6.4e down_counter4; C6.4f sync_counter_4bit with tc | ☐ |
-| 6.5 | Shift registers: SISO, SIPO, PISO, PIPO | [L08] p18-20; [LB7] p5-13; [LB8] Q3-Q4; [SP3] | class | D6.5a SISO; D6.5b SIPO; D6.5c PISO with load MUX; D6.5d PIPO | C6.5a siso; C6.5b sipo; C6.5c piso; C6.5d pipo | ☐ |
-| 6.E1 | Ring, Johnson, mod-N, divide-by-N, LFSR (extra from slides) | [LB7] p23-25; [L08] p11, p20, p28; [SP4] quiz 8 | extra | D6.E1a ring counter; D6.E1b Johnson counter | C6.E1a ring counter; C6.E1b Johnson counter; C6.E1c mod-6 counter | ☐ |
-| 7.1 | From registers to register files | [RF] p12-14 | class | — | — | ☐ |
-| 7.2 | Register file architecture (1 write, 2 read) | [RF] p15-21; [SP3]; [SP4] quiz 9 | class | D7.2a register-file block; D7.2b write port decoder; D7.2c read port MUXes | C7.2a register_file 4×32; C7.2b regfile with hardwired R0 | ☐ |
-| 7.3 | Introduction to finite state machines | [RF] p2-11; [L08] p30-39 | class | D7.3a FSM anatomy (Moore/Mealy blocks); D7.3b traffic-light FSM; D7.3c datapath + control | — | ☐ |
-| 7.4 | Moore vs Mealy machines | [RF] p4; [L08] p32 | class | — (comparison table) | — | ☐ |
-| 7.5 | Worked example: sequence detector 1011 | [FSM] p1-9; [RF] p22-24; [SP4] quiz 10 | class | D7.5a Mealy overlap; D7.5b Mealy non-overlap; D7.5c Moore overlap; D7.5d Moore non-overlap | C7.5a mealy_overlap; C7.5b mealy_nooverlap; C7.5c moore_overlap; C7.5d moore_nooverlap; C7.5e tb_top | ☐ |
-| 8.1 | Register files; need for bigger memory | [MEM] p2-3 | class | — | — | ☐ |
-| 8.2 | SRAM: 6T cell structure & behaviour | [MEM] p4-9 | class | D8.2a 6T SRAM cell | — | ☐ |
-| 8.3 | DRAM: 1T1C cell, refresh, destructive read | [MEM] p10-16 | class | D8.3a 1T1C DRAM cell; D8.3b charge-leak/refresh curve | — | ☐ |
-| 8.4 | SRAM vs DRAM comparison | [MEM] p17-20 | class | — (table) | — | ☐ |
-| 8.5 | Memory hierarchy + the memory wall | only takeaways/homework: [AI] p21-22; gap chart [VNH] p14 | researched | D8.5a hierarchy pyramid; D8.5b processor–memory gap | — | ☐ |
-| 9.1 | From gates to a complete machine | [VNH] p2-4; [MEM] p21 | class | D9.1a CPU–memory–I/O–bus | — | ☐ |
-| 9.2 | Von Neumann architecture: structure & history | [VNH] p5-10; [AI] p2-5 | class | D9.2a Von Neumann block diagram; D9.2b stored-program memory map | — | ☐ |
-| 9.3 | The Von Neumann bottleneck | [VNH] p11-15, p28; [AI] p6-10 | class | D9.3a single-bus bottleneck | — | ☐ |
-| 9.4 | Harvard architecture: separate I & D memories | [VNH] p16-22; [AI] p11-16 | class | D9.4a Harvard block diagram; D9.4b VN vs Harvard timeline | — | ☐ |
-| 9.5 | Modified Harvard in modern CPUs | [VNH] p23-27; [AI] p17-20 | class | D9.5a split L1-I/L1-D hierarchy | — | ☐ |
-| 10.1 | Recap of Von Neumann/Harvard + setup | [CR] p2-22 | class | — | — | ☐ |
-| 10.2 | RISC vs CISC: definitions & design goals | [CR] p23-29 | class | D10.2a ISA contract; D10.2b fixed vs variable encoding | C10.2a C=A+B; D=2C in CISC and RISC style | ☐ |
-| 10.3 | Historical context: VAX, x86, MIPS, ARM, RISC-V | [CR] p30-31; [MIPS] p5-6 | class | D10.3a ISA family tree | — | ☐ |
-| 10.4 | Compiler implications & code density | [CR] p32-35 | class | — | — | ☐ |
-| 10.5 | Modern reality: micro-ops in x86 | [CR] p36-39 | class | D10.5a x86 µop decode | — | ☐ |
-| 10.6 | Trends: RISC-V open ISA & AI accelerators | [CR] p40-42 | class | — | — | ☐ |
-| 11.1 | Why MIPS for teaching | [FMT] p2-4; [MIPS] p5-6 | class | — | — | ☐ |
-| 11.2 | MIPS register set & conventions | [FMT] p5-10; [MIPS] p7, p10; [ART] | class | D11.2a register table; D11.2b MIPS machine model (CPU + memory map) | — | ☐ |
-| 11.3 | R-format (register-register) | [FMT] p11-15, p19; [ENC] p1-4; [MIPS] p12-13 | class | D11.3a R-format fields | C11.3a encode add $t2,$t0,$t1 | ☐ |
-| 11.4 | I-format (immediate, loads, stores, branches) | [FMT] p16, p20-21; [MIPS] p14, p16 | class | D11.4a I-format fields | C11.4a decode 0x8D280004 | ☐ |
-| 11.5 | J-format (jumps) | [FMT] p17; [ENC] | class | D11.5a J-format + target address formation | — | ☐ |
-| 11.6 | RISC-V's modular ISA | [FMT] p22-25 | class | D11.6a RV32I + extensions | — | ☐ |
-| 11.E1 | MIPS assembly toolkit: directives, syscalls, pseudo-ops, HI/LO, shifts, la vs lw, alignment (extra from slides) | [MIPS] p15-38; [ART] | extra | D11.E1a endianness | C11.E1a Program A; C11.E1b Program D; C11.E1c Hello MIPS; C11.E1d Add two inputs; C11.E1e Quotient & remainder; C11.E1f Swap; C11.E1g C→F; C11.E1h ×10 by shifts; C11.E1i (a+b)(a−b) | ☐ |
-| 12.1 | Recap of formats; translation pattern | [C2M] p2-4 | class | — | — | ☐ |
-| 12.2 | If/else and conditional branching | [C2M] p5-11; [SP3] | class | D12.2a max-of-two flowchart | C12.2a simple if; C12.2b if/else; C12.2c slt idiom; C12.2d max of two; C12.2e even/odd program | ☐ |
-| 12.3 | Loops: while and for | [C2M] p12-14; [SP3]; [ART] | class | D12.3a loop skeleton flowchart | C12.3a while; C12.3b for; C12.3c sum 0..9; C12.3d iterative factorial 5; C12.3e factorial of n; C12.3f Fibonacci; C12.3g array first element; C12.3h array sum; C12.3i array max; C12.3j Σk(k+1) | ☐ |
-| 12.4 | Calling convention: $a, $v, $ra | [C2M] p15-17; [FMT] p9 | class | D12.4a caller/callee register flow | C12.4a sum(n) function | ☐ |
-| 12.5 | Stack frames: leaf vs non-leaf | [C2M] p18-23 | class | D12.5a stack grows down; D12.5b fact(3) frames | C12.5a leaf function; C12.5b recursive factorial; C12.5c recursive Fibonacci | ☐ |
-| 13.1 | Recap: ISA → hardware | no slides (L16 lecture had no file) | researched | — | — | ☐ |
-| 13.2 | Fetch-decode-execute cycle | [MIPS] p9; [LB1] p6 | class | D13.2a F-D-E flowchart | — | ☐ |
-| 13.3 | Building the datapath: PC, IMem, RegFile, ALU, DMem | [DQ] p1-4 datapath figure; rest researched | class | D13.3a single-cycle datapath (full, with control) ; D13.3b fetch unit | — | ☐ |
-| 13.4 | Tracing different instruction types | [DQ] p1-4 (beq, sw, lw traces) | class | D13.4a R-type trace; D13.4b lw trace; D13.4c sw trace; D13.4d beq trace | — | ☐ |
-| 13.5 | Critical path & clock period | no slides | researched | D13.5a critical path of lw | — | ☐ |
-| 14.1 | Recap single-cycle; the problem | no slides | researched | — | — | ☐ |
-| 14.2 | Pipelining intuition: laundry analogy | no slides (preview: [LB1] p6 4004 pipeline) | researched | D14.2a laundry sequential vs pipelined | — | ☐ |
-| 14.3 | 5-stage MIPS pipeline + pipeline registers | no slides ([MIPS] p9 lists the 5 stages) | researched | D14.3a pipelined datapath with IF/ID, ID/EX, EX/MEM, MEM/WB | — | ☐ |
-| 14.4 | Pipeline diagrams | no slides | researched | D14.4a multi-cycle pipeline diagram | — | ☐ |
-| 14.5 | Throughput, latency, ideal speedup | no slides | researched | — | — | ☐ |
-| 14.6 | Hazards preview | no slides ([CR] p34) | researched | — | — | ☐ |
-| 15.1 | Hazard taxonomy: structural, data, control | no slides | researched | D15.1a structural hazard (single memory) | — | ☐ |
-| 15.2 | RAW, WAR, WAW; why only RAW in-order | no slides | researched | — | — | ☐ |
-| 15.3 | Naive solution: stalls (bubbles) | no slides | researched | D15.3a stall bubbles diagram | — | ☐ |
-| 15.4 | Forwarding (bypassing) | no slides | researched | D15.4a forwarding paths EX/MEM→EX, MEM/WB→EX | — | ☐ |
-| 15.5 | Load-use hazard: forwarding + stall | no slides | researched | D15.5a load-use 1 stall + forward | — | ☐ |
-| 15.6 | Compiler scheduling | no slides | researched | — | — | ☐ |
+| 6.1 | Scaling from flip-flops to registers | [L08] p14-16; [LB7] p4 | class | D6.1a 4-bit register (4 D FFs) | — | ☑ |
+| 6.2 | Registers: load enable, reset, CPU preview | [L08] p13, p16-17; [LB7] p4, p12; [LB8] Q1-Q2; [SP3] | class | D6.2a load-enable MUX per bit; D6.2b 8-bit register block | C6.2a register_8bit; C6.2b register_8bit_rst | ☑ |
+| 6.3 | Asynchronous (ripple) vs synchronous counters | [L08] p21-27; [CNT] p2-8; [LB7] p14-17, p25; [SP4] quiz 8 | class | D6.3a 3-bit ripple counter; D6.3b counter waveforms; D6.3c ripple 7→8 glitch timeline | C6.3a ripple counter (Verilog) | ☑ |
+| 6.4 | 4-bit synchronous up-counter design | [L08] p23, p26; [CNT] p4, p7; [LB7] p18-22; [LB8] Q5-Q6; [SP3] | class | D6.4a 4-bit synchronous counter (T FFs + AND chain) | C6.4a up2; C6.4b up3; C6.4c updown4; C6.4d up_counter4; C6.4e down_counter4; C6.4f sync_counter_4bit with tc | ☑ |
+| 6.5 | Shift registers: SISO, SIPO, PISO, PIPO | [L08] p18-20; [LB7] p5-13; [LB8] Q3-Q4; [SP3] | class | D6.5a SISO; D6.5b SIPO; D6.5c PISO with load MUX; D6.5d PIPO | C6.5a siso; C6.5b sipo; C6.5c piso; C6.5d pipo | ☑ |
+| 6.E1 | Ring, Johnson, mod-N, divide-by-N, LFSR (extra from slides) | [LB7] p23-25; [L08] p11, p20, p28; [SP4] quiz 8 | extra | D6.E1a ring counter; D6.E1b Johnson counter | C6.E1a ring counter; C6.E1b Johnson counter; C6.E1c mod-6 counter | ☑ |
+| 7.1 | From registers to register files | [RF] p12-14 | class | — | — | ☑ |
+| 7.2 | Register file architecture (1 write, 2 read) | [RF] p15-21; [SP3]; [SP4] quiz 9 | class | D7.2a register-file block; D7.2b write port decoder; D7.2c read port MUXes | C7.2a register_file 4×32; C7.2b regfile with hardwired R0 | ☑ |
+| 7.3 | Introduction to finite state machines | [RF] p2-11; [L08] p30-39 | class | D7.3a FSM anatomy (Moore/Mealy blocks); D7.3b traffic-light FSM; D7.3c datapath + control | — | ☑ |
+| 7.4 | Moore vs Mealy machines | [RF] p4; [L08] p32 | class | — (comparison table) | — | ☑ |
+| 7.5 | Worked example: sequence detector 1011 | [FSM] p1-9; [RF] p22-24; [SP4] quiz 10 | class | D7.5a Mealy overlap; D7.5b Mealy non-overlap; D7.5c Moore overlap; D7.5d Moore non-overlap | C7.5a mealy_overlap; C7.5b mealy_nooverlap; C7.5c moore_overlap; C7.5d moore_nooverlap; C7.5e tb_top | ☑ |
+| 8.1 | Register files; need for bigger memory | [MEM] p2-3 | class | — | — | ☑ |
+| 8.2 | SRAM: 6T cell structure & behaviour | [MEM] p4-9 | class | D8.2a 6T SRAM cell | — | ☑ |
+| 8.3 | DRAM: 1T1C cell, refresh, destructive read | [MEM] p10-16 | class | D8.3a 1T1C DRAM cell; D8.3b charge-leak/refresh curve | — | ☑ |
+| 8.4 | SRAM vs DRAM comparison | [MEM] p17-20 | class | — (table) | — | ☑ |
+| 8.5 | Memory hierarchy + the memory wall | only takeaways/homework: [AI] p21-22; gap chart [VNH] p14 | researched | D8.5a hierarchy pyramid; D8.5b processor–memory gap | — | ☑ |
+| 9.1 | From gates to a complete machine | [VNH] p2-4; [MEM] p21 | class | D9.1a CPU–memory–I/O–bus | — | ☑ |
+| 9.2 | Von Neumann architecture: structure & history | [VNH] p5-10; [AI] p2-5 | class | D9.2a Von Neumann block diagram; D9.2b stored-program memory map | — | ☑ |
+| 9.3 | The Von Neumann bottleneck | [VNH] p11-15, p28; [AI] p6-10 | class | D9.3a single-bus bottleneck | — | ☑ |
+| 9.4 | Harvard architecture: separate I & D memories | [VNH] p16-22; [AI] p11-16 | class | D9.4a Harvard block diagram; D9.4b VN vs Harvard timeline | — | ☑ |
+| 9.5 | Modified Harvard in modern CPUs | [VNH] p23-27; [AI] p17-20 | class | D9.5a split L1-I/L1-D hierarchy | — | ☑ |
+| 10.1 | Recap of Von Neumann/Harvard + setup | [CR] p2-22 | class | — | — | ☑ |
+| 10.2 | RISC vs CISC: definitions & design goals | [CR] p23-29 | class | D10.2a ISA contract; D10.2b fixed vs variable encoding | C10.2a C=A+B; D=2C in CISC and RISC style | ☑ |
+| 10.3 | Historical context: VAX, x86, MIPS, ARM, RISC-V | [CR] p30-31; [MIPS] p5-6 | class | D10.3a ISA family tree | — | ☑ |
+| 10.4 | Compiler implications & code density | [CR] p32-35 | class | — | — | ☑ |
+| 10.5 | Modern reality: micro-ops in x86 | [CR] p36-39 | class | D10.5a x86 µop decode | — | ☑ |
+| 10.6 | Trends: RISC-V open ISA & AI accelerators | [CR] p40-42 | class | — | — | ☑ |
+| 11.1 | Why MIPS for teaching | [FMT] p2-4; [MIPS] p5-6 | class | — | — | ☑ |
+| 11.2 | MIPS register set & conventions | [FMT] p5-10; [MIPS] p7, p10; [ART] | class | D11.2a register table; D11.2b MIPS machine model (CPU + memory map) | — | ☑ |
+| 11.3 | R-format (register-register) | [FMT] p11-15, p19; [ENC] p1-4; [MIPS] p12-13 | class | D11.3a R-format fields | C11.3a encode add $t2,$t0,$t1 | ☑ |
+| 11.4 | I-format (immediate, loads, stores, branches) | [FMT] p16, p20-21; [MIPS] p14, p16 | class | D11.4a I-format fields | C11.4a decode 0x8D280004 | ☑ |
+| 11.5 | J-format (jumps) | [FMT] p17; [ENC] | class | D11.5a J-format + target address formation | — | ☑ |
+| 11.6 | RISC-V's modular ISA | [FMT] p22-25 | class | D11.6a RV32I + extensions | — | ☑ |
+| 11.E1 | MIPS assembly toolkit: directives, syscalls, pseudo-ops, HI/LO, shifts, la vs lw, alignment (extra from slides) | [MIPS] p15-38; [ART] | extra | D11.E1a endianness | C11.E1a Program A; C11.E1b Program D; C11.E1c Hello MIPS; C11.E1d Add two inputs; C11.E1e Quotient & remainder; C11.E1f Swap; C11.E1g C→F; C11.E1h ×10 by shifts; C11.E1i (a+b)(a−b) | ☑ |
+| 12.1 | Recap of formats; translation pattern | [C2M] p2-4 | class | — | — | ☑ |
+| 12.2 | If/else and conditional branching | [C2M] p5-11; [SP3] | class | D12.2a max-of-two flowchart | C12.2a simple if; C12.2b if/else; C12.2c slt idiom; C12.2d max of two; C12.2e even/odd program | ☑ |
+| 12.3 | Loops: while and for | [C2M] p12-14; [SP3]; [ART] | class | D12.3a loop skeleton flowchart | C12.3a while; C12.3b for; C12.3c sum 0..9; C12.3d iterative factorial 5; C12.3e factorial of n; C12.3f Fibonacci; C12.3g array first element; C12.3h array sum; C12.3i array max; C12.3j Σk(k+1) | ☑ |
+| 12.4 | Calling convention: $a, $v, $ra | [C2M] p15-17; [FMT] p9 | class | D12.4a caller/callee register flow | C12.4a sum(n) function | ☑ |
+| 12.5 | Stack frames: leaf vs non-leaf | [C2M] p18-23 | class | D12.5a stack grows down; D12.5b fact(3) frames | C12.5a leaf function; C12.5b recursive factorial; C12.5c recursive Fibonacci | ☑ |
+| 13.1 | Recap: ISA → hardware | no slides (L16 lecture had no file) | researched | — | — | ☑ |
+| 13.2 | Fetch-decode-execute cycle | [MIPS] p9; [LB1] p6 | class | D13.2a F-D-E flowchart | — | ☑ |
+| 13.3 | Building the datapath: PC, IMem, RegFile, ALU, DMem | [DQ] p1-4 datapath figure; rest researched | class | D13.3a single-cycle datapath (full, with control) ; D13.3b fetch unit | — | ☑ |
+| 13.4 | Tracing different instruction types | [DQ] p1-4 (beq, sw, lw traces) | class | D13.4a R-type trace; D13.4b lw trace; D13.4c sw trace; D13.4d beq trace | — | ☑ |
+| 13.5 | Critical path & clock period | no slides | researched | D13.5a critical path of lw | — | ☑ |
+| 14.1 | Recap single-cycle; the problem | no slides | researched | — | — | ☑ |
+| 14.2 | Pipelining intuition: laundry analogy | no slides (preview: [LB1] p6 4004 pipeline) | researched | D14.2a laundry sequential vs pipelined | — | ☑ |
+| 14.3 | 5-stage MIPS pipeline + pipeline registers | no slides ([MIPS] p9 lists the 5 stages) | researched | D14.3a pipelined datapath with IF/ID, ID/EX, EX/MEM, MEM/WB | — | ☑ |
+| 14.4 | Pipeline diagrams | no slides | researched | D14.4a multi-cycle pipeline diagram | — | ☑ |
+| 14.5 | Throughput, latency, ideal speedup | no slides | researched | — | — | ☑ |
+| 14.6 | Hazards preview | no slides ([CR] p34) | researched | — | — | ☑ |
+| 15.1 | Hazard taxonomy: structural, data, control | no slides | researched | D15.1a structural hazard (single memory) | — | ☑ |
+| 15.2 | RAW, WAR, WAW; why only RAW in-order | no slides | researched | — | — | ☑ |
+| 15.3 | Naive solution: stalls (bubbles) | no slides | researched | D15.3a stall bubbles diagram | — | ☑ |
+| 15.4 | Forwarding (bypassing) | no slides | researched | D15.4a forwarding paths EX/MEM→EX, MEM/WB→EX | — | ☑ |
+| 15.5 | Load-use hazard: forwarding + stall | no slides | researched | D15.5a load-use 1 stall + forward | — | ☑ |
+| 15.6 | Compiler scheduling | no slides | researched | — | — | ☑ |
 
 ## Syllabus subtopics NOT found in the files → "⚠ Not covered in class – researched"
 3.6 (ALU/register-file preview — titles only), 8.5 (memory hierarchy & memory wall — only mentioned in takeaways/homework), 13.1, 13.5, 14.1–14.6, 15.1–15.6.
@@ -147,4 +148,5 @@ Badges: **class** = From class slides · **researched** = ⚠ Not covered in cla
 4. [LB6]/[L07] master-slave slide: "master captures while CLK high, slave on falling edge" → that is a **negative**-edge FF. Harris & Harris build a **positive**-edge FF with master transparent when CLK=0. Both taught.
 5. [ENC] simplified reference uses lhi/llo/trap and PC-relative j; real MIPS32 uses lui and pseudo-direct j (as in [FMT] p17).
 6. [LB2] Q34 "(A+B)(C+D) needs 6 NANDs" — **verified by exhaustive search** (docs/nand_search.c): minimum is 6.
+7. [SP3] PISO problem title says "shifting out MSB first", but with d_out = q[0] and a right shift the LSB leaves first (trace 1011 → d_out 1, 1, 0, 1). Taught as LSB first (6.5).
 EOF
