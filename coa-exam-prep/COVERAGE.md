@@ -40,46 +40,46 @@ Badges: **class** = From class slides · **researched** = ⚠ Not covered in cla
 | [ART] | Lectures/links.md → claude.ai artifact "MIPS teaching guide" |
 
 ## Build status (resume here)
-- DONE: Phase 0 inventory; Phase 1 (data/diagrams.js: 4 samples, pattern analysis, 5 predicted, top-35 list); site engine (index.html, css, js/svglib.js, js/app.js, js/tools.js with 6 tools); Units 1–5 content (data/unit01–05.js); Units 6–15 content (data/unit06–15.js: every subtopic, diagram id and code id in the table below is present; ticked ☑).
-- Units 6–15 checks run: schema check (answers in range, ≥ 3 practice per subtopic, sourceLine on researched/extra, no banned phrases, no `${`), every diagram rendered in Chromium and inspected, every `refs`/`ref` id in data/diagrams.js resolves, all 15 unit pages load with no console errors, tools (mips, datapath, pipeline) mount. MIPS encodings verified with a script; FSM outputs and pipeline cycle counts verified by simulation (pipeline numbers match js/tools.js PIPE).
-- TODO: data/mock1.js, data/mock2.js, data/extras.js (home, study plan, last-night revision, bonus 14–15), verify.py (formal checker), then tick the Done column for Units 1–5.
+- DONE (all phases): Phase 0 inventory; Phase 1 (data/diagrams.js); site engine (index.html, css, js/*); Units 1–15 (data/unit01–15.js); Mock Papers 1 and 2 (data/mock1.js, data/mock2.js: Units 1–13, 100 marks each, sections A–F); extras (data/extras.js: home, 7-day plan, last-night revision built from the unit key points, bonus page for Units 14–15); verify.py.
+- Verification: `python3 verify.py --browser` → PASS (text checks, schema check of all 541 questions and 128 diagrams via docs/check_data.js, and 24 routes opened in headless Chromium via docs/smoke.js, including mock submission scoring). Every row below is ticked ☑.
+- The mock-paper pattern is a model pattern: no official exam pattern was in the course files.
 
 ## Coverage table
 | ID | Syllabus subtopic | Source file(s) + pages | Badge | Diagrams found (SVG id) | Code / programs found (code id) | Done |
 |---|---|---|---|---|---|---|
-| 1.1 | Course introduction & roadmap | [L01] p1-10; [LB1] p15-16 | class | D1.1a six-module roadmap | — | ☐ |
-| 1.2 | Why architecture matters – abstraction stack | [L01] p2-4, p11-14; [LB1] p3-14 | class | D1.2a abstraction stack; D1.2b A[i]=B[i]+C[i] through the layers; D1.2c RTL→silicon VLSI flow | — | ☐ |
-| 1.3 | Boolean logic basics: AND, OR, NOT, XOR (+NAND, NOR, XNOR) | [L01] p15-25; [LB1] p16-34; [SP3] Lab 01 | class | D1.3a seven gate symbols | C1.3a and_gate.v; C1.3b and_tb.v; C1.3c or/not/xor gates; C1.3d nand/nor gates; C1.3e xnor_gate.v (homework) | ☐ |
-| 1.4 | Truth tables | [L01] p17-24, p26; [SP4] quiz 1 | class | D1.4a gates-at-a-glance table | C1.4a exhaustive testbench (for loop) | ☐ |
-| 1.5 | Boolean laws & simplification | [L01] p27-31; [L02] p10 | class | — (tables) | — | ☐ |
-| 1.6 | Worked simplification examples | [L01] p32-35; [LB2] Q8-Q13; [SP4] quiz 1 | class | D1.6a Y=A+BC gate circuit | — | ☐ |
-| 1.E1 | Verilog & HDL fundamentals (extra from slides) | [LB1] p17-35; [LB3] p4-13 | extra | D1.E1a simulation vs synthesis flow | C1.E1a module skeleton; C1.E1b wire vs reg; C1.E1c initial/always | ☐ |
-| 2.1 | Motivation for minimisation (cost/power) | [L02] p4-5 | class | — | — | ☐ |
-| 2.2 | Canonical forms: SOP and POS | [L02] p6-9; [LB2] Q1-Q7; [SP4] quiz 2 | class | D2.2a truth table with minterm/maxterm labels | — | ☐ |
-| 2.3 | Karnaugh maps: 2, 3, 4 variables | [L02] p11-17; [LB2] Q14-Q22 | class | D2.3a 2-var map F=B; D2.3b 3-var map F=C; D2.3c 4-var map A'B+BD+A'D'; D2.3d corners B'D'; D2.3e worked F=C' | — | ☐ |
-| 2.4 | DeMorgan's theorems & bubble pushing | [L02] p19-22; [LB2] Q27-Q30 | class | D2.4a NAND ≡ bubbled-OR; D2.4b NOR ≡ bubbled-AND | — | ☐ |
-| 2.5 | Universal gates (NAND/NOR) demonstration | [L01] p25; [L02] p23-28; [LB2] Q31-Q34; [SP4] quiz 3 | class | D2.5a NOT/AND/OR from NAND; D2.5b NOT/AND/OR from NOR; D2.5c XOR from 4 NANDs; D2.5d (A+B)(C+D) with 6 NANDs | — | ☐ |
-| 2.6 | Don't-cares in K-maps | [L02] p16; [LB2] Q21-Q26, Q35 | class | D2.6a don't-care quad A'D | — | ☐ |
-| 2.E1 | Prime implicants, EPIs, consensus theorem (extra from slides) | [LB2] Q10-Q11, Q23-Q26 | extra | D2.E1a cyclic K-map Σm(0,1,2,5,6,7) | — | ☐ |
-| 3.1 | Motivation – from gates to reusable blocks | [L03] p2-4; [LB3] p14 | class | — | — | ☐ |
-| 3.2 | Multiplexers: 2:1, 4:1, cascading | [L03] p5-11; [LB3] p15-28; [SP3] Lab 03; [SP4] quiz 3 | class | D3.2a 2:1 MUX symbol; D3.2b 2:1 MUX gates; D3.2c 4:1 MUX symbol; D3.2d 4:1 from three 2:1; D3.2e 8:1 from 4:1+2:1; D3.2f XOR on a 4:1 MUX | C3.2a mux2x1 gate-level; C3.2b mux2x1 ternary; C3.2c mux2x1_tb; C3.2d mux4_1 behavioural; C3.2e mux4_1_tb; C3.2f 8:1 MUX (homework) | ☐ |
-| 3.3 | Demultiplexers and n-to-2^n decoders | [L03] p12-14; [L04] p2-7; [LB3] p29-38; [SP3] | class | D3.3a 1:2 DEMUX gates; D3.3b 1:4 DEMUX; D3.3c 2-to-4 decoder; D3.3d 3-to-8 decoder internals | C3.3a demux1_2; C3.3b demux1_4; C3.3c demux tbs; C3.3d decoder 2-to-4 | ☐ |
-| 3.4 | Half adder design | [L04] p8-9; [LB4] p3-7; [SP3] | class | D3.4a half adder | C3.4a half_adder.v; C3.4b ha_tb.v | ☐ |
-| 3.5 | Full adder design (+ ripple-carry) | [L04] p10-13; [LB4] p8-21; [SP3]; [SP4] quiz 4 | class | D3.5a full adder gates; D3.5b FA from two HAs; D3.5c 4-bit ripple-carry adder | C3.5a full_adder.v; C3.5b fa_tb.v; C3.5c adder4.v; C3.5d adder4_tb.v | ☐ |
-| 3.6 | CPU preview – ALU and register file | only named in lecture titles; [LB4] p24; [L01] p13 | researched | D3.6a 1-bit ALU slice; D3.6b ALU + register file preview | C3.6a 4-bit ALU (Verilog) | ☐ |
-| 3.E1 | Carry-lookahead adder (extra from slides) | [L04] p13; [LB4] p21; [LB5] p4 | extra | D3.E1a CLA generate/propagate | — | ☐ |
-| 4.1 | Number systems: binary, decimal, hex | [L05] p4-10 | class | D4.1a positional weights | — | ☐ |
-| 4.2 | Signed representations overview | [L05] p11-13 | class | — | — | ☐ |
-| 4.3 | Two's complement: negation and range | [L05] p14-18; [LB5] p5; [SP4] quiz 5 | class | D4.3a 4-bit number wheel | C4.3a twos_complement negator | ☐ |
-| 4.4 | Sign extension | [L05] p17; [MIPS] p16 | class | D4.4a sign-extension wiring | C4.4a sign_extender | ☐ |
-| 4.5 | Binary addition and subtraction | [L05] p19-22; [LB5] p2-3 | class | D4.5a 4-bit adder-subtractor | C4.5a adder_subtractor | ☐ |
-| 4.6 | Overflow detection rules | [L05] p23-29; [LB5] p5-12 | class | D4.6a overflow XOR at MSB | C4.6a cla flags (cf, of); C4.6b adder_subtractor_overflow | ☐ |
-| 5.1 | Combinational vs sequential circuits | [L06] p2-7; [LB6] p3-6 | class | D5.1a feedback loop; D5.1b bistable inverter pair | — | ☐ |
-| 5.2 | SR latch: structure & forbidden state | [L06] p9-12; [LB6] p6-14; [L08] p7 | class | D5.2a NOR SR latch; D5.2b NAND SR latch; D5.2c gated SR latch | C5.2a sr_latch.v; C5.2b sr_tb.v | ☐ |
-| 5.3 | D latch (level-triggered) | [L06] p13-14; [LB6] p15-17; [SP3] | class | D5.3a D latch; D5.3b transparency waveform | C5.3a d_latch.v (from SR); C5.3b d_latch behavioural | ☐ |
-| 5.4 | D flip-flop (edge-triggered) | [L07] p2-5, p12; [LB6] p18-28; [L08] p5-12; [SP3]; [SP4] quiz 6-7 | class | D5.4a clock waveform; D5.4b ring oscillator; D5.4c master-slave D FF; D5.4d D FF symbol; D5.4e D FF waveform trace; D5.4f latch vs FF waveform | C5.4a d_ff.v; C5.4b ff_tb.v; C5.4c dff_enable; C5.4d master-slave D FF | ☐ |
-| 5.5 | Setup time, hold time, metastability | [L07] p6-15; [LB6] p29-31; [SP4] quiz 7 | class | D5.5a setup/hold window; D5.5b metastability ball; D5.5c 2-FF synchronizer | — | ☐ |
-| 5.E1 | JK & T flip-flops, characteristic & excitation tables (extra from slides) | [L08] p5-12; [LB7] p19 | extra | D5.E1a JK latch; D5.E1b T FF from JK and from D | — | ☐ |
+| 1.1 | Course introduction & roadmap | [L01] p1-10; [LB1] p15-16 | class | D1.1a six-module roadmap | — | ☑ |
+| 1.2 | Why architecture matters – abstraction stack | [L01] p2-4, p11-14; [LB1] p3-14 | class | D1.2a abstraction stack; D1.2b A[i]=B[i]+C[i] through the layers; D1.2c RTL→silicon VLSI flow | — | ☑ |
+| 1.3 | Boolean logic basics: AND, OR, NOT, XOR (+NAND, NOR, XNOR) | [L01] p15-25; [LB1] p16-34; [SP3] Lab 01 | class | D1.3a seven gate symbols | C1.3a and_gate.v; C1.3b and_tb.v; C1.3c or/not/xor gates; C1.3d nand/nor gates; C1.3e xnor_gate.v (homework) | ☑ |
+| 1.4 | Truth tables | [L01] p17-24, p26; [SP4] quiz 1 | class | D1.4a gates-at-a-glance table | C1.4a exhaustive testbench (for loop) | ☑ |
+| 1.5 | Boolean laws & simplification | [L01] p27-31; [L02] p10 | class | — (tables) | — | ☑ |
+| 1.6 | Worked simplification examples | [L01] p32-35; [LB2] Q8-Q13; [SP4] quiz 1 | class | D1.6a Y=A+BC gate circuit | — | ☑ |
+| 1.E1 | Verilog & HDL fundamentals (extra from slides) | [LB1] p17-35; [LB3] p4-13 | extra | D1.E1a simulation vs synthesis flow | C1.E1a module skeleton; C1.E1b wire vs reg; C1.E1c initial/always | ☑ |
+| 2.1 | Motivation for minimisation (cost/power) | [L02] p4-5 | class | — | — | ☑ |
+| 2.2 | Canonical forms: SOP and POS | [L02] p6-9; [LB2] Q1-Q7; [SP4] quiz 2 | class | D2.2a truth table with minterm/maxterm labels | — | ☑ |
+| 2.3 | Karnaugh maps: 2, 3, 4 variables | [L02] p11-17; [LB2] Q14-Q22 | class | D2.3a 2-var map F=B; D2.3b 3-var map F=C; D2.3c 4-var map A'B+BD+A'D'; D2.3d corners B'D'; D2.3e worked F=C' | — | ☑ |
+| 2.4 | DeMorgan's theorems & bubble pushing | [L02] p19-22; [LB2] Q27-Q30 | class | D2.4a NAND ≡ bubbled-OR; D2.4b NOR ≡ bubbled-AND | — | ☑ |
+| 2.5 | Universal gates (NAND/NOR) demonstration | [L01] p25; [L02] p23-28; [LB2] Q31-Q34; [SP4] quiz 3 | class | D2.5a NOT/AND/OR from NAND; D2.5b NOT/AND/OR from NOR; D2.5c XOR from 4 NANDs; D2.5d (A+B)(C+D) with 6 NANDs | — | ☑ |
+| 2.6 | Don't-cares in K-maps | [L02] p16; [LB2] Q21-Q26, Q35 | class | D2.6a don't-care quad A'D | — | ☑ |
+| 2.E1 | Prime implicants, EPIs, consensus theorem (extra from slides) | [LB2] Q10-Q11, Q23-Q26 | extra | D2.E1a cyclic K-map Σm(0,1,2,5,6,7) | — | ☑ |
+| 3.1 | Motivation – from gates to reusable blocks | [L03] p2-4; [LB3] p14 | class | — | — | ☑ |
+| 3.2 | Multiplexers: 2:1, 4:1, cascading | [L03] p5-11; [LB3] p15-28; [SP3] Lab 03; [SP4] quiz 3 | class | D3.2a 2:1 MUX symbol; D3.2b 2:1 MUX gates; D3.2c 4:1 MUX symbol; D3.2d 4:1 from three 2:1; D3.2e 8:1 from 4:1+2:1; D3.2f XOR on a 4:1 MUX | C3.2a mux2x1 gate-level; C3.2b mux2x1 ternary; C3.2c mux2x1_tb; C3.2d mux4_1 behavioural; C3.2e mux4_1_tb; C3.2f 8:1 MUX (homework) | ☑ |
+| 3.3 | Demultiplexers and n-to-2^n decoders | [L03] p12-14; [L04] p2-7; [LB3] p29-38; [SP3] | class | D3.3a 1:2 DEMUX gates; D3.3b 1:4 DEMUX; D3.3c 2-to-4 decoder; D3.3d 3-to-8 decoder internals | C3.3a demux1_2; C3.3b demux1_4; C3.3c demux tbs; C3.3d decoder 2-to-4 | ☑ |
+| 3.4 | Half adder design | [L04] p8-9; [LB4] p3-7; [SP3] | class | D3.4a half adder | C3.4a half_adder.v; C3.4b ha_tb.v | ☑ |
+| 3.5 | Full adder design (+ ripple-carry) | [L04] p10-13; [LB4] p8-21; [SP3]; [SP4] quiz 4 | class | D3.5a full adder gates; D3.5b FA from two HAs; D3.5c 4-bit ripple-carry adder | C3.5a full_adder.v; C3.5b fa_tb.v; C3.5c adder4.v; C3.5d adder4_tb.v | ☑ |
+| 3.6 | CPU preview – ALU and register file | only named in lecture titles; [LB4] p24; [L01] p13 | researched | D3.6a 1-bit ALU slice; D3.6b ALU + register file preview | C3.6a 4-bit ALU (Verilog) | ☑ |
+| 3.E1 | Carry-lookahead adder (extra from slides) | [L04] p13; [LB4] p21; [LB5] p4 | extra | D3.E1a CLA generate/propagate | — | ☑ |
+| 4.1 | Number systems: binary, decimal, hex | [L05] p4-10 | class | D4.1a positional weights | — | ☑ |
+| 4.2 | Signed representations overview | [L05] p11-13 | class | — | — | ☑ |
+| 4.3 | Two's complement: negation and range | [L05] p14-18; [LB5] p5; [SP4] quiz 5 | class | D4.3a 4-bit number wheel | C4.3a twos_complement negator | ☑ |
+| 4.4 | Sign extension | [L05] p17; [MIPS] p16 | class | D4.4a sign-extension wiring | C4.4a sign_extender | ☑ |
+| 4.5 | Binary addition and subtraction | [L05] p19-22; [LB5] p2-3 | class | D4.5a 4-bit adder-subtractor | C4.5a adder_subtractor | ☑ |
+| 4.6 | Overflow detection rules | [L05] p23-29; [LB5] p5-12 | class | D4.6a overflow XOR at MSB | C4.6a cla flags (cf, of); C4.6b adder_subtractor_overflow | ☑ |
+| 5.1 | Combinational vs sequential circuits | [L06] p2-7; [LB6] p3-6 | class | D5.1a feedback loop; D5.1b bistable inverter pair | — | ☑ |
+| 5.2 | SR latch: structure & forbidden state | [L06] p9-12; [LB6] p6-14; [L08] p7 | class | D5.2a NOR SR latch; D5.2b NAND SR latch; D5.2c gated SR latch | C5.2a sr_latch.v; C5.2b sr_tb.v | ☑ |
+| 5.3 | D latch (level-triggered) | [L06] p13-14; [LB6] p15-17; [SP3] | class | D5.3a D latch; D5.3b transparency waveform | C5.3a d_latch.v (from SR); C5.3b d_latch behavioural | ☑ |
+| 5.4 | D flip-flop (edge-triggered) | [L07] p2-5, p12; [LB6] p18-28; [L08] p5-12; [SP3]; [SP4] quiz 6-7 | class | D5.4a clock waveform; D5.4b ring oscillator; D5.4c master-slave D FF; D5.4d D FF symbol; D5.4e D FF waveform trace; D5.4f latch vs FF waveform | C5.4a d_ff.v; C5.4b ff_tb.v; C5.4c dff_enable; C5.4d master-slave D FF | ☑ |
+| 5.5 | Setup time, hold time, metastability | [L07] p6-15; [LB6] p29-31; [SP4] quiz 7 | class | D5.5a setup/hold window; D5.5b metastability ball; D5.5c 2-FF synchronizer | — | ☑ |
+| 5.E1 | JK & T flip-flops, characteristic & excitation tables (extra from slides) | [L08] p5-12; [LB7] p19 | extra | D5.E1a JK latch; D5.E1b T FF from JK and from D | — | ☑ |
 | 6.1 | Scaling from flip-flops to registers | [L08] p14-16; [LB7] p4 | class | D6.1a 4-bit register (4 D FFs) | — | ☑ |
 | 6.2 | Registers: load enable, reset, CPU preview | [L08] p13, p16-17; [LB7] p4, p12; [LB8] Q1-Q2; [SP3] | class | D6.2a load-enable MUX per bit; D6.2b 8-bit register block | C6.2a register_8bit; C6.2b register_8bit_rst | ☑ |
 | 6.3 | Asynchronous (ripple) vs synchronous counters | [L08] p21-27; [CNT] p2-8; [LB7] p14-17, p25; [SP4] quiz 8 | class | D6.3a 3-bit ripple counter; D6.3b counter waveforms; D6.3c ripple 7→8 glitch timeline | C6.3a ripple counter (Verilog) | ☑ |
