@@ -1,0 +1,748 @@
+<!-- One-shot revision notes: content only. build.py wraps this in the typed and the handwritten style.
+     Markup: .f = formula box (highlighted), .d = derivation (numbered steps), .w = worked calculation,
+     .t = exam trap, mark = highlight, figure[data-d] = diagram pulled from the unit data files. -->
+
+<section class="cover">
+<h1>Modern Computer Architecture (CSA222)<br>One-Shot Revision Notes</h1>
+<p class="sub">Every concept, formula and derivation from Units 1–15, step by step. Read top to bottom the day before the exam.</p>
+<div class="legend">
+<div class="f mini">Yellow box = formula / rule to memorise</div>
+<div class="d mini"><b>Derivation</b> = where a formula comes from, every step written out</div>
+<div class="w mini"><b>Worked</b> = a full calculation, nothing skipped</div>
+<div class="t mini">Red = exam trap (where marks are usually lost)</div>
+</div>
+<ol class="toc">
+<li>Boolean Algebra &amp; Gates</li><li>K-maps &amp; Universal Gates</li><li>MUX, Decoders, Adders, ALU</li><li>Number Systems &amp; Two's Complement</li><li>Latches, Flip-Flops &amp; Timing</li><li>Registers, Counters, Shift Registers</li><li>Register Files &amp; FSMs</li><li>SRAM, DRAM &amp; Memory Hierarchy</li><li>Von Neumann vs Harvard</li><li>CISC vs RISC</li><li>MIPS Registers &amp; Instruction Formats</li><li>C to MIPS</li><li>Single-Cycle Datapath</li><li>Pipelining (bonus)</li><li>Hazards (bonus)</li><li>All formulas on one page</li>
+</ol>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>1. Boolean Algebra &amp; Gates</h2>
+
+<h3>Big picture</h3>
+<p><b>Abstraction stack</b> (top to bottom): AI/ML models → applications &amp; languages → OS → <mark>ISA</mark> → datapath &amp; control → logic gates → transistors. The ISA is the contract between software and hardware.</p>
+<p><mark>Architecture = the “what”</mark> (programmer-visible: instructions, registers). <mark>Organisation = the “how”</mark> (hidden implementation: pipelines, caches, how ADD is built).</p>
+<p>1 = TRUE = HIGH (about 3.3 V / 5 V); 0 = FALSE = LOW (0 V).</p>
+
+<h3>The seven gates</h3>
+<div class="f">
+<table class="tt"><tr><th>A B</th><th>AND<br>AB</th><th>OR<br>A+B</th><th>NAND<br>(AB)'</th><th>NOR<br>(A+B)'</th><th>XOR<br>A⊕B</th><th>XNOR<br>(A⊕B)'</th></tr>
+<tr><td>0 0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>0 1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>1 0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>1 1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr></table>
+NOT: A' (flips). &nbsp; <b>XOR = A'B + AB'</b> (1 when inputs DIFFER). &nbsp; <b>XNOR = A'B' + AB</b> (1 when inputs are EQUAL).
+</div>
+<p>Memory hooks: AND = “all 1”; OR = “any 1”; NAND/NOR = AND/OR then flip; XOR = “odd number of 1s”.</p>
+
+<h3>Boolean laws</h3>
+<div class="f">
+<table class="tt"><tr><th>Law</th><th>OR form</th><th>AND form</th></tr>
+<tr><td>Identity</td><td>A + 0 = A</td><td>A · 1 = A</td></tr>
+<tr><td>Null</td><td>A + 1 = 1</td><td>A · 0 = 0</td></tr>
+<tr><td>Idempotent</td><td>A + A = A</td><td>A · A = A</td></tr>
+<tr><td>Complement</td><td>A + A' = 1</td><td>A · A' = 0</td></tr>
+<tr><td>Involution</td><td colspan="2">(A')' = A</td></tr>
+<tr><td>Distributive</td><td>A + BC = (A + B)(A + C)</td><td>A(B + C) = AB + AC</td></tr>
+<tr><td>Absorption</td><td>A + AB = A</td><td>A(A + B) = A</td></tr>
+<tr><td>Redundancy</td><td>A + A'B = A + B</td><td>A(A' + B) = AB</td></tr>
+<tr><td>De Morgan</td><td>(A + B)' = A'B'</td><td>(AB)' = A' + B'</td></tr>
+<tr><td>Consensus</td><td colspan="2">XY + X'Z + YZ = XY + X'Z</td></tr></table>
+De Morgan in words: <b>“break the bar, change the sign”</b>.
+</div>
+<p class="t">“+” means OR, not addition: A + 1 = 1 (not 2). The distributive law A + BC = (A + B)(A + C) has no equivalent in ordinary algebra — students forget it exists.</p>
+
+<h3>Derivations of the laws you must be able to prove</h3>
+<div class="d"><b>Absorption: A + AB = A</b>
+<ol><li>Take A out as a common factor: A + AB = A·1 + A·B = A(1 + B)</li>
+<li>Null law: 1 + B = 1</li>
+<li>So A(1 + B) = A · 1 = <b>A</b></li></ol></div>
+<div class="d"><b>Absorption (AND form): A(A + B) = A</b>
+<ol><li>Multiply out: A·A + A·B</li><li>Idempotent: A·A = A, so we get A + AB</li><li>By the previous result, A + AB = <b>A</b></li></ol></div>
+<div class="d"><b>Redundancy: A + A'B = A + B</b>
+<ol><li>Use the distributive law X + YZ = (X + Y)(X + Z) with X = A, Y = A', Z = B</li>
+<li>A + A'B = (A + A')(A + B)</li><li>Complement: A + A' = 1</li><li>So it is 1 · (A + B) = <b>A + B</b></li></ol></div>
+<div class="d"><b>Combining: AB + AB' = A</b>
+<ol><li>Take A out: A(B + B')</li><li>B + B' = 1</li><li>A · 1 = <b>A</b></li></ol></div>
+<div class="d"><b>Consensus: XY + X'Z + YZ = XY + X'Z</b>
+<ol><li>Multiply the extra term YZ by 1 = (X + X'): YZ = YZ(X + X') = XYZ + X'YZ</li>
+<li>Whole expression = XY + X'Z + XYZ + X'YZ</li>
+<li>Group: (XY + XYZ) + (X'Z + X'YZ)</li>
+<li>Absorption on each group: XY(1 + Z) = XY and X'Z(1 + Y) = X'Z</li>
+<li>Result = <b>XY + X'Z</b> (the YZ term was redundant)</li></ol></div>
+
+<h3>Worked simplifications</h3>
+<div class="w"><b>Simplify A'B'C + A'BC + AB'C + ABC + A'B</b>
+<ol><li>Look at the first four terms: they all contain C. Take C out: C(A'B' + A'B + AB' + AB)</li>
+<li>A'B' + A'B + AB' + AB is every combination of A and B, so it equals 1. (Check: A'(B' + B) + A(B' + B) = A' + A = 1)</li>
+<li>So the first four terms = C · 1 = C</li>
+<li>Expression = <b>C + A'B</b></li></ol></div>
+<div class="w"><b>Complement of (A + B)(A' + C)</b>
+<ol><li>First simplify: (A + B)(A' + C) = AA' + AC + A'B + BC = 0 + AC + A'B + BC</li>
+<li>BC is the consensus of AC and A'B, so it disappears → AC + A'B</li>
+<li>Complement: (AC + A'B)' = (AC)' · (A'B)' (De Morgan)</li>
+<li>= (A' + C')(A + B') (De Morgan again on each bracket)</li>
+<li>Multiply out: A'A + A'B' + AC' + B'C' = 0 + A'B' + AC' + B'C'</li>
+<li>B'C' is the consensus of A'B' and AC' → drops. Answer <b>A'B' + AC'</b></li></ol></div>
+<div class="w"><b>Nested De Morgan: ((A + B)'C)' + (AB)'</b>
+<ol><li>((A + B)'C)' = ((A + B)')' + C' = (A + B) + C'</li>
+<li>(AB)' = A' + B'</li>
+<li>Sum = A + B + C' + A' + B'</li><li>A + A' = 1, and 1 + anything = 1. Answer <b>1</b></li></ol></div>
+
+<h3>Lab essentials (Verilog)</h3>
+<div class="f">
+<code>module and_gate(input a, input b, output y); assign y = a &amp; b; endmodule</code><br>
+Operators: <code>&amp;</code> AND, <code>|</code> OR, <code>~</code> NOT, <code>^</code> XOR, <code>~^</code> XNOR. <code>wire</code> = driven by <code>assign</code>; <code>reg</code> = assigned inside <code>always</code>/<code>initial</code>.<br>
+Testbench: no ports; <code>reg</code> inputs, <code>wire</code> outputs; <code>#10</code> = wait 10 time units; <code>$monitor</code> prints on change; <code>$dumpfile/$dumpvars</code> → waveform; <code>$finish</code> ends.<br>
+Simulation (iverilog → GTKWave) checks behaviour; synthesis turns RTL into a gate netlist. Flow: spec → RTL → simulate → synthesize → netlist → place &amp; route → verify (DRC/LVS/STA) → fabricate.
+</div>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>2. K-maps &amp; Universal Gates</h2>
+<p>Why minimise: fewer gates → less area, less power, faster, cheaper (“16 gates → 2 gates”).</p>
+
+<h3>Canonical forms</h3>
+<div class="f"><b>Minterm (for SOP):</b> a row where F = 1. Variable 1 → write X, variable 0 → write X'. Example row 101 → m5 = AB'C.<br>
+<b>Maxterm (for POS):</b> a row where F = 0. Variable 0 → write X, variable 1 → write X'. Example row 011 → M3 = (A + B' + C').<br>
+F = Σm(rows where F = 1) = ΠM(all the other rows). The two index lists together are 0 to 2ⁿ − 1.</div>
+<p class="t">The POS rule is the OPPOSITE of the SOP rule (0 → plain variable). This flip is the number-one trap.</p>
+<div class="w"><b>F = Σm(1, 3, 5, 7) for A, B, C</b>
+<ol><li>Rows 001, 011, 101, 111 → SOP = A'B'C + A'BC + AB'C + ABC</li>
+<li>POS uses the other rows 0, 2, 4, 6 → (A + B + C)(A + B' + C)(A' + B + C)(A' + B' + C)</li>
+<li>Simplify the SOP: A'C(B' + B) + AC(B' + B) = A'C + AC</li>
+<li>= C(A' + A) = <b>C</b>. (Every listed row has C = 1 and the others have C = 0.)</li></ol></div>
+
+<h3>Karnaugh maps</h3>
+<div class="f">
+Rows/columns are in <b>Gray code: 00, 01, 11, 10</b> (neighbours differ in ONE bit).<br>
+Group only 1s (and don't-cares) in rectangles of size <b>1, 2, 4, 8, 16</b> (powers of 2). The map <b>wraps around</b>: left edge touches right edge, top touches bottom, the four corners form one group.<br>
+<b>A group of 2ᵏ cells removes k variables.</b> Keep only the variables that do not change inside the group.<br>
+Make groups as LARGE as possible and as FEW as possible; overlap is allowed; diagonal groups are not.
+</div>
+<div class="d"><b>Why grouping works</b>
+<ol><li>Two cells side by side differ in exactly one variable, say B: e.g. A'BC' and A'B'C'.</li>
+<li>Add them: A'C'(B + B') = A'C'. The changing variable B disappears.</li>
+<li>A group of 4 = two such pairs differing in another variable → that one disappears too. So each doubling removes one variable.</li></ol></div>
+<div class="w"><b>F(A,B,C,D) = Σm(0, 2, 5, 7, 8, 10, 13, 15)</b>
+<ol><li>Corners m0 (0000), m2 (0010), m8 (1000), m10 (1010): in all four, B = 0 and D = 0; A and C change → group = <b>B'D'</b></li>
+<li>Centre m5 (0101), m7 (0111), m13 (1101), m15 (1111): B = 1 and D = 1 everywhere; A and C change → <b>BD</b></li>
+<li>F = B'D' + BD = <b>(B ⊙ D)</b>, the XNOR of B and D.</li></ol></div>
+<figure data-d="D2.3d"></figure>
+<div class="w"><b>F(A,B,C,D) = Σm(0, 1, 2, 5, 8, 9, 10)</b>
+<ol><li>Corners 0, 2, 8, 10 → B'D'</li>
+<li>m0, m1, m8, m9 (B = 0, C = 0; A and D change) → B'C'</li>
+<li>m5 (0101) is still uncovered. Pair it with m1 (0001): A = 0, C = 0, D = 1 stay fixed → A'C'D</li>
+<li>F = <b>B'D' + B'C' + A'C'D</b></li></ol></div>
+<p><b>Don't-cares (X):</b> input combinations that never happen (e.g. BCD 10–15). Treat an X as 1 if it makes a group bigger, otherwise as 0; never group Xs alone.</p>
+<p><b>Prime implicant (PI)</b> = a group that cannot be made larger. <b>Essential PI (EPI)</b> = a PI that is the only one covering some 1. The minimal SOP = all EPIs + the fewest extra PIs to cover the remaining 1s. A <b>cyclic</b> map (e.g. Σm(0,1,2,5,6,7)) has no EPI: answer A'B' + BC' + AC.</p>
+
+<h3>De Morgan &amp; bubble pushing</h3>
+<div class="f">NAND = OR with inverted inputs: (AB)' = A' + B'.&nbsp;&nbsp; NOR = AND with inverted inputs: (A + B)' = A'B'.<br>
+Two bubbles on the same wire cancel (double inversion).</div>
+
+<h3>Universal gates — gate counts</h3>
+<div class="f"><table class="tt"><tr><th></th><th>NOT</th><th>AND</th><th>OR</th><th>XOR</th></tr>
+<tr><td>NAND only</td><td>1</td><td>2</td><td>3</td><td>4</td></tr>
+<tr><td>NOR only</td><td>1</td><td>3</td><td>2</td><td>5</td></tr></table>
+SOP (AND–OR) → <b>NAND–NAND</b>. POS (OR–AND) → <b>NOR–NOR</b>. (A + B)(C + D) with only 2-input NANDs needs <b>6</b>.<br>
+CMOS: NAND = 4 transistors, AND = 6 (AND is NAND + inverter) → fabs prefer NAND.</div>
+<div class="d"><b>Building each gate from NAND</b>
+<ol><li>NOT: NAND(A, A) = (A·A)' = A'</li>
+<li>AND: NAND then NOT: ((AB)')' = AB → 2 gates</li>
+<li>OR: NAND(A', B') = (A'B')' = A + B (De Morgan). A' and B' each cost one NAND → 3 gates</li></ol></div>
+<div class="d"><b>XOR from 4 NANDs</b>
+<ol><li>Gate 1: X = (AB)' = A' + B'</li>
+<li>Gate 2: P = (A·X)'. Inside: A·X = A(A' + B') = AA' + AB' = AB'. So P = (AB')'</li>
+<li>Gate 3: Q = (B·X)'. Inside: B(A' + B') = A'B. So Q = (A'B)'</li>
+<li>Gate 4: (P·Q)' = P' + Q' = AB' + A'B = <b>A ⊕ B</b></li></ol></div>
+<div class="d"><b>Why SOP becomes NAND–NAND: F = AB + CD</b>
+<ol><li>Double complement changes nothing: F = ((AB + CD)')'</li>
+<li>De Morgan on the inner bar: (AB + CD)' = (AB)'·(CD)'</li>
+<li>So F = ((AB)'·(CD)')' → a NAND of two NANDs. Three 2-input NANDs.</li>
+<li>Same idea for POS: F = (A + B)(C + D) = ((A + B)' + (C + D)')' → NOR of two NORs.</li></ol></div>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>3. MUX, Decoders, Adders, ALU</h2>
+
+<h3>Multiplexer (data selector)</h3>
+<div class="f">2:1 MUX: <b>Y = S'·I0 + S·I1</b><br>
+4:1 MUX: <b>Y = S1'S0'·I0 + S1'S0·I1 + S1S0'·I2 + S1S0·I3</b><br>
+n select lines → 2ⁿ inputs (8:1 needs 3 selects). A 2ⁿ:1 MUX built from 2:1 MUXes needs 2ⁿ − 1 of them (4:1 → 3; 8:1 → 7).<br>
+A 2ⁿ:1 MUX can implement ANY function of n variables; a 2ⁿ:1 MUX can also do n + 1 variables using the “residue” trick (inputs 0, 1, X or X').</div>
+<div class="w"><b>Implement F(A,B,C) = Σm(1, 3, 5, 6) with a 4:1 MUX (S1 = A, S0 = B)</b>
+<ol><li>For each value of AB, see what F does as C changes.</li>
+<li>AB = 00: rows 000 (m0, F = 0) and 001 (m1, F = 1) → F = C → <b>I0 = C</b></li>
+<li>AB = 01: rows 010 (m2, 0) and 011 (m3, 1) → F = C → <b>I1 = C</b></li>
+<li>AB = 10: rows 100 (m4, 0) and 101 (m5, 1) → F = C → <b>I2 = C</b></li>
+<li>AB = 11: rows 110 (m6, 1) and 111 (m7, 0) → F = C' → <b>I3 = C'</b></li></ol></div>
+<p>XOR on a 4:1 MUX with S1 = A, S0 = B: I0 = 0, I1 = 1, I2 = 1, I3 = 0.</p>
+
+<h3>Demultiplexer and decoder</h3>
+<div class="f">1:2 DEMUX: Y0 = S'·D, Y1 = S·D.<br>
+n-to-2ⁿ decoder: output <b>Dk = minterm k</b>; exactly one output is 1 (one-hot); built from 2ⁿ AND gates + n inverters.<br>
+A decoder is a DEMUX whose data input is tied to 1 (the enable).<br>
+<b>Any function = OR of the decoder outputs for its minterms.</b></div>
+<table class="tt"><tr><th></th><th>MUX</th><th>DEMUX</th><th>Decoder</th></tr><tr><td>Inputs</td><td>2ⁿ data + n select</td><td>1 data + n select</td><td>n address</td></tr><tr><td>Outputs</td><td>1</td><td>2ⁿ</td><td>2ⁿ (one-hot)</td></tr><tr><td>Job</td><td>many → one</td><td>one → many</td><td>number → one line</td></tr></table>
+<p>Full adder from a 3-to-8 decoder: Sum = D1 + D2 + D4 + D7; Cout = D3 + D5 + D6 + D7.</p>
+
+<h3>Half adder</h3>
+<div class="d"><b>From the truth table</b>
+<ol><li>A B → Sum Carry: 00 → 0 0; 01 → 1 0; 10 → 1 0; 11 → 0 1 (1 + 1 = 10 in binary)</li>
+<li>Sum is 1 when the inputs differ → Sum = A'B + AB' = <b>A ⊕ B</b></li>
+<li>Carry is 1 only for 11 → <b>Carry = A·B</b></li>
+<li>Limitation: no carry-in, so it cannot be chained.</li></ol></div>
+
+<h3>Full adder</h3>
+<div class="f"><b>Sum = A ⊕ B ⊕ Cin</b> (odd parity) &nbsp;&nbsp; <b>Cout = AB + Cin(A ⊕ B)</b> = AB + BCin + ACin (majority)</div>
+<div class="d"><b>Sum derivation</b>
+<ol><li>Sum = 1 on rows 001, 010, 100, 111 → Σm(1, 2, 4, 7) = A'B'C + A'BC' + AB'C' + ABC (C = Cin)</li>
+<li>Group by A: A'(B'C + BC') + A(B'C' + BC)</li>
+<li>B'C + BC' = B ⊕ C, and B'C' + BC = (B ⊕ C)'</li>
+<li>So Sum = A'(B ⊕ C) + A(B ⊕ C)' — this is the XOR pattern X'Y + XY' with X = A, Y = B ⊕ C</li>
+<li>Sum = <b>A ⊕ B ⊕ C</b></li></ol></div>
+<div class="d"><b>Cout derivation</b>
+<ol><li>Cout = 1 on rows 011, 101, 110, 111 → A'BC + AB'C + ABC' + ABC</li>
+<li>Group the last two: ABC' + ABC = AB(C' + C) = AB</li>
+<li>Group the first two: A'BC + AB'C = C(A'B + AB') = C(A ⊕ B)</li>
+<li>Cout = <b>AB + C(A ⊕ B)</b></li></ol></div>
+<p><b>Full adder from two half adders + OR:</b> HA1(A, B) → S1 = A ⊕ B, C1 = AB. HA2(S1, Cin) → Sum = S1 ⊕ Cin, C2 = S1·Cin. Cout = C1 + C2. The OR is safe because C1 and C2 can never both be 1 (if A = B = 1 then S1 = 0 so C2 = 0).</p>
+
+<h3>Ripple-carry adder and carry-lookahead</h3>
+<div class="f">n-bit RCA = n full adders, Cout of stage i → Cin of stage i + 1, Cin0 = 0 (or 1 for subtraction).<br>
+Delay grows <b>linearly</b>: about 2 gate delays per bit → 4-bit ≈ 8, 64-bit ≈ 128 gate delays.<br>
+<b>Carry-lookahead:</b> Generate Gi = Ai·Bi, Propagate Pi = Ai ⊕ Bi, <b>C(i+1) = Gi + Pi·Ci</b>.</div>
+<div class="d"><b>Expanding the lookahead carries (no waiting for ripple)</b>
+<ol><li>C1 = G0 + P0·C0</li>
+<li>C2 = G1 + P1·C1 = G1 + P1(G0 + P0C0) = G1 + P1G0 + P1P0C0</li>
+<li>C3 = G2 + P2·C2 = G2 + P2G1 + P2P1G0 + P2P1P0C0</li>
+<li>Every carry is now a 2-level AND-OR of the inputs → roughly constant delay per block, at the cost of more area.</li></ol></div>
+
+<h3>ALU (preview, researched)</h3>
+<div class="f">1-bit ALU slice = AND gate + OR gate + full adder + MUX selecting the operation. Subtract with Binvert = 1 and carry-in = 1 (A + B' + 1).<br>
+<b>ALU control: 0000 AND, 0001 OR, 0010 add, 0110 subtract, 0111 slt.</b> Zero flag = NOR of all result bits (1 when the result is 0).</div>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>4. Number Systems &amp; Two's Complement</h2>
+
+<h3>Conversions</h3>
+<div class="f">Value = Σ (digit × base<sup>position</sup>), positions counted from 0 on the right.<br>
+Powers of 2: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024.&nbsp; 1 hex digit = 4 bits; 1 octal digit = 3 bits.<br>
+Hex digits: A = 10, B = 11, C = 12, D = 13, E = 14, F = 15.</div>
+<div class="w"><b>Binary → decimal: 101101</b>
+<ol><li>Write the weights under the bits: 1×32, 0×16, 1×8, 1×4, 0×2, 1×1</li><li>Add the weights where the bit is 1: 32 + 8 + 4 + 1 = <b>45</b></li></ol></div>
+<div class="w"><b>Decimal → binary: 42</b>
+<ol><li>42 ÷ 2 = 21 remainder 0</li><li>21 ÷ 2 = 10 remainder 1</li><li>10 ÷ 2 = 5 remainder 0</li><li>5 ÷ 2 = 2 remainder 1</li><li>2 ÷ 2 = 1 remainder 0</li><li>1 ÷ 2 = 0 remainder 1</li>
+<li>Read the remainders from the BOTTOM up: <b>101010</b>. Check: 32 + 8 + 2 = 42 ✓</li></ol></div>
+<div class="w"><b>Binary ↔ hex: 10110101</b>
+<ol><li>Split into groups of 4 from the right: 1011 | 0101</li><li>1011 = 8 + 2 + 1 = 11 = B; 0101 = 4 + 1 = 5 → <b>0xB5</b></li>
+<li>To decimal: B × 16 + 5 = 11 × 16 + 5 = 176 + 5 = <b>181</b></li></ol>
+Also: 0x2A = 0010 1010 = 2 × 16 + 10 = 42. &nbsp; 0xFF = 255.</div>
+
+<h3>Signed representations</h3>
+<div class="f"><table class="tt"><tr><th>n bits</th><th>Range</th><th>Zeros</th></tr>
+<tr><td>Unsigned</td><td>0 to 2ⁿ − 1</td><td>one</td></tr>
+<tr><td>Sign-magnitude</td><td>−(2ⁿ⁻¹ − 1) to +(2ⁿ⁻¹ − 1)</td><td>two (+0, −0)</td></tr>
+<tr><td>One's complement</td><td>−(2ⁿ⁻¹ − 1) to +(2ⁿ⁻¹ − 1)</td><td>two</td></tr>
+<tr><td><b>Two's complement</b></td><td><b>−2ⁿ⁻¹ to 2ⁿ⁻¹ − 1</b></td><td>one</td></tr></table>
+Two's complement ranges: 4-bit −8 to 7; 6-bit −32 to 31; 8-bit −128 to 127; 16-bit −32768 to 32767; 32-bit about ±2.1 billion.<br>
+<b>MSB weight is −2ⁿ⁻¹</b> (−128 in 8 bits); all other bits are positive.</div>
+
+<h3>Two's complement</h3>
+<div class="f"><b>Negate: invert every bit, then add 1</b> (−x = x' + 1).<br>Shortcut: from the right, copy bits up to and including the first 1, then invert everything to its left.</div>
+<div class="d"><b>Why “invert and add 1” gives −x</b>
+<ol><li>In n bits, x + x' = 111…1 (every column is 0 + 1 or 1 + 0) = 2ⁿ − 1</li>
+<li>So x' + 1 = 2ⁿ − x</li>
+<li>An n-bit register throws away the 2ⁿ carry (works modulo 2ⁿ), so 2ⁿ − x behaves exactly like −x</li></ol></div>
+<div class="w"><b>−18 in 8 bits</b>
+<ol><li>+18 = 16 + 2 = 00010010</li><li>Invert: 11101101</li><li>Add 1: 11101110 → <b>−18 = 11101110</b></li>
+<li>Check with the MSB weight: −128 + 64 + 32 + 8 + 4 + 2 = −128 + 110 = −18 ✓</li></ol></div>
+<div class="w"><b>−45 in 8 bits</b>
+<ol><li>45 = 32 + 8 + 4 + 1 = 00101101</li><li>Invert: 11010010</li><li>Add 1: <b>11010011</b></li></ol></div>
+<div class="w"><b>0xB7 as signed and unsigned</b>
+<ol><li>0xB7 = 1011 0111</li><li>Unsigned: 128 + 32 + 16 + 4 + 2 + 1 = 183</li><li>Signed: −128 + 32 + 16 + 4 + 2 + 1 = −128 + 55 = <b>−73</b></li></ol>
+Same bits, different meaning: 11111111 = 255 unsigned = −1 signed. 10000000 = −128 (the most negative 8-bit value).</div>
+
+<h3>Sign extension</h3>
+<div class="f">To widen a two's-complement number, <b>copy the MSB (sign bit) into every new bit</b>. +5 = 0101 → 0000 0101; −5 = 1011 → 1111 1011. Zero-padding −5 would give +11 (wrong).<br>
+MIPS: 16-bit 0xFFFB → 0xFFFFFFFB = −5. Unsigned values (lbu, andi/ori/xori) are zero-extended.</div>
+<div class="d"><b>Why copying the sign bit keeps the value (negative case)</b>
+<ol><li>Old MSB of an n-bit number has weight −2ⁿ⁻¹</li>
+<li>After adding one more 1 on top: the new top bit has weight −2ⁿ and the old top bit becomes +2ⁿ⁻¹</li>
+<li>Their sum: −2ⁿ + 2ⁿ⁻¹ = −2·2ⁿ⁻¹ + 2ⁿ⁻¹ = −2ⁿ⁻¹ — the same as before, so the value does not change</li></ol></div>
+
+<h3>Addition, subtraction, overflow</h3>
+<div class="f"><b>A − B = A + B' + 1</b>. Adder–subtractor: each Bi goes through XOR with M, and M is also the carry-in. M = 0 → A + B; M = 1 → A + B' + 1 = A − B.<br>
+<b>Signed overflow V = C(into MSB) ⊕ C(out of MSB)</b> = C3 ⊕ C4 for 4 bits.<br>
+Rule: overflow only when two numbers of the <b>same sign</b> give a result of the <b>opposite sign</b>. Adding numbers of opposite signs never overflows.<br>
+<b>Unsigned overflow (carry flag CF) = C4</b>, the carry out of the MSB. In subtraction (A + B' + 1), carry = 1 means NO borrow.</div>
+<div class="d"><b>Why V = C3 ⊕ C4 (look only at the MSB column: a3, b3, carry-in c3)</b>
+<ol><li>Case a3 = b3 = 0 (both positive): sum bit = c3, carry out c4 = 0. Overflow when c3 = 1 (result looks negative) → c3 = 1, c4 = 0 → they differ.</li>
+<li>Case a3 = b3 = 1 (both negative): c4 = 1 always; sum bit = c3. Overflow when c3 = 0 (result looks positive) → c3 = 0, c4 = 1 → they differ.</li>
+<li>Case a3 ≠ b3 (mixed signs): c4 = c3, never overflow → they are equal.</li>
+<li>So overflow ⇔ c3 ≠ c4 ⇔ <b>V = c3 ⊕ c4</b></li></ol></div>
+<div class="w"><b>5 − 3 in 4 bits</b>
+<ol><li>5 = 0101, 3 = 0011 → invert 3: 1100</li><li>0101 + 1100 + 1: 0101 + 1101 = 1 0010</li><li>Drop the carry → 0010 = <b>2</b> ✓ (carry = 1 → no borrow)</li></ol></div>
+<div class="w"><b>Four flag cases (4-bit, Lab 5)</b>
+<table class="tt"><tr><th>Sum</th><th>Result</th><th>C3</th><th>C4 = CF</th><th>V = C3 ⊕ C4</th><th>Meaning</th></tr>
+<tr><td>0001 + 0001</td><td>0010</td><td>0</td><td>0</td><td>0</td><td>1 + 1 = 2, fine</td></tr>
+<tr><td>1111 + 0001</td><td>0000</td><td>1</td><td>1</td><td>0</td><td>unsigned 15 + 1 overflows; signed −1 + 1 = 0 fine</td></tr>
+<tr><td>0111 + 0001</td><td>1000</td><td>1</td><td>0</td><td>1</td><td>signed 7 + 1 = −8 → overflow</td></tr>
+<tr><td>1000 + 1000</td><td>0000</td><td>0</td><td>1</td><td>1</td><td>both overflow (−8 + −8)</td></tr></table>
+Carries for 0111 + 0001 column by column: bit0 1 + 1 = 10 (carry 1); bit1 1 + 0 + 1 = 10; bit2 1 + 0 + 1 = 10 → C3 = 1; bit3 0 + 0 + 1 = 1, C4 = 0.</div>
+<div class="w"><b>More overflow checks</b>
+<ol><li>5 + 4: 0101 + 0100 = 1001 = −7 → two positives gave a negative → overflow</li>
+<li>−6 + −5: 1010 + 1011 = 1 0101 → keep 0101 = +5 → two negatives gave a positive → overflow</li>
+<li>6 + (−4): 0110 + 1100 = 1 0010 → 2 → mixed signs, no overflow</li></ol></div>
+<figure data-d="D4.5a"></figure>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>5. Latches, Flip-Flops &amp; Timing</h2>
+<p><b>Combinational</b>: output depends only on present inputs (adder, MUX). <b>Sequential</b>: output depends on inputs + stored state (counter, register). The difference is a <mark>feedback loop</mark>. Two inverters in a loop = bistable = 1-bit memory with no way to change it.</p>
+
+<h3>SR latch</h3>
+<div class="f"><b>NOR SR latch</b> (active-HIGH): Q = (R + Q')', Q' = (S + Q)'.<br>
+S R: 00 hold · 10 set (Q = 1) · 01 reset (Q = 0) · <b>11 forbidden</b> (Q = Q' = 0; releasing both together → race, unpredictable).<br>
+<b>NAND SR latch</b> (active-LOW S', R'): 11 hold · 01 set · 10 reset · <b>00 forbidden</b> (Q = Q' = 1).<br>
+Characteristic equation: <b>Q⁺ = S + R'Q</b>, with SR = 0.</div>
+<div class="d"><b>Deriving Q⁺ = S + R'Q</b>
+<ol><li>Table of (S, R, Q) → Q⁺: hold rows 000 → 0, 001 → 1; reset rows 010 → 0, 011 → 0; set rows 100 → 1, 101 → 1; forbidden rows 110, 111 → X</li>
+<li>Q⁺ = 1 on 001, 100, 101; X on 110, 111</li>
+<li>Group 100, 101, 110, 111 (S = 1) → S. Group 001 and 101 (R = 0, Q = 1) → R'Q</li>
+<li>Q⁺ = <b>S + R'Q</b></li></ol></div>
+<figure data-d="D5.2a"></figure>
+
+<h3>D latch (level-triggered)</h3>
+<div class="f"><b>S = D·EN, R = D'·EN</b> → S and R can never both be 1 → no forbidden state.<br>
+EN = 1: <b>transparent</b> (Q follows D, glitches pass). EN = 0: holds. <b>Q⁺ = EN·D + EN'·Q</b>.</div>
+
+<h3>D flip-flop (edge-triggered)</h3>
+<div class="f">At each active (rising) edge: <b>Q⁺ = D</b>; between edges Q is frozen. Triangle on the clock pin = edge-triggered.<br>
+<b>Master–slave</b>: two D latches on opposite clock phases. Master transparent while CLK = 0, slave while CLK = 1 → value just before the rising edge reaches Q (positive-edge). The class slide enables the master on CLK = 1 → output changes on the FALLING edge. The two latches are never transparent together.<br>
+Verilog: <code>always @(posedge clk) q &lt;= d;</code> (non-blocking <code>&lt;=</code>, q declared <code>reg</code>).</div>
+<table class="tt"><tr><th></th><th>D latch</th><th>D flip-flop</th></tr><tr><td>Triggered by</td><td>level (EN = 1)</td><td>edge</td></tr><tr><td>Transparent?</td><td>yes</td><td>no</td></tr><tr><td>Glitches on D</td><td>pass to Q</td><td>ignored</td></tr><tr><td>Size</td><td>smaller</td><td>≈ 2× a latch</td></tr><tr><td>Verilog</td><td><code>always @(*) if (en) q = d;</code></td><td><code>always @(posedge clk) q &lt;= d;</code></td></tr><tr><td>Use</td><td>SRAM cells, time borrowing</td><td>registers, PC, pipelines</td></tr></table>
+<figure data-d="D5.4c"></figure>
+<p><b>Reading a waveform:</b> draw a dashed line at every rising edge, read D exactly there, hold that value until the next edge. For a latch, Q copies D for the whole time EN = 1.</p>
+
+<h3>JK and T flip-flops</h3>
+<div class="f">JK: 00 hold, 01 reset, 10 set, <b>11 toggle</b> → <b>Q⁺ = JQ' + K'Q</b>.<br>
+T: T = 0 hold, T = 1 toggle → <b>Q⁺ = T ⊕ Q</b>. Build T from JK (J = K = T) or from D (D = T ⊕ Q).<br>
+<b>Excitation table</b> (input needed for Q → Q⁺):
+<table class="tt"><tr><th>Q → Q⁺</th><th>D</th><th>T</th><th>J K</th><th>S R</th></tr><tr><td>0 → 0</td><td>0</td><td>0</td><td>0 X</td><td>0 X</td></tr><tr><td>0 → 1</td><td>1</td><td>1</td><td>1 X</td><td>1 0</td></tr><tr><td>1 → 0</td><td>0</td><td>1</td><td>X 1</td><td>0 1</td></tr><tr><td>1 → 1</td><td>1</td><td>0</td><td>X 0</td><td>X 0</td></tr></table>
+Shortcuts: <b>D = Q⁺</b>; <b>T = Q ⊕ Q⁺</b> (1 when the bit must change).</div>
+
+<h3>Timing</h3>
+<div class="f"><b>t_setup</b>: D stable this long BEFORE the edge. <b>t_hold</b>: stable this long AFTER the edge. <b>t_pcq</b> (clock-to-Q): edge → Q valid.<br>
+<b>Setup (max-delay) check: T_c ≥ t_pcq + t_pd(logic) + t_setup</b> → <b>f_max = 1 / T_c</b><br>
+<b>Hold (min-delay) check: t_ccq + t_cd(logic) ≥ t_hold</b> — independent of the clock, so slowing the clock never fixes it; add delay to the short path.<br>
+Unit help: 1 / (1 ns) = 1 GHz; 1 / (1 ps) = 1000 GHz; 1 ns = 1000 ps.</div>
+<div class="d"><b>Why T_c ≥ t_pcq + t_pd + t_setup</b>
+<ol><li>At a clock edge, flip-flop 1 launches new data. It appears at its Q after t_pcq.</li>
+<li>The data travels through the logic, taking t_pd.</li>
+<li>It must arrive at flip-flop 2 at least t_setup before the NEXT edge.</li>
+<li>So the gap between edges (T_c) must cover all three: T_c ≥ t_pcq + t_pd + t_setup.</li></ol></div>
+<div class="w"><b>Class homework: path 0.28 ns, setup 0.05 ns</b>
+<ol><li>T_c = 0.28 + 0.05 = 0.33 ns</li><li>f = 1 / 0.33 ns = (1 / 0.33) GHz</li><li>1 / 0.33 = 3.0303… → <b>f_max ≈ 3.03 GHz</b></li></ol></div>
+<div class="w"><b>t_pcq = 40 ps, logic = 250 ps, setup = 30 ps</b>
+<ol><li>T_c = 40 + 250 + 30 = 320 ps</li><li>f = 1 / 320 ps = 1000 / 320 GHz (because 1/ps = 1000 GHz)</li><li>1000 / 320 = 3.125 → <b>3.125 GHz</b></li></ol></div>
+<div class="w"><b>Hold check: t_ccq = 30 ps, t_cd = 10 ps, t_hold = 50 ps</b>
+<ol><li>Left side: 30 + 10 = 40 ps</li><li>40 &lt; 50 → <b>hold violation</b>. Fix: add at least 10 ps of buffer delay on that short path.</li></ol></div>
+<div class="f"><b>Ring oscillator</b>: an ODD number N of inverters in a loop → <b>T = 2 · N · t_pd</b>, f = 1/T.<br>
+Why 2·N: a change travels once round the loop (N delays) to flip the output; it must go round twice to return to the starting value.<br>
+Example: 5 inverters × 20 ps → T = 2 × 5 × 20 = 200 ps → f = 1000 / 200 = 5 GHz.</div>
+<p><b>Metastability:</b> if D changes inside the setup/hold window, Q can hover between 0 and 1 for an unpredictable time (ball balanced on a hill), then fall either way. It cannot be eliminated for asynchronous inputs — only made rare with a <mark>2–3 flip-flop synchronizer</mark> (huge MTBF). Overclocking shrinks the setup margin.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>6. Registers, Counters, Shift Registers</h2>
+
+<h3>Registers</h3>
+<div class="f">n-bit register = <b>n D flip-flops sharing one clock</b>. PC, IR, general registers and pipeline registers are all registers.<br>
+<b>Load enable</b> = a 2:1 MUX before each D: <b>Q⁺ = LOAD·D + LOAD'·Q</b> (LOAD = 0 feeds Q back → hold). Never AND the clock with LOAD (skew, glitches).<br>
+<b>Synchronous reset</b>: acts only at the clock edge (<code>always @(posedge clk) if (rst)</code>). <b>Asynchronous reset</b>: acts immediately (<code>always @(posedge clk or posedge rst)</code>), used for power-on.<br>
+Lab priority: <b>reset &gt; load &gt; hold</b>.</div>
+<figure data-d="D6.2a"></figure>
+
+<h3>Counters</h3>
+<div class="f"><b>Counting rule: a bit toggles exactly when ALL lower bits are 1</b> (0111 → 1000).<br>
+Bit k runs at <b>f_clk / 2^(k+1)</b>: Q0 = f/2, Q1 = f/4, Q2 = f/8.<br>
+Flip-flops for a mod-N counter = <b>⌈log₂ N⌉</b> = smallest k with 2ᵏ ≥ N.<br>
+Ripple counter: settle time = <b>n × t_pd</b>, <b>f_max = 1 / (n × t_pd)</b>.<br>
+Synchronous up counter with T FFs: <b>T0 = 1, T1 = Q0, T2 = Q0·Q1, T3 = Q0·Q1·Q2</b>.<br>
+With D FFs: <b>D0 = Q0', D1 = Q1 ⊕ Q0, D2 = Q2 ⊕ (Q1·Q0)</b>. Down counter: T1 = Q0', T2 = Q0'·Q1' (toggle when all lower bits are 0).</div>
+<div class="w"><b>How many flip-flops? (powers: 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024)</b>
+<ol><li>mod-6: 4 &lt; 6 ≤ 8 = 2³ → 3 FFs</li><li>mod-12: 8 &lt; 12 ≤ 16 = 2⁴ → 4 FFs</li><li>mod-20: 16 &lt; 20 ≤ 32 = 2⁵ → 5 FFs</li><li>mod-1000 (1 MHz → 1 kHz): 512 &lt; 1000 ≤ 1024 = 2¹⁰ → 10 FFs</li><li>32,768 Hz → 1 Hz: 32,768 = 2¹⁵ → 15 divide-by-2 stages</li></ol></div>
+<div class="w"><b>Ripple counter speed</b>
+<ol><li>4-bit, t_pd = 10 ns: settle = 4 × 10 = 40 ns → f = 1 / 40 ns = 1000 / 40 MHz = 25 MHz</li>
+<li>16-bit, 10 ns: 160 ns → 1000 / 160 = 6.25 MHz</li>
+<li>12-bit, 0.6 ns: 12 × 0.6 = 7.2 ns → 1000 / 7.2 MHz ≈ 138.9 MHz (≈ 139 MHz)</li></ol>
+(1 / ns = 1000 MHz.)</div>
+<div class="d"><b>Deriving T0 = 1, T1 = Q0, T2 = Q0Q1 (3-bit up counter)</b>
+<ol><li>Write present → next: 000→001, 001→010, 010→011, 011→100, 100→101, 101→110, 110→111, 111→000</li>
+<li>T = 1 wherever the bit changes (T = Q ⊕ Q⁺)</li>
+<li>Q0 changes on every row → T0 = 1</li>
+<li>Q1 changes only on rows where Q0 = 1 (001, 011, 101, 111) → T1 = Q0</li>
+<li>Q2 changes only on 011 and 111 (Q1 = Q0 = 1) → T2 = Q0·Q1</li></ol></div>
+<div class="w"><b>Ripple glitch 0111 → 1000</b>: Q0 falls first (0110 = 6), then Q1 (0100 = 4), then Q2 (0000 = 0), then Q3 rises (1000 = 8). Seen values: <b>7 → 6 → 4 → 0 → 8</b>. A synchronous counter changes all bits together — no false values.</div>
+<table class="tt"><tr><th></th><th>Ripple (async)</th><th>Synchronous</th></tr><tr><td>Clock</td><td>only FF0; others clocked by previous Q</td><td>one shared clock</td></tr><tr><td>Delay</td><td>n × t_pd (grows)</td><td>constant</td></tr><tr><td>Glitches</td><td>yes</td><td>no</td></tr><tr><td>Hardware</td><td>minimal</td><td>extra AND gates</td></tr></table>
+<figure data-d="D6.4a"></figure>
+
+<h3>Shift registers</h3>
+<div class="f"><b>SISO</b> = delay line. <b>SIPO</b> = serial → parallel (<mark>UART receiver</mark>). <b>PISO</b> = parallel → serial (<mark>UART transmitter</mark>; needs a 2:1 load/shift MUX before each D). <b>PIPO</b> = plain register/buffer.<br>
+Verilog shift-left with serial input: <code>q &lt;= {q[2:0], sin};</code><br>
+<b>Ring counter</b> (Q3 → D0, preset 0001): <b>n states</b>. <b>Johnson</b> (Q3' → D0): <b>2n states</b>, unused = 2ⁿ − 2n. <b>LFSR</b> (XOR feedback, maximal): <b>2ⁿ − 1 states</b> (all-zero excluded).</div>
+<div class="w"><b>SIPO trace</b> (new bit enters q[0]), input 1, 0, 1, 1 from 0000: 0001 → 0010 → 0101 → <b>1011</b>.<br>
+<b>PISO trace</b> (load 1011, shift right, d_out = q[0]): q = 1011 (out 1), 0101 (1), 0010 (0), 0001 (1) → the LSB leaves first.<br>
+Johnson 4-bit: 0000 → 0001 → 0011 → 0111 → 1111 → 1110 → 1100 → 1000 → 0000 (8 states; 16 − 8 = 8 unused).</div>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>7. Register Files &amp; FSMs</h2>
+
+<h3>Register file</h3>
+<div class="f">MIPS / RISC-V: <b>32 registers × 32 bits, 2 read ports + 1 write port</b> (an R-type reads 2 and writes 1 per cycle).<br>
+Address bits per port = <b>log₂(number of registers)</b> (32 → 5; 64 → 6; 16 → 4). Total flip-flops = registers × width (16 × 8 = 128; 32 × 32 = 1024).<br>
+<b>Write port (synchronous)</b>: write address → n-to-2ⁿ decoder → each output AND RegWrite → load enable of one register; write data goes to all; only the enabled one captures it at the edge. “Decoder picks WHERE, WE picks WHETHER.”<br>
+<b>Read ports (combinational)</b>: every register feeds TWO 32:1 MUXes; Read register 1/2 are the 5-bit selects. No clock → operands ready in the same cycle.<br>
+Register 0 ($zero / x0) always reads 0; writes to it are ignored.</div>
+<figure data-d="D7.2b"></figure>
+
+<h3>Finite state machines</h3>
+<div class="f">FSM = (S, I, O, <b>δ</b>, <b>λ</b>): δ = transition (next-state) function, λ = output function.<br>
+Hardware: next-state logic (combinational) → <b>state register</b> (the only flip-flops) → output logic, with the present state fed back.<br>
+<b>Moore</b>: output = λ(state) — written INSIDE the circle; changes only with the state; glitch-free; output one cycle later; often one more state.<br>
+<b>Mealy</b>: output = λ(state, input) — written ON the arrow (in/out); same-cycle output; fewer states; can glitch.<br>
+Flip-flops: binary encoding <b>⌈log₂ N⌉</b>; one-hot <b>N</b>.</div>
+<p><b>Design flow</b>: understand the spec → state diagram → state table → encode states → next-state and output equations (K-maps) → build/simulate.</p>
+
+<h3>Sequence detector 1011 — the method</h3>
+<div class="d"><b>Each state remembers the longest end of the input that is still a start of 1011</b>
+<ol><li>S0 = nothing matched, S1 = “1”, S2 = “10”, S3 = “101” (Moore adds S4 = “1011” seen, output 1)</li>
+<li>Forward edges: S0 —1→ S1 —0→ S2 —1→ S3 —1→ match</li>
+<li>Fall-back edges: ask “I had X, I got bit b; what is the longest end of Xb that starts 1011?”</li>
+<li>S0 on 0: “0” → nothing → S0. &nbsp; S1 on 1: “11” → ends in “1” → S1</li>
+<li>S2 on 0: “100” → nothing → S0. &nbsp; S3 on 0: “1010” → ends in “10” → S2</li>
+<li>S3 on 1 (match): <b>overlap</b> keeps the last “1” → S1; <b>non-overlap</b> throws it away → S0</li></ol></div>
+<div class="f"><table class="tt"><tr><th>State</th><th>Mealy overlap 0 | 1</th><th>Mealy no-overlap 0 | 1</th><th>Moore overlap 0 | 1 (out)</th><th>Moore no-overlap 0 | 1</th></tr>
+<tr><td>S0</td><td>S0/0 | S1/0</td><td>S0/0 | S1/0</td><td>S0 | S1 (0)</td><td>S0 | S1</td></tr>
+<tr><td>S1</td><td>S2/0 | S1/0</td><td>S2/0 | S1/0</td><td>S2 | S1 (0)</td><td>S2 | S1</td></tr>
+<tr><td>S2</td><td>S0/0 | S3/0</td><td>S0/0 | S3/0</td><td>S0 | S3 (0)</td><td>S0 | S3</td></tr>
+<tr><td>S3</td><td>S2/0 | <b>S1/1</b></td><td>S2/0 | <b>S0/1</b></td><td>S2 | S4 (0)</td><td>S2 | S4</td></tr>
+<tr><td>S4</td><td>—</td><td>—</td><td><b>S2 | S1 (1)</b></td><td><b>S0 | S1</b> (1)</td></tr></table>
+Mealy: 4 states → 2 FFs. Moore: 5 states → 3 FFs binary, 5 one-hot. Moore S4 mirrors S1 (overlap) or S0 (no overlap).</div>
+<div class="w"><b>Trace Mealy overlap on 10110110</b>
+<table class="tt"><tr><th>Bit #</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+<tr><td>Input</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+<tr><td>State before</td><td>S0</td><td>S1</td><td>S2</td><td>S3</td><td>S1</td><td>S2</td><td>S3</td><td>S1</td></tr>
+<tr><td>Output</td><td>0</td><td>0</td><td>0</td><td><b>1</b></td><td>0</td><td>0</td><td><b>1</b></td><td>0</td></tr></table>
+2 matches with overlap (bits 1–4 and 4–7); non-overlap gives 1 (after bit 4 it restarts at S0). Moore shows the same pulses one clock later.</div>
+<figure data-d="D7.5a"></figure>
+<figure data-d="D7.5c"></figure>
+<p class="t">Do not reset to S0 after a match when overlap is allowed. From S3 on 0 go to S2, not S0. A Moore detector needs one more state than the Mealy one.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>8. SRAM, DRAM &amp; Memory Hierarchy</h2>
+<p>Flip-flops cost 20+ transistors per bit → too expensive for gigabytes. Core tension: <mark>fast memory is small and expensive; big memory is slow and cheap</mark>.</p>
+
+<h3>SRAM — 6T cell</h3>
+<div class="f"><b>6T = 4 transistors (two cross-coupled inverters, store Q and Q') + 2 access transistors (M5, M6)</b>. Word line (WL) = select the cell; bit lines BL and BL' = data and its complement.<br>
+<b>Static</b>: the feedback loop holds the bit (actively) while powered — no refresh.<br>
+<b>Read</b>: (1) precharge both bit lines high; (2) raise WL; (3) the side storing 0 pulls its bit line slightly low; (4) sense amplifier detects which side dropped. <b>Non-destructive</b>.<br>
+<b>Write</b>: (1) drive BL/BL' to the new value; (2) raise WL; (3) strong drivers overpower the latch; (4) latch flips and holds.<br>
+A few ns, low density, expensive, static power → <b>caches, register files, buffers</b>.</div>
+<figure data-d="D8.2a"></figure>
+
+<h3>DRAM — 1T1C cell</h3>
+<div class="f"><b>1 access transistor + 1 storage capacitor</b> (charged = 1, empty = 0) → about 6× denser than SRAM.<br>
+<b>Dynamic</b>: the charge leaks (full → lost in about 64 ms), so the controller reads and rewrites <b>every row about every 64 ms</b>.<br>
+<b>Destructive read</b>: (1) the capacitor shares its charge with the bit line; (2) a tiny signal; (3) sense amplifier swings it to 0/1; (4) <b>write-back</b>. Every read = read + rewrite.<br>
+50–100 ns, cheap per bit → <b>main memory</b>, GPU memory (GDDR).<br>
+<b>Per-row refresh interval = retention time ÷ number of rows</b>. Fraction of time busy = row refresh time ÷ interval.</div>
+<div class="w"><b>64 ms, 8192 rows</b>
+<ol><li>Interval = 64 ms ÷ 8192</li><li>64 ÷ 8192 = 0.0078125 ms (8192 = 64 × 128, so 64/8192 = 1/128 = 0.0078125)</li><li>Convert: 0.0078125 ms × 1000 = <b>7.8125 µs ≈ 7.8 µs</b></li>
+<li>If one row refresh takes 50 ns: busy fraction = 50 ns ÷ 7812.5 ns = 0.0064 = <b>0.64 %</b></li></ol></div>
+<table class="tt"><tr><th></th><th>SRAM</th><th>DRAM</th></tr><tr><td>Cell</td><td>6 transistors</td><td>1 transistor + 1 capacitor</td></tr><tr><td>Storage</td><td>active (latch)</td><td>passive (charge)</td></tr><tr><td>Density</td><td>low</td><td>high (≈ 6×)</td></tr><tr><td>Speed</td><td>a few ns</td><td>50–100 ns</td></tr><tr><td>Refresh</td><td>no</td><td>yes (≈ 64 ms)</td></tr><tr><td>Read</td><td>non-destructive</td><td>destructive + write-back</td></tr><tr><td>Cost/bit</td><td>high</td><td>low</td></tr><tr><td>Used for</td><td>caches L1/L2/L3, register files</td><td>main memory, GDDR</td></tr></table>
+<p><b>Why SRAM is faster:</b> the latch actively drives the bit lines; no destructive read/write-back or refresh; small arrays on the CPU die.</p>
+
+<h3>Memory hierarchy (researched)</h3>
+<div class="f"><b>Registers (&lt; 1 ns) → L1 (≈ 1 ns) → L2 (3–10 ns) → L3 (10–40 ns) → DRAM (50–100 ns) → SSD (≈ 100 µs) → HDD (≈ 10 ms)</b>. Down = bigger, slower, cheaper per bit.<br>
+Works because of <b>locality</b>: <i>temporal</i> (used again soon — loop variables) and <i>spatial</i> (neighbours used soon — arrays).<br>
+<b>AMAT = hit time + miss rate × miss penalty</b>.<br>
+<b>Memory wall</b>: CPU speed grew ≈ 50 %/year, DRAM latency only ≈ 7 %/year → memory latency limits performance.</div>
+<div class="w"><b>AMAT</b>: hit 1 ns, miss rate 5 % = 0.05, penalty 80 ns → 1 + 0.05 × 80 = 1 + 4 = <b>5 ns</b>.</div>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>9. Von Neumann vs Harvard</h2>
+<div class="f">A computer = <b>CPU + memory + I/O + bus</b> (bus = address + data + control lines).<br>
+<b>Stored-program concept (von Neumann, “First Draft of a Report on the EDVAC”, 1945)</b>: the program lives in the SAME memory as data, as numbers. Change the program by loading new numbers.<br>
+<b>Von Neumann</b>: one memory, <b>one shared bus</b>; four classic components: control unit, memory, ALU, I/O.<br>
+<b>Von Neumann bottleneck</b> (term by <b>John Backus, 1977</b>): fetch and data access must take turns on one bus → contention, IPC capped, idle ALU, worse as CPUs get faster. Fixes: caches, wider buses, Harvard split.<br>
+<b>Harvard</b>: separate instruction and data memories + two buses → fetch AND data access in ONE cycle (up to 2× throughput). Name from the <b>Harvard Mark I (1944)</b>: instructions on punched tape, data in relays. Used in DSPs, real-time systems, microcontrollers (<b>ATmega328 / Arduino Uno = true Harvard</b>).<br>
+<b>Modified Harvard</b> (every modern CPU): split <b>L1-I / L1-D</b> caches (Harvard inside) over unified L2/L3 and DRAM (Von Neumann outside). ARM Cortex-M4 and x86-64 are modified Harvard.<br>
+<b>Bandwidth = bits moved per cycle × clock frequency ÷ 8</b> (bytes per second).</div>
+<div class="w"><b>1 GHz, 32-bit instruction + 32-bit data every cycle</b>
+<ol><li>Bits per cycle = 32 + 32 = 64</li><li>Per second = 64 × 10⁹ bits = 64 Gbit/s</li><li>Bytes: 64 ÷ 8 = <b>8 GB/s</b> on the single Von Neumann bus</li><li>Harvard: each bus carries 32 bits × 10⁹ ÷ 8 = 4 GB/s</li></ol>
+Homework 2 GHz, 64 + 64 bits: 128 × 2 × 10⁹ = 256 Gbit/s ÷ 8 = <b>32 GB/s</b> (Harvard 16 + 16).</div>
+<table class="tt"><tr><th></th><th>Von Neumann</th><th>Harvard</th></tr><tr><td>Memory</td><td>one (unified)</td><td>two (I and D)</td></tr><tr><td>Buses</td><td>one shared</td><td>two</td></tr><tr><td>Fetch + data</td><td>sequential (2 cycles)</td><td>simultaneous (1 cycle)</td></tr><tr><td>Throughput</td><td>bottlenecked</td><td>up to 2×</td></tr><tr><td>Cost</td><td>lower</td><td>higher (more pins)</td></tr><tr><td>Flexibility</td><td>high (code = data)</td><td>lower</td></tr><tr><td>Use</td><td>general CPUs</td><td>DSPs, microcontrollers</td></tr></table>
+<figure data-d="D9.5a"></figure>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>10. CISC vs RISC</h2>
+<div class="f"><b>ISA = the hardware/software contract</b> (software compiles TO it, hardware EXECUTES it).<br>
+<b>CISC</b>: hundreds of instructions, <b>variable length (x86: 1–15 bytes)</b>, memory operands (<code>add [mem1], [mem2]</code>), complex decoder, often <b>microcode</b>, denser code. x86, VAX, 68000.<br>
+<b>RISC</b>: few simple instructions, <b>fixed 32-bit length</b>, <b>load/store only</b> (only lw/sw touch memory), simple decoder, easy to pipeline, more instructions per task. MIPS, ARM, RISC-V, SPARC.<br>
+<b>RISC hallmarks = fixed length + load/store.</b> Complexity moves: CISC → hardware, RISC → compiler.<br>
+<b>Iron law: CPU time = instruction count × CPI × clock period</b> (= IC × CPI ÷ f).</div>
+<table class="tt"><tr><th>CISC strengths</th><th>RISC strengths</th></tr><tr><td>denser code</td><td>simple, fast, cheap decoder</td></tr><tr><td>fewer instructions per task</td><td>easy, efficient pipelining</td></tr><tr><td>less instruction-fetch bandwidth</td><td>higher clock speeds possible</td></tr><tr><td>rich operations</td><td>simpler to design and verify</td></tr></table>
+<div class="w"><b>C = A + B; D = 2C</b><br>CISC (5): mov ax,[A]; add ax,[B]; mov [C],ax; shl ax,1; mov [D],ax.<br>RISC (6): lw r1,A; lw r2,B; add r3,r1,r2; sw r3,C; add r4,r3,r3; sw r4,D.</div>
+<div class="w"><b>Iron law</b>: 2 million instructions, CPI 1.5, 1 GHz → clock period = 1/10⁹ s = 1 ns → time = 2 × 10⁶ × 1.5 × 1 ns = 3 × 10⁶ ns = <b>3 ms</b>.</div>
+<p><b>Why RISC pipelines well</b>: fixed length (next instruction is always 4 bytes on); uniform format (decode in one stage); one simple step each; only lw/sw access memory (predictable hazards). <b>Code density</b> is CISC's edge; ARM Thumb and RISC-V “C” (16-bit) close the gap.</p>
+<p><b>History</b>: CISC — VAX (1977), 68000 (1979), x86 (1978) → x86-64 (2003). RISC — IBM 801 → MIPS (Stanford, Hennessy, 1984), SPARC, ARM (1985), RISC-V (Berkeley, 2010). ARM won mobile (low power, licensing); x86 kept the desktop (compatibility). MIPS: PlayStation 1 (R3000A), N64, PS2. Hennessy &amp; Patterson: 2017 Turing Award.</p>
+<p><b>Modern reality</b>: x86 decodes each CISC instruction into RISC-like <mark>micro-ops (µops)</mark> (e.g. <code>add [mem], eax</code> → load, add, store) and pipelines/reorders them — CISC outside, RISC inside, for compatibility plus speed. <b>RISC-V</b>: open, royalty-free, modular. <b>Domain-specific ISAs</b>: NVIDIA PTX (GPUs), Google TPU (matrix multiply).</p>
+<p class="t">“RISC runs fewer instructions” is false — fewer instruction TYPES, usually MORE instructions executed. The ISA alone does not decide speed.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>11. MIPS Registers &amp; Instruction Formats</h2>
+<div class="f"><table class="tt"><tr><th>Name</th><th>Number</th><th>Use</th></tr>
+<tr><td>$zero</td><td>0</td><td>always 0 (writes ignored)</td></tr><tr><td>$at</td><td>1</td><td>assembler temporary</td></tr><tr><td>$v0–$v1</td><td>2–3</td><td>return values, syscall code</td></tr><tr><td>$a0–$a3</td><td>4–7</td><td>arguments</td></tr><tr><td>$t0–$t7</td><td>8–15</td><td>temporaries (caller-saved)</td></tr><tr><td>$s0–$s7</td><td>16–23</td><td>saved (CALLEE-saved)</td></tr><tr><td>$t8–$t9</td><td>24–25</td><td>temporaries</td></tr><tr><td>$k0–$k1</td><td>26–27</td><td>OS kernel</td></tr><tr><td>$gp $sp $fp $ra</td><td>28 29 30 31</td><td>global, stack, frame pointer, return address</td></tr></table>
+$t = “temporary, don't trust it” (caller saves if needed); $s = “saved, it survives” (callee restores). PC, HI, LO are separate special registers.</div>
+
+<h3>The three formats (all 32 bits)</h3>
+<div class="f">
+<b>R</b>: opcode(6) | rs(5) | rt(5) | rd(5) | shamt(5) | funct(6) &nbsp; bits 31-26 | 25-21 | 20-16 | 15-11 | 10-6 | 5-0<br>
+<b>I</b>: opcode(6) | rs(5) | rt(5) | immediate(16)<br>
+<b>J</b>: opcode(6) | address(26)<br>
+R-type: opcode = 0, funct picks the operation; <b>rd = destination</b>, rs/rt sources. Assembly order (rd, rs, rt) ≠ binary order (rs, rt, rd).<br>
+I-type: <b>rt = destination for addi/lw</b>, data source for sw; rs = base. Immediate is <b>sign-extended</b> (andi/ori/xori zero-extend).<br>
+<b>Effective address = rs + signext(imm)</b>.<br>
+<b>Branch: imm = (target − (PC + 4)) ÷ 4</b>; target = PC + 4 + imm × 4.<br>
+<b>Jump: target = PC+4[31:28] ‖ address ‖ 00</b> (any word in the current 256 MB region). jal also does $ra ← PC + 4.</div>
+<div class="f"><b>funct</b>: add 100000 (0x20), addu 0x21, sub 100010 (0x22), and 100100 (0x24), or 100101 (0x25), xor 0x26, nor 0x27, slt 101010 (0x2A), sll 0x00, srl 0x02, sra 0x03, jr 0x08, mult 0x18, div 0x1A, mfhi 0x10, mflo 0x12.<br>
+<b>opcode</b>: R-type 0, j 2, jal 3, beq 4, bne 5, addi 8, addiu 9, slti 0x0A, andi 0x0C, ori 0x0D, lui 0x0F, lw 100011 (0x23), sw 101011 (0x2B), lb 0x20, lbu 0x24, sb 0x28.<br>
+Hex ↔ binary: 0 0000, 1 0001, 2 0010, 3 0011, 4 0100, 5 0101, 6 0110, 7 0111, 8 1000, 9 1001, A 1010, B 1011, C 1100, D 1101, E 1110, F 1111.</div>
+<div class="w"><b>Encode add $t1, $t2, $t3</b>
+<ol><li>R-type: opcode 0, funct add = 100000</li><li>rd = $t1 = 9 = 01001; rs = $t2 = 10 = 01010; rt = $t3 = 11 = 01011; shamt = 00000</li>
+<li>Place in binary order: 000000 | 01010 | 01011 | 01001 | 00000 | 100000</li>
+<li>Join and regroup into 4s: 0000 0001 0100 1011 0100 1000 0010 0000</li>
+<li>Each group to hex: 0 1 4 B 4 8 2 0 → <b>0x014B4820</b></li></ol></div>
+<div class="w"><b>Encode lw $t1, 16($sp)</b>
+<ol><li>I-type, opcode lw = 100011; rs = base $sp = 29 = 11101; rt = destination $t1 = 9 = 01001; imm = 16 = 0000 0000 0001 0000</li>
+<li>Binary: 100011 | 11101 | 01001 | 0000000000010000</li>
+<li>Regroup: 1000 1111 1010 1001 0000 0000 0001 0000 → <b>0x8FA90010</b></li></ol></div>
+<div class="w"><b>Decode 0x012A4020</b>
+<ol><li>Hex to binary: 0000 0001 0010 1010 0100 0000 0010 0000</li>
+<li>Split 6|5|5|5|5|6: 000000 | 01001 | 01010 | 01000 | 00000 | 100000</li>
+<li>opcode 0 → R-type; funct 100000 → add; rs = 9 = $t1; rt = 10 = $t2; rd = 8 = $t0</li>
+<li>Write in assembly order (rd, rs, rt): <b>add $t0, $t1, $t2</b></li></ol>
+Similarly 0x8D280004 = 100011 01001 01000 0x0004 = <b>lw $t0, 4($t1)</b>; addi $t0, $zero, 5 = 0x20080005; li $t0, 7 → addiu $t0, $zero, 7 = 0x24080007.</div>
+<div class="w"><b>Branch offset</b>: beq at 0x00400008, target 0x00400020
+<ol><li>PC + 4 = 0x0040000C</li><li>Difference = 0x20 − 0x0C = 32 − 12 = 20 bytes</li><li>imm = 20 ÷ 4 = <b>5</b> (words). Backwards targets give negative imm (two's complement).</li></ol>
+Forward check: beq at 0x00400010 with imm 3 → 0x00400014 + 12 = 0x00400020.</div>
+<div class="w"><b>Jump</b>: j 0x00400018 → address field = 0x00400018 ÷ 4 = 0x100006 → word = 000010 + 26-bit 0x0100006 = <b>0x08100006</b>.</div>
+<div class="w"><b>Sign-extended immediate 0xFFFB</b>: 1111 1111 1111 1011 → MSB 1 → negative. Invert: 0000 0000 0000 0100 = 4; add 1 → 5 → value <b>−5</b> (not 65531).</div>
+
+<h3>RISC-V</h3>
+<p>RV32I base ≈ 40 instructions, x0–x31 (x0 = 0), formats <b>R, I, S, B, U, J</b>, modular extensions <b>M</b> multiply/divide, <b>A</b> atomic, <b>F</b> single float, <b>D</b> double, <b>C</b> compressed 16-bit, <b>V</b> vector (e.g. RV32IMAFD). Open and royalty-free; MIPS is proprietary with formats R, I, J.</p>
+
+<h3>Assembly toolkit (Lab 11)</h3>
+<div class="f"><b>syscall</b>: li $v0, code → set $a0 → syscall. Codes: <b>1 print int, 4 print string, 5 read int (→ $v0), 8 read string, 9 sbrk, 10 exit, 11 print char</b>.<br>
+<b>Pseudo-instructions</b>: li (addiu, or lui + ori), la (lui + ori), move (addu rd, $zero, rs), b (beq $zero, $zero), blt = slt $at + bne, bge = slt $at + beq, bgt/ble = slt with swapped operands, nop = sll $zero, $zero, 0.<br>
+<b>mult</b> → 64-bit product in HI:LO; <b>div → LO = quotient, HI = remainder</b> (−17 ÷ 5 → −3, −2). <b>la</b> loads an ADDRESS, <b>lw</b> loads a VALUE.<br>
+Shifts on −16: <b>sll</b> 2 → −64; <b>srl</b> 2 (zeros in) → 0x3FFFFFFC = 1073741820; <b>sra</b> 2 (sign copied) → −4. ×10 = (x &lt;&lt; 3) + (x &lt;&lt; 1).<br>
+<b>Alignment</b>: lw/sw addresses must be multiples of 4. <b>Endianness</b> of 0x12345678 at B: big-endian B+0 = 12; little-endian B+0 = 78.<br>
+Directives: .data .text .word .byte .space n .asciiz (with terminating 0) .ascii .align 2 .globl main.</div>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>12. C to MIPS</h2>
+<div class="f"><b>Variables → registers; conditions → slt + branch; structure → labels; REVERSE the condition</b> (branch AWAY from the body when the test fails).<br>
+Real branches: beq, bne (+ slt / slti). blt/bge/bgt/ble are pseudo.<br>
+<b>Array element A[i] (words): address = base + 4 × i</b> → <code>sll $t1, $i, 2; add $t1, $t1, $base; lw $t2, 0($t1)</code>.</div>
+<table class="tt"><tr><th>Run body when</th><th>MIPS to skip the body</th></tr><tr><td>a == b</td><td>bne a, b, Skip</td></tr><tr><td>a != b</td><td>beq a, b, Skip</td></tr><tr><td>a &lt; b</td><td>slt t, a, b; beq t, $zero, Skip</td></tr><tr><td>a &gt;= b</td><td>slt t, a, b; bne t, $zero, Skip</td></tr><tr><td>a &gt; b</td><td>slt t, b, a; beq t, $zero, Skip</td></tr><tr><td>a &lt;= b</td><td>slt t, b, a; bne t, $zero, Skip</td></tr></table>
+<div class="w"><b>if / else and max of two</b>
+<pre># if (a == b) c = 1; else c = 0;
+      bne  $t0, $t1, Else
+      li   $t2, 1
+      j    Done          # essential
+Else: li   $t2, 0
+Done:</pre>
+<pre># c = max(a, b)    ($t0 = a, $t1 = b, $t2 = c)
+      slt  $t3, $t1, $t0  # t3 = (b &lt; a) = (a &gt; b)
+      beq  $t3, $zero, Else
+      move $t2, $t0
+      j    Done
+Else: move $t2, $t1
+Done:</pre>
+Without <code>j Done</code> the if-block falls into the else-block.</div>
+<div class="w"><b>Loops</b> — init before the label, test at the top, body, increment, jump back
+<pre># while (i &lt; n) { sum += i; i++; }     ($t0 = i, $t1 = n, $s0 = sum)
+Loop: bge  $t0, $t1, End     # leave when i &gt;= n
+      add  $s0, $s0, $t0
+      addi $t0, $t0, 1
+      j    Loop
+End:</pre>
+<pre># for (i = 0; i &lt; 10; i++) sum += i;
+      li   $t0, 0            # init
+Loop: slti $t2, $t0, 10      # test
+      beq  $t2, $zero, End
+      add  $s0, $s0, $t0     # body
+      addi $t0, $t0, 1       # increment
+      j    Loop
+End:</pre>
+<span class="t">The class slide's while loop uses <code>blt $t1, $t0, End</code>, which runs one extra time when i == n. Use <code>bge $t0, $t1, End</code>.</span></div>
+<h3>Calling convention</h3>
+<div class="f">Arguments <b>$a0–$a3</b> (more → stack); results <b>$v0–$v1</b>.<br>
+<b>jal Label</b>: $ra ← PC + 4, then jump. <b>jr $ra</b>: return.
+Stack grows DOWN: push = <code>addi $sp, $sp, -8</code> then sw; pop = lw then <code>addi $sp, $sp, 8</code>. Keep it balanced.<br>
+<b>Leaf</b> (calls nothing): no need to save $ra; save $s registers only if used. <b>Non-leaf</b>: MUST save $ra (jal overwrites it) and any value needed after the call ($a0, $s).<br>
+Function template: prologue (allocate, save) → base case/work → call → combine → epilogue (restore, deallocate, jr $ra).</div>
+<div class="w"><b>Recursive factorial</b>
+<pre>fact: addi $sp, $sp, -8      # prologue: room for 2 words
+      sw   $ra, 4($sp)       # save return address
+      sw   $a0, 0($sp)       # save n
+      li   $t0, 1
+      ble  $a0, $t0, base    # if n &lt;= 1 return 1
+      addi $a0, $a0, -1
+      jal  fact              # $v0 = fact(n - 1)
+      lw   $a0, 0($sp)       # restore THIS level's n
+      mul  $v0, $a0, $v0     # n * fact(n - 1)
+      j    exit
+base: li   $v0, 1
+exit: lw   $ra, 4($sp)       # epilogue
+      addi $sp, $sp, 8
+      jr   $ra</pre>
+fact(3): frames for n = 3, 2, 1 → <b>3 frames × 8 bytes = 24 bytes</b> at peak. Unwind: fact(1) = 1 → fact(2) = 2 × 1 = 2 → fact(3) = 3 × 2 = 6.</div>
+<figure data-d="D12.5b"></figure>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>13. Single-Cycle Datapath</h2>
+<div class="f">Single-cycle: every instruction finishes in ONE clock cycle → <b>CPI = 1</b>, but the clock period = the SLOWEST instruction (<b>lw</b>). Each unit used once per cycle → separate instruction and data memories, extra adders.<br>
+Steps: <b>Fetch</b> (IR ← Mem[PC], PC ← PC + 4) → <b>Decode</b> (read registers, control from opcode) → <b>Execute</b> (ALU) → <b>Memory</b> (lw/sw only) → <b>Write-back</b> (R-type, lw, addi).</div>
+<div class="f"><b>Field → hardware</b>: [31-26] opcode → Control; [25-21] rs → Read reg 1; [20-16] rt → Read reg 2 and RegDst input 0; [15-11] rd → RegDst input 1; [15-0] → sign-extend; [5-0] funct → ALU control.<br>
+<b>MUXes</b>: RegDst (0 = rt, 1 = rd) · ALUSrc (0 = Read data 2, 1 = sign-extended imm) · MemtoReg (0 = ALU result, 1 = memory data) · PCSrc (0 = PC + 4, 1 = branch target), <b>PCSrc = Branch AND Zero</b>.<br>
+Branch target = PC + 4 + (signext(imm) &lt;&lt; 2).</div>
+<div class="f"><table class="tt"><tr><th>Instr</th><th>RegDst</th><th>ALUSrc</th><th>MemtoReg</th><th>RegWrite</th><th>MemRead</th><th>MemWrite</th><th>Branch</th><th>ALUOp</th></tr>
+<tr><td>R-type</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>10</td></tr>
+<tr><td>lw</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>00</td></tr>
+<tr><td>sw</td><td>X</td><td>1</td><td>X</td><td>0</td><td>0</td><td>1</td><td>0</td><td>00</td></tr>
+<tr><td>beq</td><td>X</td><td>0</td><td>X</td><td>0</td><td>0</td><td>0</td><td>1</td><td>01</td></tr>
+<tr><td>addi</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>00</td></tr></table>
+<b>ALUOp</b>: 00 add (lw/sw/addi), 01 subtract (beq), 10 use funct (R-type). <b>ALU control</b>: add 0010, sub 0110, AND 0000, OR 0001, slt 0111.<br>
+<b>X rule</b>: RegDst and MemtoReg are X whenever RegWrite = 0 (sw, beq). Never X on RegWrite, MemRead, MemWrite, Branch.<br>
+<b>j</b> (extension): new Jump MUX; Jump = 1; RegWrite = MemRead = MemWrite = 0; the rest X.</div>
+<h3>How to answer “Trace … and fill the control signals”</h3>
+<div class="d"><ol><li>Highlight the fetch path: PC → instruction memory, PC → +4 adder.</li>
+<li>Follow the fields: rs → Read reg 1; rt → Read reg 2 (or destination for lw/addi); rd for R-type; immediate → sign-extend.</li>
+<li>At each MUX, darken the input used and write 0/1 next to it.</li>
+<li>End at the destination (register file, data memory, or PC) and fill the row. <mark>Never leave ALUOp blank</mark> — every class sample sheet lost that mark.</li></ol></div>
+<div class="w"><b>lw $t2, 4($t1)</b> (0x8D2A0004): rs = $t1 → Read data 1 → ALU; 4 → sign-extend → ALUSrc = 1 → ALU adds (ALUOp 00) → address $t1 + 4 → MemRead = 1 → Read data → MemtoReg = 1 → Write data; destination rt → RegDst = 0; RegWrite = 1; Branch = 0, MemWrite = 0.</div>
+<div class="w"><b>sw $t2, 4($t1)</b>: same address path (ALUSrc 1, ALUOp 00); Read data 2 ($t2) → memory Write data; MemWrite = 1; no register written → RegWrite = 0, RegDst = X, MemtoReg = X.</div>
+<div class="w"><b>beq $t1, $t2, L1</b>: ALUSrc = 0, ALUOp = 01 → ALU computes $t1 − $t2; Zero = 1 if equal; offset → sign-extend → shift-left-2 → adder with PC + 4; PCSrc = Branch (1) AND Zero. $t1 = 5, $t2 = 5 → Zero = 1 → jump to target. $t1 = 5, $t2 = 7 → Zero = 0 → PC + 4.</div>
+<div class="w"><b>add $t1, $t2, $t3</b> (R-type): ALUSrc 0, ALUOp 10 → funct 100000 → ALU control 0010; MemtoReg 0; rd via RegDst 1; RegWrite 1; MemRead = MemWrite = 0.</div>
+<figure data-d="D13.4b"></figure>
+<figure data-d="D13.4d"></figure>
+<h3>Critical path and clock period</h3>
+<div class="f"><b>Critical path = lw</b>: instruction memory → register read → ALU → data memory → register write.<br>
+P&amp;H delays: IMem 200, reg read 100, ALU 200, DMem 200, reg write 100 ps.<br>
+<b>H&amp;H: T_c = t_pcq + t_mem + t_RFread + t_ALU + t_mem + t_mux + t_RFsetup</b>.</div>
+<div class="w"><b>Instruction-class times (P&amp;H)</b>
+<ol><li>lw = 200 + 100 + 200 + 200 + 100 = <b>800 ps</b> (uses every unit)</li>
+<li>sw = 200 + 100 + 200 + 200 = 700 ps (no register write)</li>
+<li>R-type = 200 + 100 + 200 + 100 = 600 ps (no data memory)</li>
+<li>beq = 200 + 100 + 200 = 500 ps; j = 200 ps</li>
+<li>Single-cycle clock = 800 ps for everyone → f = 1000 / 800 GHz = <b>1.25 GHz</b>. beq wastes 300 ps, j wastes 600 ps.</li></ol></div>
+<div class="w"><b>H&amp;H numbers</b>: t_pcq 30, t_mem 250, t_RFread 150, t_ALU 200, t_mux 25, t_RFsetup 20 ps → 30 + 250 + 150 + 200 + 250 + 25 + 20 = <b>925 ps</b>.</div>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>14. Pipelining (bonus — researched)</h2>
+<div class="f">Five stages: <b>IF</b> (fetch, PC + 4) · <b>ID</b> (decode, read registers) · <b>EX</b> (ALU / address) · <b>MEM</b> (lw/sw) · <b>WB</b> (write register). Pipeline registers between them: <b>IF/ID, ID/EX, EX/MEM, MEM/WB</b> (data, destination register number and control travel along). Register file: written in the first half, read in the second half of a cycle.<br>
+<b>Cycles for n instructions in a k-stage pipeline = k + (n − 1)</b>.<br>
+<b>Speedup = n·k ÷ (k + n − 1) → k</b> for large n (balanced stages, no hazards).<br>
+<b>Pipelined clock = slowest stage + pipeline-register overhead</b>. Pipelining improves THROUGHPUT, not latency.</div>
+<div class="d"><b>Why k + n − 1</b>
+<ol><li>The first instruction needs all k cycles to come out of the last stage.</li>
+<li>After that, one more instruction finishes every cycle.</li>
+<li>The remaining n − 1 instructions add n − 1 cycles → total k + n − 1.</li>
+<li>Non-pipelined: n·k cycles. Ratio n·k ÷ (k + n − 1); as n grows, the k − 1 becomes tiny next to n, so the ratio → k.</li></ol></div>
+<div class="w"><b>P&amp;H stages 200, 100, 200, 200, 100 ps</b>
+<ol><li>Single-cycle clock = 200 + 100 + 200 + 200 + 100 = 800 ps</li>
+<li>Pipelined clock = slowest stage = 200 ps</li>
+<li>3 lw instructions: single-cycle 3 × 800 = 2400 ps; pipelined (5 + 2) × 200 = 1400 ps</li>
+<li>Long program speedup = 800 ÷ 200 = <b>4</b> (not 5, because stages are unbalanced)</li>
+<li>Latency of one instruction = 5 × 200 = 1000 ps (longer than 800!)</li></ol></div>
+<div class="w"><b>With overhead</b>: stages 250, 350, 150, 300, 200 ps + 20 ps register overhead → non-pipelined 1250 ps; clock = 350 + 20 = 370 ps; speedup = 1250 ÷ 370 ≈ 3.38. Laundry (4 stages × 30 min, 4 loads): sequential 16 × 30 = 8 h; pipelined (4 + 3) × 30 = 210 min = 3.5 h.</div>
+<figure data-d="D14.4a"></figure>
+</section>
+
+<!-- ================================================================== -->
+<section>
+<h2>15. Hazards (bonus — researched)</h2>
+<div class="f"><b>Structural</b>: two instructions need the same hardware (one memory for IF and MEM) → fix with split I/D memory. <b>Data</b>: operand not ready yet → forwarding / stall. <b>Control</b>: next PC unknown until a branch resolves → stall, predict, delayed branch.<br>
+<b>RAW</b> (read after write, true dependence) is the ONLY data hazard in the in-order 5-stage pipeline, because every instruction reads in ID (stage 2) and writes in WB (stage 5) in program order. WAR and WAW appear only in out-of-order machines (fixed by register renaming).<br>
+<b>No forwarding</b>: back-to-back dependent instructions → <b>2 stalls</b>. <b>With forwarding</b>: ALU → ALU → <b>0 stalls</b>; <b>load-use → 1 stall</b>.<br>
+Forwarding paths: <b>EX/MEM → EX</b> (producer 1 ahead) and <b>MEM/WB → EX</b> (producer 2 ahead). ForwardA/B: 00 register file, 10 EX/MEM, 01 MEM/WB.</div>
+<div class="d"><b>Why 2 stalls without forwarding</b> (add $s0, … then sub …, $s0, …)
+<ol><li>add: IF in cycle 1, ID 2, EX 3, MEM 4, <b>WB 5</b> — $s0 written in the first half of cycle 5.</li>
+<li>sub normally reads registers in ID in cycle 3.</li>
+<li>It may read only in the second half of cycle 5 (after the write), so its ID must move from cycle 3 to cycle 5.</li>
+<li>5 − 3 = <b>2 stall cycles</b>.</li></ol></div>
+<div class="d"><b>Why load-use needs 1 stall even with forwarding</b>
+<ol><li>lw: EX in cycle 3, data comes out of memory at the END of MEM (cycle 4).</li>
+<li>The next instruction wants it at the START of its EX, normally cycle 4.</li>
+<li>Data from the end of cycle 4 cannot be used at the start of cycle 4 (that would be backwards in time).</li>
+<li>Delay the user's EX to cycle 5 (<b>1 stall</b>), then forward MEM/WB → EX.</li></ol></div>
+<div class="f"><b>Forwarding conditions</b> (same for Rt):<br>
+EX hazard: if EX/MEM.RegWrite and EX/MEM.Rd ≠ 0 and EX/MEM.Rd = ID/EX.Rs → ForwardA = 10<br>
+MEM hazard: if MEM/WB.RegWrite and MEM/WB.Rd ≠ 0 and NOT the EX hazard and MEM/WB.Rd = ID/EX.Rs → ForwardA = 01<br>
+<b>Load-use detection</b> (in ID): if ID/EX.MemRead and (ID/EX.Rt = IF/ID.Rs or ID/EX.Rt = IF/ID.Rt) → stall (hold PC and IF/ID, zero the control into ID/EX).<br>
+Stall cost: CPI = 1 + stall cycles per instruction.</div>
+<figure data-d="D15.5a"></figure>
+<div class="w"><b>Compiler scheduling (a = b + e; c = b + f)</b>: original order lw, lw, add, sw, lw, add, sw has two load-use stalls → 5 + 6 + 2 = <b>13 cycles</b>. Move the third lw up (lw, lw, lw, add, sw, add, sw) → no stalls → 5 + 6 = <b>11 cycles</b>. Never move an instruction past one it depends on.</div>
+<p><b>Control hazards</b>: branch decided in MEM → 3 wrong-path instructions; decide in ID → 1-cycle penalty; predict not-taken (flush if taken); 2-bit dynamic predictors; MIPS delayed branch (the instruction after a branch always runs).</p>
+</section>
+
+<!-- ================================================================== -->
+<section class="sheet">
+<h2>All formulas on one page</h2>
+<div class="f">
+<b>Boolean</b><br>A + AB = A<br>A(A + B) = A<br>A + A'B = A + B<br>AB + AB' = A<br>(AB)' = A' + B'<br>(A + B)' = A'B'<br>XY + X'Z + YZ = XY + X'Z<br>XOR = A'B + AB'
+<hr><b>K-map</b><br>Gray 00 01 11 10<br>group 2ᵏ removes k variables<br>SOP: 1 → X<br>POS: 0 → X
+<hr><b>Gate counts</b><br>NAND: NOT 1, AND 2, OR 3, XOR 4<br>NOR: NOT 1, OR 2, AND 3<br>SOP → NAND-NAND, POS → NOR-NOR
+<hr><b>MUX</b><br>n selects → 2ⁿ inputs<br>2:1 Y = S'I0 + SI1<br>decoder Dk = mk (2ⁿ ANDs)
+<hr><b>Adders</b><br>HA S = A⊕B, C = AB<br>FA S = A⊕B⊕Cin, Cout = AB + Cin(A⊕B)<br>CLA C(i+1) = Gi + PiCi, G = AB, P = A⊕B
+<hr><b>Numbers</b><br>unsigned 0..2ⁿ−1<br>2's −2ⁿ⁻¹..2ⁿ⁻¹−1<br>−x = x' + 1<br>MSB weight −2ⁿ⁻¹<br>A − B = A + B' + 1<br>V = C3 ⊕ C4<br>CF = C4<br>sign-extend = copy MSB
+<hr><b>Latches/FFs</b><br>SR Q⁺ = S + R'Q (SR = 0)<br>D latch S = D·EN, R = D'·EN<br>D Q⁺ = D<br>JK Q⁺ = JQ' + K'Q<br>T Q⁺ = T⊕Q<br>T = Q⊕Q⁺<br>D from T: D = T⊕Q
+<hr><b>Timing</b><br>T_c ≥ t_pcq + t_pd + t_setup<br>f = 1/T_c<br>hold: t_ccq + t_cd ≥ t_hold<br>ring osc T = 2·N·t_pd<br>1/ns = 1 GHz
+<hr><b>Counters</b><br>FFs = ⌈log₂ N⌉<br>bit k = f/2^(k+1)<br>ripple delay n·t_pd, f = 1/(n·t_pd)<br>T0 = 1, T1 = Q0, T2 = Q0Q1<br>D1 = Q1⊕Q0, D2 = Q2⊕Q1Q0<br>ring n, Johnson 2n, LFSR 2ⁿ−1
+<hr><b>Register file</b><br>address bits = log₂(registers)<br>FFs = registers × width<br>load enable Q⁺ = L·D + L'·Q
+<hr><b>FSM</b><br>binary FFs ⌈log₂ N⌉, one-hot N<br>Mealy 1011 = 4 states, Moore = 5
+<hr><b>Memory</b><br>refresh interval = retention ÷ rows (64 ms / 8192 = 7.8 µs)<br>AMAT = hit + miss rate × penalty
+<hr><b>Bus</b><br>bandwidth = bits per cycle × f ÷ 8 bytes/s<br><b>Iron law</b><br>time = IC × CPI × T_clk
+<hr><b>MIPS</b><br>R op|rs|rt|rd|shamt|funct (6 5 5 5 5 6)<br>I op|rs|rt|imm (6 5 5 16)<br>J op|addr (6 26)<br>EA = rs + signext(imm)<br>branch imm = (target − (PC+4))/4<br>jump = PC+4[31:28]‖addr‖00<br>A[i] = base + 4i<br>div: LO = quotient, HI = remainder
+<hr><b>Datapath</b><br>PCSrc = Branch·Zero<br>ALUOp 00 add, 01 sub, 10 funct<br>ALU ctl add 0010, sub 0110, and 0000, or 0001, slt 0111<br>single-cycle clock = lw path (P&amp;H 800 ps)
+<hr><b>Pipeline</b><br>cycles = k + n − 1<br>speedup = nk/(k+n−1) → k<br>clock = max stage + overhead<br>no-forward RAW = 2 stalls<br>load-use = 1 stall
+</div>
+</section>
