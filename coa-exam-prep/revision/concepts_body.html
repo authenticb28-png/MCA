@@ -1,0 +1,624 @@
+<!-- Concepts-only notes. Per topic: .def definition (English) → .hin Hinglish (hard topics only) → ul.kp key points → .fx formula + small example → .trick memory trick → .yr "Yaad rakho" (must remember).
+     figure[data-d] = diagram from the unit data files with its how-to-draw line. Built by build_concepts.js. -->
+
+<section class="cover">
+<h1>Modern Computer Architecture<br>Concepts &amp; Formulas</h1>
+<p class="sub">CSA222 · all 15 units · definitions, key points, formulas, memory tricks. No questions.</p>
+<div class="howto">
+<p><b>How each topic is laid out</b></p>
+<div class="def">Definition — the exam-ready English definition (write this in answers).</div>
+<p class="hin"><b>Hinglish:</b> simple explanation, only for the harder topics.</p>
+<ul class="kp"><li>Key points — <mark>highlighted</mark> parts are the most asked.</li></ul>
+<div class="fx">Formula box — with one small example, every step shown.</div>
+<p class="trick"><b>Trick:</b> a hook to remember it.</p>
+<div class="yr"><b>Yaad rakho:</b> the 2–3 lines you must not forget.</div>
+<p><b>How to study it:</b> (1) read the definition aloud once; (2) read the Hinglish and key points until the idea makes sense; (3) cover the formula box and try to write it; (4) the night before, read only the “Yaad rakho” boxes and the last-hour cheat sheet at the end.</p>
+</div>
+<p class="sources">Definitions follow the class slides and labs, checked against M. Morris Mano (Digital Design), Harris &amp; Harris (Digital Design and Computer Architecture), Patterson &amp; Hennessy (Computer Organization and Design) and GeeksforGeeks. Units 13.1, 13.5, 14 and 15 had no class slides and are taken from these textbooks.</p>
+</section>
+
+<!-- ======================= UNIT 1 ======================= -->
+<section>
+<h2>Unit 1 · Boolean Algebra &amp; Gates</h2>
+
+<div class="topic"><h3>1.1 Course introduction &amp; roadmap</h3>
+<div class="def"><b>Computer architecture</b> is the study of how a computer is designed and organised — from logic gates up to the instruction set that software uses.</div>
+<ul class="kp"><li><mark>Architecture = the “what”</mark>: what the programmer sees (instructions, registers, memory model).</li><li><mark>Organisation = the “how”</mark>: hidden implementation (how ADD is built, pipelines, caches, clock).</li><li>Six course modules: digital foundations → sequential logic &amp; memory → organisation &amp; ISA → datapath &amp; pipelining → memory hierarchy → parallelism.</li></ul>
+<div class="yr"><b>Yaad rakho:</b> Architecture = what (ISA). Organisation = how (implementation).</div></div>
+
+<div class="topic"><h3>1.2 Why architecture matters — the abstraction stack</h3>
+<div class="def">An <b>abstraction stack</b> is the set of layers through which a computer is built, each layer hiding the details of the one below it: applications &amp; languages → operating system → <b>ISA</b> → datapath &amp; control → logic gates → transistors.</div>
+<ul class="kp"><li>The <mark>ISA (Instruction Set Architecture) is the contract between software and hardware</mark>.</li><li>Example: <code>A[i] = B[i] + C[i]</code> in Python → MIPS lw, lw, add, sw → register file and ALU → XOR/AND gates → transistors.</li><li>Chip flow (VLSI): spec → RTL (Verilog) → simulation → synthesis → netlist → place &amp; route → verification → fabrication.</li></ul>
+<figure data-d="D1.2a"></figure>
+<div class="yr"><b>Yaad rakho:</b> ISA sits between the OS and the datapath — the hardware/software contract.</div></div>
+
+<div class="topic"><h3>1.3 Boolean logic basics — AND, OR, NOT, XOR (+ NAND, NOR, XNOR)</h3>
+<div class="def">A <b>logic gate</b> is an electronic circuit that performs a Boolean function on one or more binary inputs (0 = LOW/false, 1 = HIGH/true) and produces a single binary output.</div>
+<ul class="kp"><li><b>AND</b>: 1 only if ALL inputs are 1. <b>OR</b>: 1 if ANY input is 1. <b>NOT</b>: inverts.</li><li><b>NAND</b> = NOT of AND, <b>NOR</b> = NOT of OR (output 1 only when all inputs are 0).</li><li><mark>XOR: 1 when inputs are DIFFERENT</mark>; <mark>XNOR: 1 when inputs are EQUAL</mark>.</li><li>NAND and NOR are <b>universal gates</b> (can build any circuit).</li></ul>
+<div class="fx">AND Y = A·B &nbsp;|&nbsp; OR Y = A + B &nbsp;|&nbsp; NOT Y = A' &nbsp;|&nbsp; NAND Y = (AB)' &nbsp;|&nbsp; NOR Y = (A + B)'<br><b>XOR Y = A ⊕ B = A'B + AB'</b> &nbsp;|&nbsp; <b>XNOR Y = (A ⊕ B)' = A'B' + AB</b></div>
+<figure data-d="D1.3a"></figure>
+<p class="trick"><b>Trick:</b> XOR = “odd number of 1s → 1”. A = 1, B = 0: only OR, XOR and NAND give 1.</p>
+<div class="yr"><b>Yaad rakho:</b> XOR(1,1) = 0. NAND/NOR = AND/OR + bubble.</div></div>
+
+<div class="topic"><h3>1.4 Truth tables</h3>
+<div class="def">A <b>truth table</b> lists the output of a logic function for every possible combination of its inputs.</div>
+<ul class="kp"><li>n inputs → <mark>2ⁿ rows</mark> (2 inputs → 4 rows, 3 → 8, 4 → 16).</li><li>Write inputs in binary counting order: 000, 001, 010, … so no row is missed.</li><li>Truth table is the final check of any simplification.</li></ul>
+<div class="yr"><b>Yaad rakho:</b> rows = 2ⁿ, always in binary counting order.</div></div>
+
+<div class="topic"><h3>1.5 Boolean laws &amp; simplification</h3>
+<div class="def"><b>Boolean algebra</b> is the algebra of variables that take only the values 0 and 1, with the operations AND (·), OR (+) and NOT ('); its laws let us rewrite an expression into a simpler equivalent one.</div>
+<div class="fx">
+Identity A + 0 = A, A·1 = A &nbsp;·&nbsp; Null A + 1 = 1, A·0 = 0 &nbsp;·&nbsp; Idempotent A + A = A, A·A = A<br>
+Complement A + A' = 1, A·A' = 0 &nbsp;·&nbsp; Involution (A')' = A<br>
+Distributive A(B + C) = AB + AC and <b>A + BC = (A + B)(A + C)</b><br>
+<b>Absorption A + AB = A, A(A + B) = A</b> &nbsp;·&nbsp; <b>A + A'B = A + B</b><br>
+<b>De Morgan (AB)' = A' + B', (A + B)' = A'B'</b> &nbsp;·&nbsp; Consensus XY + X'Z + YZ = XY + X'Z
+</div>
+<div class="fx"><b>Example — why A + AB = A:</b> take A common → A(1 + B) → 1 + B = 1 → A · 1 = A.</div>
+<p class="trick"><b>Trick:</b> De Morgan = <b>“break the bar, change the sign”</b> (+ becomes ·, · becomes +).</p>
+<div class="yr"><b>Yaad rakho:</b> “+” is OR, so A + 1 = 1 (not 2). A + A'B = A + B is the most used shortcut.</div></div>
+
+<div class="topic"><h3>1.6 Worked simplification examples</h3>
+<div class="def"><b>Simplification</b> means reducing a Boolean expression to fewer terms and literals (so fewer gates) while keeping the same truth table.</div>
+<div class="fx">AB + AB' = A(B + B') = A·1 = <b>A</b><br>
+A(A + B) = AA + AB = A + AB = <b>A</b><br>
+A'B'C + A'BC + AB'C + ABC + A'B → first four all have C → C(all four AB combos = 1) = C → <b>C + A'B</b></div>
+<div class="yr"><b>Yaad rakho:</b> look for a common factor, then use X + X' = 1 to kill the changing variable.</div></div>
+
+<div class="topic"><h3>1.E1 Verilog &amp; HDL basics (from the labs)</h3>
+<div class="def">A <b>Hardware Description Language (HDL)</b> such as Verilog describes the structure and behaviour of digital circuits as text, so they can be <b>simulated</b> (behaviour checked) and <b>synthesised</b> (converted into real gates).</div>
+<ul class="kp"><li><code>module … endmodule</code>; ports input/output. <mark><code>wire</code> is driven by <code>assign</code>; <code>reg</code> is assigned inside <code>always</code>/<code>initial</code></mark>.</li><li>Combinational: <code>assign y = a &amp; b;</code> or <code>always @(*)</code> (with a <code>default</code> in case, else a latch is inferred).</li><li>Sequential: <code>always @(posedge clk) q &lt;= d;</code> — use <mark>non-blocking <code>&lt;=</code></mark>.</li><li>Testbench: no ports, <code>#10</code> delay, <code>$monitor</code>, <code>$dumpfile/$dumpvars</code>, <code>$finish</code>.</li></ul>
+<div class="yr"><b>Yaad rakho:</b> software runs one line at a time; hardware (HDL) runs all statements in parallel.</div></div>
+</section>
+
+<!-- ======================= UNIT 2 ======================= -->
+<section>
+<h2>Unit 2 · Logic Minimisation &amp; Universal Gates</h2>
+
+<div class="topic"><h3>2.1 Motivation for minimisation</h3>
+<div class="def"><b>Logic minimisation</b> is the process of finding the simplest circuit (fewest gates and inputs) that implements a given Boolean function.</div>
+<ul class="kp"><li>Fewer gates → <mark>less area, less power, more speed, lower cost</mark>.</li><li>Industry tools (Synopsys Design Compiler, Cadence Genus) do it automatically for billions of transistors.</li></ul>
+<div class="yr"><b>Yaad rakho:</b> 4 reasons — area, power, speed, cost.</div></div>
+
+<div class="topic"><h3>2.2 Canonical forms: SOP and POS</h3>
+<div class="def">A <b>minterm</b> is an AND (product) term containing every variable once, true for exactly one input row. A <b>maxterm</b> is an OR (sum) term containing every variable once, false for exactly one row. <b>SOP</b> (Sum of Products) = OR of the minterms where F = 1; <b>POS</b> (Product of Sums) = AND of the maxterms where F = 0.</div>
+<p class="hin"><b>Hinglish:</b> SOP mein hum sirf un rows ko dekhte hain jahan output 1 hai, aur har row ka ek AND term banate hain. Rule: bit 1 hai toh variable seedha likho (A), bit 0 hai toh bar lagao (A'). POS mein ulta: sirf un rows ko dekho jahan output 0 hai, har row ka ek OR term banao, aur rule bhi ulta — bit 0 hai toh seedha (A), bit 1 hai toh bar (A'). Exam mein sabse zyada galti isi ulte rule mein hoti hai.</p>
+<div class="fx">SOP rule: 1 → X, 0 → X'. &nbsp; Row 101 → m5 = AB'C<br>
+POS rule: 0 → X, 1 → X'. &nbsp; Row 011 → M3 = (A + B' + C')<br>
+F = Σm(1's rows) = ΠM(0's rows); together they cover 0 to 2ⁿ − 1.<br>
+<b>Example:</b> F = Σm(1, 3, 5, 7) → ΠM(0, 2, 4, 6). SOP = A'B'C + A'BC + AB'C + ABC = A'C + AC = <b>C</b></div>
+<div class="yr"><b>Yaad rakho:</b> SOP ↔ 1s ↔ minterm m. POS ↔ 0s ↔ maxterm M. The variable rules are opposite.</div></div>
+
+<div class="topic"><h3>2.3 Karnaugh maps (2, 3, 4 variables)</h3>
+<div class="def">A <b>Karnaugh map (K-map)</b> is a grid of the truth table in which adjacent cells differ in exactly one variable (Gray-code order), so that adjacent 1s can be grouped visually to obtain a minimal SOP expression.</div>
+<p class="hin"><b>Hinglish:</b> K-map basically truth table ko aise arrange karta hai ki pados wale boxes mein sirf ek hi variable badle. Isliye order 00, 01, 11, 10 hota hai (Gray code), 00, 01, 10, 11 nahi. Jab do padosi boxes mein 1 ho, toh jo variable badal raha hai woh cancel ho jaata hai (B + B' = 1). Isliye group jitna bada, expression utna chhota. Groups sirf 1, 2, 4, 8, 16 size ke rectangle hote hain, diagonal nahi chalega, aur map ke kinare aapas mein jude hote hain — left-right, top-bottom aur chaaron corners ek group ban sakte hain.</p>
+<ul class="kp"><li>Order <mark>00, 01, 11, 10</mark> on both axes.</li><li>Group sizes 1, 2, 4, 8, 16 only; rectangles; <mark>wrap-around and 4 corners allowed</mark>; overlapping allowed; diagonal not allowed.</li><li>Make groups as BIG as possible and as FEW as possible.</li></ul>
+<div class="fx"><b>A group of 2ᵏ cells removes k variables</b> — keep only the variables that stay constant inside the group.<br>
+<b>Example:</b> Σm(0, 2, 5, 7, 8, 10, 13, 15) → corners 0, 2, 8, 10 have B = 0, D = 0 → B'D'; centre 5, 7, 13, 15 have B = 1, D = 1 → BD → <b>F = B'D' + BD</b></div>
+<figure data-d="D2.3d"></figure>
+<p class="trick"><b>Trick:</b> Gray code = “00, 01, <b>11</b>, 10” — the 11 comes before 10.</p>
+<div class="yr"><b>Yaad rakho:</b> four corners = one quad. Group of 4 kills 2 variables, group of 8 kills 3.</div></div>
+
+<div class="topic"><h3>2.4 De Morgan's theorems &amp; bubble pushing</h3>
+<div class="def"><b>De Morgan's theorems</b> state that the complement of a product equals the sum of the complements, (AB)' = A' + B', and the complement of a sum equals the product of the complements, (A + B)' = A'B'. <b>Bubble pushing</b> is redrawing a gate using these laws by moving inversion bubbles from output to inputs.</div>
+<ul class="kp"><li><mark>NAND = OR with inverted inputs</mark>. <mark>NOR = AND with inverted inputs</mark>.</li><li>Two bubbles on one wire cancel each other.</li><li>Nested: ~(AB + C) = (A' + B')·C'.</li></ul>
+<figure data-d="D2.4a"></figure>
+<div class="yr"><b>Yaad rakho:</b> break the bar, change the sign — AND ↔ OR and every input flips.</div></div>
+
+<div class="topic"><h3>2.5 Universal gates (NAND / NOR)</h3>
+<div class="def">A <b>universal gate</b> is a gate from which every other logic gate (and so any Boolean function) can be built. NAND and NOR are universal.</div>
+<p class="hin"><b>Hinglish:</b> NAND ke dono inputs jod do toh woh NOT ban jaata hai: (A·A)' = A'. Ab NOT mil gaya, toh NAND ke baad NOT lagao → AND (2 gates). OR ke liye pehle A aur B dono ko ulta karo (2 NAND) aur phir NAND karo: (A'·B')' = A + B (De Morgan se) → 3 gates. NOR ke liye bilkul ulta hisaab: NOT 1, OR 2, AND 3. Factories NAND isliye pasand karti hain kyunki CMOS NAND sirf 4 transistors ka hota hai, AND 6 ka.</p>
+<div class="fx"><table class="tt"><tr><th></th><th>NOT</th><th>AND</th><th>OR</th><th>XOR</th></tr><tr><td>NAND only</td><td>1</td><td>2</td><td>3</td><td>4</td></tr><tr><td>NOR only</td><td>1</td><td>3</td><td>2</td><td>5</td></tr></table>
+SOP (AND–OR) → <b>NAND–NAND</b>; POS (OR–AND) → <b>NOR–NOR</b>. (A + B)(C + D) with 2-input NANDs needs 6.</div>
+<figure data-d="D2.5a"></figure>
+<div class="yr"><b>Yaad rakho:</b> NAND: 1-2-3 (NOT-AND-OR). NOR: 1-3-2. NAND = 4 transistors, AND = 6.</div></div>
+
+<div class="topic"><h3>2.6 Don't-cares in K-maps</h3>
+<div class="def">A <b>don't-care (X)</b> is an input combination whose output does not matter (because it never occurs or is never used); it may be taken as 1 or 0, whichever gives a simpler expression.</div>
+<ul class="kp"><li>Sources: BCD codes 10–15, unused states, impossible sensor combinations.</li><li><mark>Use an X only if it makes a group bigger</mark>; never make a group of only Xs.</li></ul>
+<div class="yr"><b>Yaad rakho:</b> X = “1 if it helps, 0 if it doesn't”.</div></div>
+
+<div class="topic"><h3>2.E1 Prime implicants, essential PIs, consensus</h3>
+<div class="def">A <b>prime implicant (PI)</b> is a group of 1s that cannot be enlarged further. An <b>essential prime implicant (EPI)</b> is a PI that covers at least one 1 that no other PI covers.</div>
+<ul class="kp"><li>Minimal SOP = <mark>all EPIs</mark> + the fewest extra PIs to cover the remaining 1s.</li><li>A cyclic map (e.g. Σm(0,1,2,5,6,7)) has no EPI.</li><li>Consensus: XY + X'Z + YZ = XY + X'Z (YZ is redundant).</li></ul>
+<div class="yr"><b>Yaad rakho:</b> EPIs are always in the answer.</div></div>
+</section>
+
+<!-- ======================= UNIT 3 ======================= -->
+<section>
+<h2>Unit 3 · Combinational Building Blocks</h2>
+
+<div class="topic"><h3>3.1 From gates to reusable blocks</h3>
+<div class="def">A <b>combinational building block</b> is a standard circuit (MUX, DEMUX, decoder, adder) built from gates whose output depends only on its present inputs, reused again and again in larger designs.</div>
+<ul class="kp"><li>Why blocks: abstraction, reuse, easier verification, scale to millions of gates.</li><li>In a CPU: MUX picks ALU operands and the next PC; decoder selects a register; adder does arithmetic and PC + 4.</li></ul></div>
+
+<div class="topic"><h3>3.2 Multiplexer (2:1, 4:1, cascading)</h3>
+<div class="def">A <b>multiplexer (MUX)</b> is a combinational circuit that selects one of 2ⁿ data inputs and passes it to a single output, according to the value on n select lines (a “data selector”).</div>
+<p class="hin"><b>Hinglish:</b> MUX ek railway switch jaisa hai — kai patriyaan aati hain par lever (select) decide karta hai ki kaunsi train aage jayegi. n select lines se 2ⁿ inputs choose ho sakte hain: 1 select → 2 inputs, 2 select → 4, 3 select → 8. Bade MUX chhote MUX jod ke bante hain (tree). Aur ek trick: n-variable ka koi bhi function ek 2ⁿ:1 MUX se ban sakta hai — variables ko select pe lagao aur har input pe 0, 1, C ya C' daal do.</p>
+<div class="fx">2:1 → <b>Y = S'·I0 + S·I1</b><br>4:1 → <b>Y = S1'S0'·I0 + S1'S0·I1 + S1S0'·I2 + S1S0·I3</b><br>
+n selects → 2ⁿ inputs. 2ⁿ:1 from 2:1 MUXes needs 2ⁿ − 1 of them (4:1 → 3, 8:1 → 7).<br>
+<b>Example:</b> F(A,B,C) = Σm(1,3,5,6), S1 = A, S0 = B → for AB = 00, 01, 10 F = C; for AB = 11 F = C' → I0 = C, I1 = C, I2 = C, I3 = C'</div>
+<figure data-d="D3.2b"></figure>
+<p class="trick"><b>Trick:</b> MUX = many-to-one (Many → 1). DEMUX = one-to-many.</p>
+<div class="yr"><b>Yaad rakho:</b> 8:1 MUX needs 3 select lines. Implementing a function = put variables on selects.</div></div>
+
+<div class="topic"><h3>3.3 Demultiplexer and n-to-2ⁿ decoder</h3>
+<div class="def">A <b>demultiplexer (DEMUX)</b> sends one data input to one of 2ⁿ outputs chosen by n select lines. A <b>decoder</b> converts an n-bit binary input into 2ⁿ outputs, exactly one of which is active (one-hot).</div>
+<ul class="kp"><li>1:2 DEMUX: Y0 = S'D, Y1 = SD.</li><li><mark>Decoder output Dk = minterm k</mark>; built from 2ⁿ AND gates (+ n inverters).</li><li>A decoder = a DEMUX with its data input tied to 1 (enable).</li><li><mark>Any function = OR of the decoder outputs for its minterms</mark> (full adder: Sum = D1 + D2 + D4 + D7, Cout = D3 + D5 + D6 + D7).</li></ul>
+<table class="tt"><tr><th></th><th>MUX</th><th>DEMUX</th><th>Decoder</th></tr><tr><td>In</td><td>2ⁿ data + n select</td><td>1 data + n select</td><td>n bits</td></tr><tr><td>Out</td><td>1</td><td>2ⁿ</td><td>2ⁿ (one-hot)</td></tr></table>
+<figure data-d="D3.3c"></figure>
+<div class="yr"><b>Yaad rakho:</b> 3-to-8 decoder = 8 AND gates, each output one minterm.</div></div>
+
+<div class="topic"><h3>3.4 Half adder</h3>
+<div class="def">A <b>half adder</b> is a combinational circuit that adds two single bits and produces a Sum and a Carry; it has no carry input.</div>
+<div class="fx"><b>Sum = A ⊕ B</b>, <b>Carry = A·B</b> (1 + 1 = 10 → Sum 0, Carry 1). One XOR + one AND.</div>
+<div class="yr"><b>Yaad rakho:</b> no carry-in → cannot be chained for multi-bit addition.</div></div>
+
+<div class="topic"><h3>3.5 Full adder &amp; ripple-carry adder</h3>
+<div class="def">A <b>full adder</b> adds three bits — A, B and a carry-in Cin — and produces a Sum and a carry-out Cout. An <b>n-bit ripple-carry adder</b> chains n full adders, each carry-out feeding the next stage's carry-in.</div>
+<p class="hin"><b>Hinglish:</b> Sum tab 1 hota hai jab teen mein se odd number of inputs 1 hon — isliye Sum = A ⊕ B ⊕ Cin. Carry tab 1 hota hai jab kam se kam do inputs 1 hon (majority). Full adder do half adders + ek OR se banta hai: pehla HA A aur B jodta hai, doosra HA us sum mein Cin jodta hai, aur dono carries ko OR kar dete hain (dono ek saath kabhi 1 nahi hote). Ripple adder slow hai kyunki har stage ko pichli stage ke carry ka wait karna padta hai.</p>
+<div class="fx"><b>Sum = A ⊕ B ⊕ Cin</b> &nbsp;&nbsp; <b>Cout = AB + Cin(A ⊕ B)</b> = AB + BCin + ACin<br>
+Ripple delay grows <b>linearly</b>: ≈ 2 gate delays per bit (4-bit ≈ 8, 64-bit ≈ 128).<br>
+<b>Example:</b> A = 1, B = 1, Cin = 1 → Sum = 1 ⊕ 1 ⊕ 1 = 1, Cout = 1·1 + … = 1 → 1 + 1 + 1 = 11₂ = 3 ✓</div>
+<figure data-d="D3.5b"></figure>
+<figure data-d="D3.5c"></figure>
+<p class="trick"><b>Trick:</b> Sum = “odd parity”, Cout = “majority vote”.</p>
+<div class="yr"><b>Yaad rakho:</b> FA = 2 HA + 1 OR. Ripple delay ∝ n.</div></div>
+
+<div class="topic"><h3>3.6 CPU preview — ALU and register file</h3>
+<div class="def">The <b>ALU (Arithmetic Logic Unit)</b> is the combinational unit of the CPU that performs arithmetic (add, subtract) and logic (AND, OR, compare) operations on its operands. The <b>register file</b> is the small fast set of registers that supplies those operands.</div>
+<ul class="kp"><li>1-bit ALU = AND + OR + full adder + MUX choosing the operation. Subtraction: invert B and set carry-in = 1.</li><li><mark>ALU control: 0000 AND, 0001 OR, 0010 add, 0110 sub, 0111 slt</mark>. Zero flag = 1 when the result is 0.</li><li>Register file: 2 read ports + 1 write port (Unit 7).</li></ul>
+<div class="yr"><b>Yaad rakho:</b> add 0010, sub 0110.</div></div>
+
+<div class="topic"><h3>3.E1 Carry-lookahead adder</h3>
+<div class="def">A <b>carry-lookahead adder (CLA)</b> computes all carries directly from the inputs using generate and propagate signals, instead of waiting for the carry to ripple.</div>
+<div class="fx">Generate <b>G = A·B</b> (makes a carry), Propagate <b>P = A ⊕ B</b> (passes a carry), <b>C(i+1) = Gi + Pi·Ci</b><br>C2 = G1 + P1G0 + P1P0C0</div>
+<div class="yr"><b>Yaad rakho:</b> CLA = faster, more area. Ripple = slower, less area.</div></div>
+</section>
+
+<!-- ======================= UNIT 4 ======================= -->
+<section>
+<h2>Unit 4 · Number Systems &amp; Two's Complement</h2>
+
+<div class="topic"><h3>4.1 Number systems — binary, decimal, hex</h3>
+<div class="def">A <b>positional number system</b> with base (radix) r represents a value as a sum of digits each multiplied by a power of r according to its position. Binary uses base 2, decimal base 10, hexadecimal base 16.</div>
+<div class="fx">Value = Σ digit × base<sup>position</sup> (positions 0, 1, 2 from the right).<br>
+Binary → decimal: 101101 = 32 + 8 + 4 + 1 = <b>45</b><br>
+Decimal → binary: divide by 2, write remainders, read <b>bottom-up</b>: 42 → 101010<br>
+Binary ↔ hex: groups of 4 bits: 1011 0101 = B5 = 11 × 16 + 5 = <b>181</b> (A = 10 … F = 15)</div>
+<div class="yr"><b>Yaad rakho:</b> 1 hex digit = 4 bits. Powers of 2: 1 2 4 8 16 32 64 128 256 512 1024.</div></div>
+
+<div class="topic"><h3>4.2 Signed representations</h3>
+<div class="def">A <b>signed number representation</b> encodes both positive and negative integers in binary. The three schemes are sign-magnitude, one's complement and two's complement.</div>
+<table class="tt"><tr><th>Scheme</th><th>Negative of x</th><th>Range (n bits)</th><th>Zeros</th></tr><tr><td>Sign-magnitude</td><td>flip the MSB</td><td>±(2ⁿ⁻¹ − 1)</td><td>two</td></tr><tr><td>One's complement</td><td>invert all bits</td><td>±(2ⁿ⁻¹ − 1)</td><td>two</td></tr><tr><td><b>Two's complement</b></td><td><b>invert + 1</b></td><td><b>−2ⁿ⁻¹ to 2ⁿ⁻¹ − 1</b></td><td><b>one</b></td></tr></table>
+<div class="yr"><b>Yaad rakho:</b> computers use two's complement — one zero, and the same adder works for + and −.</div></div>
+
+<div class="topic"><h3>4.3 Two's complement — negation &amp; range</h3>
+<div class="def">In <b>two's complement</b>, the most significant bit has weight −2ⁿ⁻¹ and all other bits have their normal positive weights; the negative of a number is obtained by inverting all its bits and adding 1.</div>
+<p class="hin"><b>Hinglish:</b> Kisi number ka negative chahiye toh do step: saare bits ulte karo (0 ↔ 1), phir 1 jod do. Jaise +18 = 00010010 → ulta 11101101 → +1 = 11101110 = −18. Check karne ka aasaan tareeka: MSB ka weight negative hota hai (8-bit mein −128), baaki sab positive. 11101110 = −128 + 64 + 32 + 8 + 4 + 2 = −18. Range yaad rakho: negative side ek zyada hoti hai — 4-bit mein −8 se +7, 8-bit mein −128 se +127.</p>
+<div class="fx"><b>−x = x' + 1</b> &nbsp;·&nbsp; <b>Range = −2ⁿ⁻¹ to 2ⁿ⁻¹ − 1</b> &nbsp;·&nbsp; MSB weight = −2ⁿ⁻¹<br>
+4-bit −8…7 · 8-bit −128…127 · 16-bit −32768…32767<br>
+<b>Example:</b> −45 → 45 = 00101101 → invert 11010010 → +1 → <b>11010011</b>. 0xB7 = 10110111 = −128 + 55 = <b>−73</b> (unsigned 183).</div>
+<figure data-d="D4.3a"></figure>
+<p class="trick"><b>Trick:</b> shortcut — from the right, copy bits up to the first 1, then flip the rest.</p>
+<div class="yr"><b>Yaad rakho:</b> 1111…1 = −1; 1000…0 = most negative.</div></div>
+
+<div class="topic"><h3>4.4 Sign extension</h3>
+<div class="def"><b>Sign extension</b> is increasing the number of bits of a two's-complement number while keeping its value, by copying the sign bit (MSB) into all the new higher bits.</div>
+<div class="fx">+5 = 0101 → 0000 0101 &nbsp;·&nbsp; −5 = 1011 → <b>1111 1011</b> (zero-padding would wrongly give +11)<br>MIPS: 16-bit immediate 0xFFFB → 0xFFFFFFFB = −5.</div>
+<div class="yr"><b>Yaad rakho:</b> signed → copy MSB; unsigned (lbu, andi, ori) → fill with 0.</div></div>
+
+<div class="topic"><h3>4.5 Binary addition &amp; subtraction</h3>
+<div class="def"><b>Binary subtraction</b> in two's complement is done by adding the two's complement of the subtrahend: A − B = A + B' + 1. An <b>adder–subtractor</b> uses XOR gates on B and a mode bit M to do both with one adder.</div>
+<div class="fx"><b>A − B = A + B' + 1</b>. Adder–subtractor: Bi ⊕ M, Cin = M (M = 0 add, M = 1 subtract).<br>
+<b>Example:</b> 5 − 3 = 0101 + 1100 + 1 = 0101 + 1101 = 1 0010 → drop carry → <b>0010 = 2</b></div>
+<figure data-d="D4.5a"></figure>
+<div class="yr"><b>Yaad rakho:</b> subtract = invert B + carry-in 1.</div></div>
+
+<div class="topic"><h3>4.6 Overflow detection</h3>
+<div class="def"><b>Overflow</b> occurs when the true result of an arithmetic operation is outside the range that can be represented with the available bits. Signed overflow is flagged by V (OF), unsigned overflow by the carry flag C (CF).</div>
+<p class="hin"><b>Hinglish:</b> Signed overflow sirf tab hota hai jab do same sign wale numbers jodne par answer ka sign ulta aa jaye — do positive jode aur answer negative aaya, ya do negative jode aur positive aaya. Alag sign wale numbers jodne par kabhi overflow nahi hota. Hardware mein check: MSB column mein aane wala carry (C3) aur jaane wala carry (C4) alag hon toh overflow. Unsigned ke liye sirf C4 dekho.</p>
+<div class="fx"><b>V = C<sub>in(MSB)</sub> ⊕ C<sub>out(MSB)</sub> = C3 ⊕ C4</b> (4-bit) &nbsp;·&nbsp; <b>CF = C4</b><br>
+0111 + 0001 = 1000 → 7 + 1 = −8 → V = 1 (C3 = 1, C4 = 0)<br>
+1111 + 0001 = 0000 → CF = 1, V = 0 (signed −1 + 1 = 0 is fine)</div>
+<div class="yr"><b>Yaad rakho:</b> same signs in, different sign out → overflow. Opposite signs never overflow.</div></div>
+</section>
+
+<!-- ======================= UNIT 5 ======================= -->
+<section>
+<h2>Unit 5 · Latches, Flip-Flops &amp; Timing</h2>
+
+<div class="topic"><h3>5.1 Combinational vs sequential circuits</h3>
+<div class="def">A <b>combinational circuit</b>'s output depends only on its present inputs. A <b>sequential circuit</b>'s output depends on present inputs AND past history (stored state), which requires memory elements built with feedback.</div>
+<table class="tt"><tr><th>Combinational</th><th>Sequential</th></tr><tr><td>no memory</td><td>has memory (state)</td></tr><tr><td>no feedback</td><td><b>feedback loop</b></td></tr><tr><td>adder, MUX, decoder</td><td>latch, flip-flop, register, counter, FSM</td></tr></table>
+<p>Two inverters in a loop = <b>bistable</b> (two stable states) = simplest 1-bit memory.</p>
+<div class="yr"><b>Yaad rakho:</b> sequential = combinational + memory (feedback).</div></div>
+
+<div class="topic"><h3>5.2 SR latch &amp; the forbidden state</h3>
+<div class="def">An <b>SR latch</b> is a basic memory element made of two cross-coupled NOR (or NAND) gates with Set and Reset inputs; Set makes Q = 1, Reset makes Q = 0, and with neither asserted it holds its previous value.</div>
+<p class="hin"><b>Hinglish:</b> Socho ek bulb jiske do button hain — S dabao toh ON (Q = 1), R dabao toh OFF (Q = 0), kuch mat dabao toh jaisa tha waisa rahega (memory). Dono ek saath dabana galat hai: NOR latch mein dono outputs 0 ho jaate hain (Q aur Q' barabar — rule tootta hai), aur dono ek saath chhodo toh race hoti hai, result unpredictable. NAND latch active-LOW hota hai — wahan 0 dabane ka matlab hai, aur 00 forbidden hai.</p>
+<div class="fx">NOR: S R = 00 hold · 10 set · 01 reset · <b>11 forbidden (Q = Q' = 0)</b><br>
+NAND (active-low): 11 hold · <b>00 forbidden (Q = Q' = 1)</b><br>
+Characteristic equation: <b>Q⁺ = S + R'Q</b>, with SR = 0</div>
+<figure data-d="D5.2a"></figure>
+<div class="yr"><b>Yaad rakho:</b> NOR latch: 11 forbidden. NAND latch: 00 forbidden.</div></div>
+
+<div class="topic"><h3>5.3 D latch (level-triggered)</h3>
+<div class="def">A <b>D latch</b> is a gated latch with one data input D and an enable EN: while EN = 1 it is transparent (Q follows D); while EN = 0 it holds the last value. It is level-triggered.</div>
+<ul class="kp"><li>Built as S = D·EN, R = D'·EN → <mark>S and R can never both be 1, so no forbidden state</mark>.</li><li>Glitches on D pass to Q while EN = 1 → unsafe for pipelines.</li></ul>
+<div class="fx"><b>Q⁺ = EN·D + EN'·Q</b></div>
+<figure data-d="D5.3a"></figure>
+<div class="yr"><b>Yaad rakho:</b> latch = level (window open), flip-flop = edge (camera click).</div></div>
+
+<div class="topic"><h3>5.4 D flip-flop (edge-triggered)</h3>
+<div class="def">A <b>D flip-flop</b> is an edge-triggered memory element that copies its D input to Q only at the active clock edge (usually rising) and holds Q constant at all other times.</div>
+<p class="hin"><b>Hinglish:</b> Latch khidki jaisa hai — jab tak khuli hai (EN = 1) bahar ka sab andar dikhta hai. Flip-flop camera jaisa hai — sirf click (clock edge) ke instant ki photo leta hai, beech mein kuch bhi ho, Q nahi badalta. Andar se flip-flop do latches ka bana hota hai (master–slave): ek ki khidki khuli toh doosre ki band, isliye data sirf edge pe hi aage jaata hai. Waveform mein har rising edge pe line kheencho, wahan D ki value padho, aur agle edge tak wahi Q rakho.</p>
+<div class="fx">At the rising edge: <b>Q⁺ = D</b>. Verilog: <code>always @(posedge clk) q &lt;= d;</code><br>
+<b>Master–slave</b>: two D latches on opposite clock phases. Master open when CLK = 0 → Q changes at the RISING edge (class slide version: master open at CLK = 1 → falling edge).<br>
+Clock frequency <b>f = 1/T</b>; ring oscillator (odd number N of inverters) <b>T = 2·N·t_pd</b>.</div>
+<figure data-d="D5.4c"></figure>
+<figure data-d="D5.4e"></figure>
+<div class="yr"><b>Yaad rakho:</b> FF = 2 latches, ≈ 2× gates, edge-triggered, used for every register and pipeline stage.</div></div>
+
+<div class="topic"><h3>5.5 Setup time, hold time, metastability</h3>
+<div class="def"><b>Setup time</b> is the minimum time the D input must be stable BEFORE the clock edge; <b>hold time</b> is the minimum time it must stay stable AFTER the edge; <b>clock-to-Q delay (t_pcq)</b> is the time from the edge until Q is valid. <b>Metastability</b> is the state in which a flip-flop's output stays between 0 and 1 for an unpredictable time because setup or hold was violated.</div>
+<p class="hin"><b>Hinglish:</b> Photo khinchte waqt object ko click se thoda pehle (setup) aur thoda baad (hold) tak hilna nahi chahiye, warna photo blur. Waise hi D ko edge ke aas-paas stable rehna chahiye. Clock kitna fast ho sakta hai: data ko pehle flip-flop se nikalna hai (t_pcq), logic se guzarna hai (t_pd), aur agle edge se setup time pehle pahunchna hai — teeno ka sum hi minimum clock period hai. Hold violation clock slow karke theek nahi hota, short path mein delay daalna padta hai. Metastability ko poori tarah hata nahi sakte, sirf 2–3 flip-flop synchronizer se bahut rare kar sakte hain.</p>
+<div class="fx"><b>T_c ≥ t_pcq + t_pd + t_setup</b> → <b>f_max = 1 / T_c</b><br>
+<b>Hold: t_ccq + t_cd ≥ t_hold</b> (independent of the clock)<br>
+<b>Example:</b> 0.28 ns path + 0.05 ns setup → T = 0.33 ns → f = 1/0.33 ns ≈ <b>3.03 GHz</b> (1/ns = 1 GHz)</div>
+<figure data-d="D5.5a"></figure>
+<div class="yr"><b>Yaad rakho:</b> setup = before, hold = after. Slow clock fixes setup, NOT hold. Metastability → synchronizer.</div></div>
+
+<div class="topic"><h3>5.E1 JK and T flip-flops</h3>
+<div class="def">A <b>JK flip-flop</b> is like SR but J = K = 1 toggles the output. A <b>T (toggle) flip-flop</b> toggles when T = 1 and holds when T = 0.</div>
+<div class="fx">JK: 00 hold, 01 reset, 10 set, 11 toggle → <b>Q⁺ = JQ' + K'Q</b><br>T: <b>Q⁺ = T ⊕ Q</b>. T from D: D = T ⊕ Q. T from JK: J = K = T.<br>
+Excitation: <b>D = Q⁺</b>, <b>T = Q ⊕ Q⁺</b> (1 when the bit must change).<br><b>Yaad rakho:</b> SR Q⁺ = S + R'Q · D Q⁺ = D · JK Q⁺ = JQ' + K'Q · T Q⁺ = T ⊕ Q.</div></div>
+</section>
+
+<!-- ======================= UNIT 6 ======================= -->
+<section>
+<h2>Unit 6 · Registers, Counters &amp; Shift Registers</h2>
+
+<div class="topic"><h3>6.1 From flip-flops to registers</h3>
+<div class="def">A <b>register</b> is a group of n flip-flops sharing a common clock that stores an n-bit word, all bits being loaded at the same clock edge.</div>
+<ul class="kp"><li>n-bit register = <mark>n D flip-flops + one common clock</mark>.</li><li>PC, IR, general registers, pipeline registers — all registers.</li></ul>
+<figure data-d="D6.1a"></figure></div>
+
+<div class="topic"><h3>6.2 Load enable &amp; reset</h3>
+<div class="def"><b>Load enable</b> lets a register either load new data or keep its value at a clock edge, using a 2:1 MUX in front of each flip-flop. <b>Reset</b> forces the register to a known value (0): <b>synchronous reset</b> acts at the clock edge, <b>asynchronous reset</b> acts immediately.</div>
+<div class="fx"><b>Q⁺ = LOAD·D + LOAD'·Q</b> (LOAD = 0 feeds Q back → hold). Priority in labs: <b>reset &gt; load &gt; hold</b>.</div>
+<figure data-d="D6.2a"></figure>
+<div class="yr"><b>Yaad rakho:</b> never gate the clock with LOAD (glitches, skew). Use the MUX.</div></div>
+
+<div class="topic"><h3>6.3 Ripple (asynchronous) vs synchronous counters</h3>
+<div class="def">A <b>counter</b> is a sequential circuit that goes through a fixed sequence of states (usually binary counting) on successive clock pulses. In a <b>ripple counter</b> only the first flip-flop gets the clock and each next one is clocked by the previous output; in a <b>synchronous counter</b> all flip-flops share the same clock.</div>
+<p class="hin"><b>Hinglish:</b> Binary counting dekho: koi bhi bit tab badalti hai jab uske neeche ke saare bits 1 hon (0111 → 1000). Ripple counter mein domino ki tarah ek ke baad ek bit girti hai, isliye time lagta hai (n × t_pd) aur beech mein galat values dikhti hain: 7 → 6 → 4 → 0 → 8. Synchronous counter mein sab bits ek saath, ek hi clock pe badalti hain — fast aur glitch-free, bas thode AND gates extra lagte hain.</p>
+<div class="fx">Ripple delay = <b>n × t_pd</b>, <b>f_max = 1 / (n × t_pd)</b><br>Bit k frequency = <b>f / 2^(k+1)</b> (Q0 = f/2, Q1 = f/4)<br>
+<b>Example:</b> 4-bit, t_pd = 10 ns → 40 ns → f = 1000/40 MHz = <b>25 MHz</b></div>
+<figure data-d="D6.3a"></figure>
+<table class="tt"><tr><th></th><th>Ripple</th><th>Synchronous</th></tr><tr><td>Clock</td><td>FF0 only</td><td>shared</td></tr><tr><td>Speed</td><td>slow (n·t_pd)</td><td>fast</td></tr><tr><td>Glitches</td><td>yes</td><td>no</td></tr><tr><td>Hardware</td><td>less</td><td>more (AND gates)</td></tr></table>
+<div class="yr"><b>Yaad rakho:</b> ripple = dominoes, synchronous = soldiers marching together.</div></div>
+
+<div class="topic"><h3>6.4 4-bit synchronous up-counter design</h3>
+<div class="def">A <b>synchronous up-counter</b> is designed by writing its state table, finding each flip-flop input from the excitation table, and minimising with K-maps.</div>
+<div class="fx">T flip-flops: <b>T0 = 1, T1 = Q0, T2 = Q0·Q1, T3 = Q0·Q1·Q2</b><br>
+D flip-flops: D0 = Q0', D1 = Q1 ⊕ Q0, D2 = Q2 ⊕ Q1Q0<br>
+Down counter: T1 = Q0', T2 = Q0'Q1'<br>
+Flip-flops for mod-N = <b>⌈log₂ N⌉</b> = smallest k with 2ᵏ ≥ N (mod-12 → 4, mod-1000 → 10)</div>
+<figure data-d="D6.4a"></figure>
+<p class="trick"><b>Trick:</b> “a bit flips when everything below it is 1”.</p>
+<div class="yr"><b>Yaad rakho:</b> T-chain = AND of all lower Q's.</div></div>
+
+<div class="topic"><h3>6.5 Shift registers: SISO, SIPO, PISO, PIPO</h3>
+<div class="def">A <b>shift register</b> is a chain of flip-flops on a common clock in which each flip-flop's output feeds the next one's input, so the stored bits move one position per clock pulse.</div>
+<table class="tt"><tr><th>Type</th><th>In → Out</th><th>Use</th></tr><tr><td>SISO</td><td>serial → serial</td><td>delay line</td></tr><tr><td>SIPO</td><td>serial → parallel</td><td><b>UART receiver</b></td></tr><tr><td>PISO</td><td>parallel → serial</td><td><b>UART transmitter</b> (needs load MUX)</td></tr><tr><td>PIPO</td><td>parallel → parallel</td><td>buffer / register</td></tr></table>
+<figure data-d="D6.5b"></figure>
+<div class="yr"><b>Yaad rakho:</b> receive = SIPO, transmit = PISO.</div></div>
+
+<div class="topic"><h3>6.E1 Ring, Johnson, mod-N, LFSR</h3>
+<div class="def">A <b>ring counter</b> is a shift register whose last output feeds the first input (one circulating 1). A <b>Johnson counter</b> feeds back the complement of the last output. An <b>LFSR</b> feeds back the XOR of selected bits to generate pseudo-random sequences.</div>
+<div class="fx">Ring: <b>n states</b> · Johnson: <b>2n states</b> (unused 2ⁿ − 2n) · LFSR (maximal): <b>2ⁿ − 1 states</b> · binary: 2ⁿ</div>
+<div class="yr"><b>Yaad rakho:</b> 4-bit ring 4 states, Johnson 8, binary 16, LFSR 15.</div></div>
+</section>
+
+<!-- ======================= UNIT 7 ======================= -->
+<section>
+<h2>Unit 7 · Register Files &amp; Finite State Machines</h2>
+
+<div class="topic"><h3>7.1 From registers to register files</h3>
+<div class="def">A <b>register file</b> is an array of registers inside the CPU with address-based access, allowing several registers to be read and one to be written in the same clock cycle.</div>
+<ul class="kp"><li>Need: <code>add R1, R2, R3</code> reads 2 and writes 1 register in one cycle.</li><li><mark>MIPS/RISC-V: 32 registers × 32 bits, 2 read ports + 1 write port</mark>.</li></ul>
+<div class="fx">Address bits = <b>log₂(number of registers)</b> (32 → 5) · flip-flops = registers × width (16 × 8 = 128)</div></div>
+
+<div class="topic"><h3>7.2 Register file architecture (1 write, 2 read)</h3>
+<div class="def">The <b>write port</b> of a register file uses a decoder plus a write-enable signal so that exactly one register is loaded at the clock edge; each <b>read port</b> is a multiplexer that selects one register's contents using the read address.</div>
+<p class="hin"><b>Hinglish:</b> Likhne ke liye: 5-bit address decoder mein jaata hai, decoder 32 mein se sirf ek line ON karta hai (kaunsa register), aur RegWrite batata hai likhna hai ya nahi — dono ka AND us register ka load enable hai. Padhne ke liye: har register ka output do bade 32:1 MUX mein jaata hai, address MUX ka select hai. Read ke liye clock ki zarurat nahi (combinational, turant), write sirf clock edge pe (synchronous) — isse ek hi cycle mein purani value padh ke nayi likh sakte hain.</p>
+<ul class="kp"><li>Write: <mark>decoder picks WHERE, RegWrite picks WHETHER</mark>.</li><li>Read: two 32:1 MUXes, <mark>combinational (no clock)</mark>; write: <mark>synchronous</mark>.</li><li>Register 0 ($zero / x0) always reads 0, writes ignored.</li></ul>
+<figure data-d="D7.2b"></figure>
+<figure data-d="D7.2c"></figure>
+<div class="yr"><b>Yaad rakho:</b> read = MUX = combinational; write = decoder + WE = clocked.</div></div>
+
+<div class="topic"><h3>7.3 Finite state machines (FSM)</h3>
+<div class="def">A <b>finite state machine</b> is a sequential circuit with a finite number of states that moves from one state to another according to its inputs and produces outputs; formally (S, I, O, δ, λ) where δ is the next-state (transition) function and λ the output function.</div>
+<ul class="kp"><li>Hardware: <mark>next-state logic → state register (flip-flops) → output logic</mark>, with feedback.</li><li>Examples: traffic light, vending machine, the CPU control unit.</li><li>Design steps: spec → state diagram → state table → encode → equations → circuit.</li></ul>
+<div class="fx">Flip-flops: binary encoding <b>⌈log₂ N⌉</b>, one-hot <b>N</b></div>
+<figure data-d="D7.3a"></figure>
+<div class="yr"><b>Yaad rakho:</b> FSM = states + inputs + transitions + outputs; δ = next state, λ = output.</div></div>
+
+<div class="topic"><h3>7.4 Moore vs Mealy</h3>
+<div class="def">In a <b>Moore machine</b> the outputs depend only on the present state; in a <b>Mealy machine</b> the outputs depend on the present state and the present inputs.</div>
+<table class="tt"><tr><th>Moore</th><th>Mealy</th></tr><tr><td>output = f(state)</td><td>output = f(state, input)</td></tr><tr><td>written inside the circle</td><td>written on the arrow (in/out)</td></tr><tr><td>output one cycle later</td><td>same-cycle output</td></tr><tr><td>glitch-free</td><td>can glitch</td></tr><tr><td>more states</td><td>fewer states</td></tr></table>
+<p class="trick"><b>Trick:</b> <b>Mo</b>ore = output in the circle (<b>O</b>); Me<b>a</b>ly = output on the <b>a</b>rrow.</p></div>
+
+<div class="topic"><h3>7.5 Sequence detector 1011</h3>
+<div class="def">A <b>sequence detector</b> is an FSM that outputs 1 when a specific bit pattern has appeared in its serial input. With <b>overlap</b>, the end of one match may start the next; without overlap, the machine restarts after a match.</div>
+<p class="hin"><b>Hinglish:</b> Har state yaad rakhti hai ki ab tak pattern ka kitna hissa match hua: S0 = kuch nahi, S1 = “1”, S2 = “10”, S3 = “101”. Galat bit aaye toh S0 pe mat jao — dekho ki ab tak ke input ka aakhri hissa pattern ki shuruaat se kitna milta hai. Jaise S3 (“101”) pe 0 aaya → “1010” → aakhir mein “10” bacha → S2. Match hone pe overlap allowed ho toh aakhri “1” ko reuse karo (S1), nahi toh S0. Moore mein output ke liye ek extra state S4 lagti hai, isliye Moore = 5 states, Mealy = 4.</p>
+<div class="fx">Mealy: S3 —1/1→ <b>S1</b> (overlap) or <b>S0</b> (no overlap). 4 states → 2 FFs.<br>
+Moore: S4 (out 1); S4 —1→ S1, —0→ S2 (overlap) or S0 (no overlap). 5 states → 3 FFs (5 one-hot).<br>
+Stream 10110110: overlap → 2 matches; no overlap → 1 match.</div>
+<figure data-d="D7.5a"></figure>
+<figure data-d="D7.5c"></figure>
+<div class="yr"><b>Yaad rakho:</b> never jump to S0 after a match when overlap is allowed.</div></div>
+</section>
+
+<!-- ======================= UNIT 8 ======================= -->
+<section>
+<h2>Unit 8 · SRAM vs DRAM &amp; the Memory Stack</h2>
+
+<div class="topic"><h3>8.1 Why we need bigger memory</h3>
+<div class="def">Register files are fast but tiny because each bit uses a flip-flop (20+ transistors); larger memories use denser cells — SRAM and DRAM — trading speed for capacity.</div>
+<div class="yr"><b>Yaad rakho:</b> fast memory is small and expensive; big memory is slow and cheap.</div></div>
+
+<div class="topic"><h3>8.2 SRAM — the 6T cell</h3>
+<div class="def"><b>SRAM (Static RAM)</b> stores each bit in a bistable latch of two cross-coupled inverters (4 transistors) plus two access transistors — a 6-transistor cell — and keeps the data without refresh as long as power is on.</div>
+<ul class="kp"><li>Word line (WL) selects the cell; bit lines BL and BL' carry data and its complement.</li><li>Read: precharge both bit lines, raise WL, sense amplifier detects which line drops — <mark>non-destructive</mark>.</li><li>Write: drive bit lines, raise WL, drivers overpower the latch.</li><li>Fast (few ns), low density, expensive → <mark>caches, register files</mark>.</li></ul>
+<figure data-d="D8.2a"></figure>
+<div class="yr"><b>Yaad rakho:</b> 6T = 4 (latch) + 2 (access). Static = no refresh.</div></div>
+
+<div class="topic"><h3>8.3 DRAM — 1T1C cell, refresh, destructive read</h3>
+<div class="def"><b>DRAM (Dynamic RAM)</b> stores each bit as charge on a capacitor accessed through one transistor (1T1C); because the charge leaks, every row must be periodically refreshed, and a read drains the capacitor so the value must be written back.</div>
+<p class="hin"><b>Hinglish:</b> DRAM mein bit ek chhote capacitor mein charge ki tarah rehta hai — charge hai toh 1, nahi toh 0. Capacitor dheere-dheere leak hota hai (lagbhag 64 ms mein data khatam), isliye controller har row ko baar-baar padh ke wapas likhta hai — isi ko refresh kehte hain, aur isi wajah se naam “dynamic”. Padhte waqt capacitor ka charge bit line mein bant jaata hai, toh value mit jaati hai (destructive read) — sense amplifier usse pehchaan ke turant wapas likhta hai. Sirf 1 transistor + 1 capacitor, isliye SRAM se ~6 guna dense aur sasta.</p>
+<div class="fx">Refresh: every row about every <b>64 ms</b>. <b>Per-row interval = retention time ÷ rows</b><br>
+<b>Example:</b> 64 ms ÷ 8192 rows = 0.0078125 ms = <b>7.8 µs</b></div>
+<figure data-d="D8.3a"></figure>
+<div class="yr"><b>Yaad rakho:</b> DRAM = 1T1C, refresh, destructive read, 50–100 ns, main memory.</div></div>
+
+<div class="topic"><h3>8.4 SRAM vs DRAM</h3>
+<div class="def"><b>SRAM vs DRAM</b>: SRAM stores a bit actively in a 6-transistor latch (fast, no refresh, low density), while DRAM stores it passively as charge on a 1T1C cell (slower, needs refresh, high density and cheap).</div>
+<table class="tt"><tr><th></th><th>SRAM</th><th>DRAM</th></tr><tr><td>Cell</td><td>6T</td><td>1T1C</td></tr><tr><td>Storage</td><td>active latch</td><td>passive charge</td></tr><tr><td>Density</td><td>low</td><td>high (~6×)</td></tr><tr><td>Speed</td><td>few ns</td><td>50–100 ns</td></tr><tr><td>Refresh</td><td>no</td><td>yes</td></tr><tr><td>Read</td><td>non-destructive</td><td>destructive</td></tr><tr><td>Cost/bit</td><td>high</td><td>low</td></tr><tr><td>Use</td><td>cache</td><td>main memory</td></tr></table>
+<div class="yr"><b>Yaad rakho:</b> SRAM trades density for speed; DRAM trades speed for density.</div></div>
+
+<div class="topic"><h3>8.5 Memory hierarchy &amp; the memory wall</h3>
+<div class="def">The <b>memory hierarchy</b> arranges storage in levels — registers, caches, main memory, disk — from small/fast/expensive to large/slow/cheap, exploiting <b>locality</b> so most accesses hit the fast levels. The <b>memory wall</b> is the growing gap between processor speed and memory (DRAM) latency.</div>
+<ul class="kp"><li>Order: <mark>registers &lt; L1 &lt; L2 &lt; L3 &lt; DRAM &lt; SSD &lt; HDD</mark> (fastest → slowest).</li><li><b>Temporal locality</b>: recently used data is used again soon. <b>Spatial locality</b>: nearby data is used soon.</li><li><mark>Memory wall: CPU speed grew ~50 %/yr, DRAM latency only ~7 %/yr</mark>.</li></ul>
+<div class="fx"><b>AMAT = hit time + miss rate × miss penalty</b> · Example 1 + 0.05 × 80 = 5 ns</div>
+<figure data-d="D8.5a"></figure></div>
+</section>
+
+<!-- ======================= UNIT 9 ======================= -->
+<section>
+<h2>Unit 9 · Von Neumann vs Harvard</h2>
+
+<div class="topic"><h3>9.1 From gates to a complete machine</h3>
+<div class="def">A complete computer consists of a <b>CPU</b> (compute), <b>memory</b> (store), <b>I/O</b> (communicate) and a <b>bus</b> (address, data and control lines) connecting them; <b>computer organisation</b> decides how they are connected.</div></div>
+
+<div class="topic"><h3>9.2 Von Neumann architecture</h3>
+<div class="def">The <b>Von Neumann (stored-program) architecture</b> keeps program instructions and data in the same memory and moves both over a single shared bus between memory and CPU. Described by John von Neumann in the “First Draft of a Report on the EDVAC” (1945).</div>
+<ul class="kp"><li>Four classic components: <mark>control unit, memory, ALU, I/O</mark>.</li><li><mark>Stored-program concept: programs are data</mark> — change the program by loading new numbers (enables compilers, loaders, JIT; also security risks).</li><li>Won because of simplicity and generality.</li></ul>
+<figure data-d="D9.2a"></figure></div>
+
+<div class="topic"><h3>9.3 The Von Neumann bottleneck</h3>
+<div class="def">The <b>Von Neumann bottleneck</b> (term by John Backus, 1977) is the limit on performance caused by instructions and data sharing one bus, so an instruction fetch and a data access cannot happen at the same time.</div>
+<p class="hin"><b>Hinglish:</b> Ek hi sadak (bus) pe instructions aur data dono chalte hain, toh ek waqt mein ek hi ja sakta hai — ya instruction lao ya data. CPU bahut tez hai par sadak utni tez nahi, isliye CPU wait karta rehta hai. Solution: cache, chaudi/tez bus, ya Harvard jaisa alag rasta.</p>
+<div class="fx"><b>Bandwidth = bits per cycle × clock frequency ÷ 8</b> (bytes/s)<br>Example: 1 GHz, 32-bit instr + 32-bit data → 64 × 10⁹ bits/s ÷ 8 = <b>8 GB/s</b></div>
+<figure data-d="D9.3a"></figure></div>
+
+<div class="topic"><h3>9.4 Harvard architecture</h3>
+<div class="def">The <b>Harvard architecture</b> uses physically separate memories and buses for instructions and data, so an instruction fetch and a data access can happen in the same cycle. Named after the Harvard Mark I (1944).</div>
+<table class="tt"><tr><th></th><th>Von Neumann</th><th>Harvard</th></tr><tr><td>Memory / bus</td><td>one / one</td><td>two / two</td></tr><tr><td>Fetch + data</td><td>2 cycles</td><td>1 cycle</td></tr><tr><td>Throughput</td><td>bottlenecked</td><td>up to 2×</td></tr><tr><td>Cost</td><td>low</td><td>higher</td></tr><tr><td>Flexibility</td><td>high</td><td>lower</td></tr><tr><td>Use</td><td>general CPUs</td><td>DSPs, microcontrollers (ATmega328)</td></tr></table>
+<figure data-d="D9.4a"></figure></div>
+
+<div class="topic"><h3>9.5 Modified Harvard</h3>
+<div class="def">A <b>modified Harvard architecture</b> has split instruction and data caches (L1-I, L1-D) inside the chip but a single unified main memory outside — Harvard speed inside, Von Neumann flexibility outside. Used by almost all modern CPUs (x86-64, ARM Cortex-M4).</div>
+<figure data-d="D9.5a"></figure>
+<div class="yr"><b>Yaad rakho:</b> VN = one bus; Harvard = two; modern = split L1 only.</div></div>
+</section>
+
+<!-- ======================= UNIT 10 ======================= -->
+<section>
+<h2>Unit 10 · CISC vs RISC</h2>
+
+<div class="topic"><h3>10.1 Recap and setup</h3>
+<p>Units 9 → 10: after deciding <i>how</i> the CPU connects to memory, the next question is <i>what instructions</i> it understands — the ISA.</p>
+<div class="def">The <b>Instruction Set Architecture (ISA)</b> is the set of instructions, registers and memory model visible to the programmer — the contract between software (which compiles to it) and hardware (which executes it).</div></div>
+
+<div class="topic"><h3>10.2 RISC vs CISC</h3>
+<div class="def"><b>CISC (Complex Instruction Set Computer)</b> provides many powerful, variable-length instructions that can operate directly on memory. <b>RISC (Reduced Instruction Set Computer)</b> provides a small set of simple, fixed-length instructions in which only load and store access memory.</div>
+<table class="tt"><tr><th>CISC</th><th>RISC</th></tr><tr><td>hundreds of instructions</td><td>few simple instructions</td></tr><tr><td><b>variable length</b> (x86: 1–15 bytes)</td><td><b>fixed 32 bits</b></td></tr><tr><td>memory operands allowed</td><td><b>load/store only</b></td></tr><tr><td>complex decoder, microcode</td><td>simple decoder</td></tr><tr><td>fewer instructions per program</td><td>more instructions per program</td></tr><tr><td>complexity in hardware</td><td>complexity in compiler</td></tr><tr><td>x86, VAX, 68000</td><td>MIPS, ARM, RISC-V, SPARC</td></tr></table>
+<div class="yr"><b>Yaad rakho:</b> RISC hallmarks = fixed length + load/store.</div></div>
+
+<div class="topic"><h3>10.3 Historical context</h3>
+<div class="def">The <b>ISA family tree</b> shows how instruction sets evolved along two lineages: the <b>CISC</b> line (VAX, 68000, x86 → x86-64) and the <b>RISC</b> line (IBM 801 → MIPS, SPARC, ARM, RISC-V).</div>
+<ul class="kp"><li>CISC: VAX (1977), 68000 (1979), <b>x86 (1978) → x86-64 (2003)</b>.</li><li>RISC: IBM 801 → <b>MIPS (Stanford, Hennessy, 1984)</b>, SPARC, <b>ARM (1985)</b>, <b>RISC-V (Berkeley, 2010)</b>.</li><li>ARM won mobile (low power, licensing); x86 kept the desktop (compatibility).</li></ul></div>
+
+<div class="topic"><h3>10.4 Compiler implications &amp; code density</h3>
+<div class="def"><b>Code density</b> is how much work a program does per byte of instructions; CISC has higher code density, RISC is easier to pipeline.</div>
+<ul class="kp"><li>RISC pipelines well: fixed length, uniform decode, one simple step each, only lw/sw touch memory.</li><li>ARM Thumb and RISC-V “C” (16-bit) improve RISC code density.</li></ul>
+<div class="fx"><b>CPU time = Instruction count × CPI × clock period</b> (iron law)</div></div>
+
+<div class="topic"><h3>10.5 Micro-ops in x86</h3>
+<div class="def"><b>Micro-operations (µops)</b> are simple RISC-like internal operations into which a modern x86 decoder splits each complex CISC instruction before executing them on a RISC-style pipelined core.</div>
+<p class="hin"><b>Hinglish:</b> x86 bahar se CISC hai (purane software chalane ke liye), par andar se RISC jaisa. Decoder ek bada instruction, jaise <code>add [mem], eax</code>, ko teen chhote kaam mein todta hai — load, add, store — aur phir unhe RISC ki tarah pipeline mein chalata hai. Isliye kehte hain “CISC outside, RISC inside”.</p>
+<figure data-d="D10.5a"></figure></div>
+
+<div class="topic"><h3>10.6 Trends — RISC-V &amp; AI ISAs</h3>
+<div class="def">A <b>domain-specific ISA</b> is an instruction set designed for one class of workload (e.g. graphics or neural networks), trading generality for much higher efficiency.</div>
+<ul class="kp"><li><b>RISC-V</b>: open, royalty-free, modular (base + extensions), Berkeley 2010.</li><li><b>Domain-specific ISAs</b>: NVIDIA PTX (GPUs), Google TPU (matrix multiply).</li></ul>
+<div class="yr"><b>Yaad rakho:</b> “RISC runs fewer instructions” is FALSE — it runs more, but each is simpler.</div></div>
+</section>
+
+<!-- ======================= UNIT 11 ======================= -->
+<section>
+<h2>Unit 11 · MIPS Registers &amp; Instruction Formats</h2>
+
+<div class="topic"><h3>11.1 Why MIPS</h3>
+<div class="def"><b>MIPS</b> (Microprocessor without Interlocked Pipeline Stages) is a classic RISC ISA from Stanford (1984) with 32 registers and fixed 32-bit instructions in three formats, widely used for teaching.</div>
+<p>Clean fixed 32-bit design with only 3 formats, MARS simulator, Patterson &amp; Hennessy textbook, skills transfer to RISC-V/ARM. Used in PlayStation 1, N64, PS2.</p></div>
+
+<div class="topic"><h3>11.2 MIPS register set &amp; conventions</h3>
+<div class="def">MIPS has <b>32 general-purpose 32-bit registers</b>; software conventions give each a role. <b>Caller-saved</b> registers ($t) may be changed by a called function; <b>callee-saved</b> registers ($s) must be preserved by it.</div>
+<table class="tt"><tr><th>Name</th><th>No.</th><th>Use</th></tr><tr><td>$zero</td><td>0</td><td>always 0</td></tr><tr><td>$at</td><td>1</td><td>assembler temp</td></tr><tr><td>$v0–$v1</td><td>2–3</td><td>return values</td></tr><tr><td>$a0–$a3</td><td>4–7</td><td>arguments</td></tr><tr><td>$t0–$t7</td><td>8–15</td><td>temporaries (caller-saved)</td></tr><tr><td>$s0–$s7</td><td>16–23</td><td>saved (callee-saved)</td></tr><tr><td>$t8–$t9</td><td>24–25</td><td>temporaries</td></tr><tr><td>$k0–$k1</td><td>26–27</td><td>OS kernel</td></tr><tr><td>$gp $sp $fp $ra</td><td>28 29 30 31</td><td>global, stack, frame, return address</td></tr></table>
+<p class="trick"><b>Trick:</b> <b>t</b> = temporary, don't trust it; <b>s</b> = saved, it survives. PC, HI, LO are separate.</p></div>
+
+<div class="topic"><h3>11.3–11.5 Instruction formats (R, I, J)</h3>
+<div class="def">An <b>instruction format</b> is the layout of fields within the 32-bit instruction word. MIPS has three: <b>R-format</b> for register-to-register operations, <b>I-format</b> for immediates, loads, stores and branches, and <b>J-format</b> for jumps.</div>
+<p class="hin"><b>Hinglish:</b> Har instruction 32 bits ka hota hai, sirf fields ka bantwara alag. R-type mein opcode hamesha 0 hota hai aur operation <i>funct</i> batata hai; rd destination hai, rs/rt source. Dhyan do: assembly mein rd pehle likhte hain (add rd, rs, rt) par binary mein order rs, rt, rd hota hai. I-type mein 16-bit constant hota hai; lw aur addi mein rt destination hota hai. J-type mein 26-bit address hota hai jo 4 se multiply hoke (shift left 2) jump address banta hai. Encode karna: registers ko numbers mein badlo → fields ko binary mein likho → 4-4 bits ke group → hex.</p>
+<div class="fx">
+<b>R:</b> opcode 6 | rs 5 | rt 5 | rd 5 | shamt 5 | funct 6 &nbsp; (bits 31-26 | 25-21 | 20-16 | 15-11 | 10-6 | 5-0)<br>
+<b>I:</b> opcode 6 | rs 5 | rt 5 | immediate 16 &nbsp;·&nbsp; <b>J:</b> opcode 6 | address 26<br>
+Effective address = <b>rs + signext(imm)</b> · Branch target = <b>PC + 4 + imm × 4</b> · Jump = <b>PC+4[31:28] ‖ addr ‖ 00</b><br>
+funct: add 0x20, sub 0x22, and 0x24, or 0x25, slt 0x2A · opcode: lw 0x23, sw 0x2B, beq 4, addi 8, j 2, jal 3<br>
+<b>Example:</b> add $t1, $t2, $t3 → 000000 01010 01011 01001 00000 100000 → <b>0x014B4820</b><br>
+lw $t1, 16($sp) → 100011 11101 01001 0000000000010000 → <b>0x8FA90010</b></div>
+<figure data-d="D11.3a"></figure>
+<figure data-d="D11.4a"></figure>
+<div class="yr"><b>Yaad rakho:</b> R = 6-5-5-5-5-6, I = 6-5-5-16, J = 6-26. rd = destination (R), rt = destination (lw, addi).</div></div>
+
+<div class="topic"><h3>11.6 RISC-V modular ISA</h3>
+<div class="def"><b>RISC-V</b> is an open, royalty-free RISC ISA built as a small base (RV32I, ~40 instructions, x0–x31) plus optional standard extensions.</div>
+<div class="fx">Formats R, I, S, B, U, J · Extensions <b>M</b> multiply, <b>A</b> atomic, <b>F</b> float, <b>D</b> double, <b>C</b> compressed, <b>V</b> vector (e.g. RV32IMAFD)</div></div>
+
+<div class="topic"><h3>11.E1 Assembly toolkit (Lab 11)</h3>
+<div class="def">An <b>assembler directive</b> (.data, .text, .word, .asciiz) instructs the assembler how to lay out the program; a <b>pseudo-instruction</b> (li, la, move, blt) is a convenience the assembler expands into real instructions; a <b>syscall</b> asks the operating system for a service (print, read, exit) chosen by the code in $v0.</div>
+<ul class="kp"><li>syscall: <mark>1 print int, 4 print string, 5 read int, 10 exit</mark>, 11 print char (put code in $v0).</li><li><mark>div → LO = quotient, HI = remainder</mark> (mflo, mfhi). mult → HI:LO.</li><li><b>la</b> loads an address, <b>lw</b> loads a value. lw/sw addresses must be multiples of 4.</li><li>Pseudo-ops: li, la, move, blt, bge, nop. srl fills 0s, sra copies the sign bit.</li><li>Endianness of 0x12345678: big-endian first byte 12, little-endian first byte 78.</li></ul></div>
+</section>
+
+<!-- ======================= UNIT 12 ======================= -->
+<section>
+<h2>Unit 12 · C to MIPS Translation</h2>
+
+<div class="topic"><h3>12.1 Translation pattern</h3>
+<div class="def"><b>Translating C to MIPS</b> means mapping variables to registers, conditions to compare-and-branch instructions, and control structures (if, loops, functions) to labelled blocks connected by branches and jumps.</div>
+<ul class="kp"><li>Variables → registers. Conditions → slt + beq/bne. Structure → labels.</li><li><mark>Reverse the condition</mark>: branch AWAY from the body when the test fails.</li><li>Array: <mark>address of A[i] = base + 4 × i</mark>.</li></ul></div>
+
+<div class="topic"><h3>12.2 if / else</h3>
+<div class="def">A <b>conditional branch</b> (beq, bne) changes the program counter to a label only if its condition is true; otherwise execution continues with the next instruction. An <b>if/else</b> is translated with one conditional branch and one unconditional jump.</div>
+<p class="hin"><b>Hinglish:</b> MIPS mein sirf beq (barabar) aur bne (barabar nahi) hote hain. “Agar a == b toh body chalao” ko aise likhte hain: “agar a != b toh body ko skip karo” (bne). Isko condition ulta karna kehte hain. Chhota-bada check karna ho toh pehle slt se flag banao (a &lt; b ho toh 1) phir flag ko $zero se compare karo. a &gt; b ke liye operands ulte kar do: slt t, b, a. if/else mein if-block ke end mein “j Done” zaroori hai warna else-block bhi chal jayega.</p>
+<pre>    bne  $t0, $t1, Else    # if (a == b)
+    li   $t2, 1            #   c = 1
+    j    Done              # skip the else part
+Else: li $t2, 0            # else c = 0
+Done:</pre>
+<div class="yr"><b>Yaad rakho:</b> a &gt; b → slt t, b, a. Always end the if-block with j Done.</div></div>
+
+<div class="topic"><h3>12.3 Loops</h3>
+<div class="def">A <b>loop</b> in assembly is a labelled block that tests a condition, executes its body, updates the loop variable and jumps back to the label until the condition fails.</div>
+<pre>Loop: bge  $t0, $t1, End   # while (i &lt; n): leave when i &gt;= n
+      add  $s0, $s0, $t0   #   sum += i
+      addi $t0, $t0, 1     #   i++
+      j    Loop
+End:</pre>
+<div class="yr"><b>Yaad rakho:</b> init → test (branch out) → body → increment → jump back. (The class slide's blt $t1,$t0 version runs one extra time.)</div></div>
+
+<div class="topic"><h3>12.4 Calling convention</h3>
+<div class="def">The <b>calling convention</b> is the agreed set of rules for function calls: arguments in $a0–$a3, return values in $v0–$v1, the return address in $ra set by <code>jal</code>, and return with <code>jr $ra</code>.</div>
+<div class="fx"><b>jal Label</b>: $ra ← PC + 4, then jump · <b>jr $ra</b>: return</div>
+<figure data-d="D12.4a"></figure></div>
+
+<div class="topic"><h3>12.5 Stack frames — leaf vs non-leaf</h3>
+<div class="def">A <b>stack frame</b> is the block of stack memory a function allocates to save registers and local data. A <b>leaf function</b> calls no other function; a <b>non-leaf function</b> calls others and must save $ra (and any needed $a/$s registers) on the stack.</div>
+<p class="hin"><b>Hinglish:</b> Stack neeche ki taraf badhta hai — jagah banane ke liye $sp ghatao (addi $sp, $sp, −8), wapas dene ke liye badhao. Jo function khud kisi aur ko call karta hai, uska $ra jal se overwrite ho jaata hai, isliye pehle $ra stack pe save karo. Recursive factorial mein har call apna $ra aur n save karta hai; fact(3) mein 3 frames bante hain, phir ulte order mein khulte hain: 1 → 2 × 1 = 2 → 3 × 2 = 6.</p>
+<div class="fx">Push: <code>addi $sp, $sp, -8; sw $ra, 4($sp); sw $a0, 0($sp)</code> · Pop: <code>lw</code> back, <code>addi $sp, $sp, 8</code><br>fact(n) peak stack = n frames × 8 bytes (fact(3) = 24 bytes)</div>
+<figure data-d="D12.5b"></figure>
+<div class="yr"><b>Yaad rakho:</b> stack grows DOWN. Non-leaf must save $ra. Keep the stack balanced.</div></div>
+</section>
+
+<!-- ======================= UNIT 13 ======================= -->
+<section>
+<h2>Unit 13 · Single-Cycle MIPS Datapath</h2>
+
+<div class="topic"><h3>13.1 ISA → hardware</h3>
+<div class="def">The <b>datapath</b> is the hardware that stores and processes data (PC, memories, register file, ALU, MUXes); the <b>control unit</b> generates the signals that tell the datapath what to do for each instruction. In a <b>single-cycle</b> design each instruction completes in one clock cycle.</div>
+<ul class="kp"><li><mark>CPI = 1, but clock period = slowest instruction (lw)</mark>.</li><li>Separate instruction and data memories, because each unit is used once per cycle.</li></ul></div>
+
+<div class="topic"><h3>13.2 Fetch–decode–execute cycle</h3>
+<div class="def">The <b>instruction cycle</b> is the repeated sequence a CPU follows for every instruction: <b>fetch</b> it from memory, <b>decode</b> it and read registers, <b>execute</b> it in the ALU, access <b>memory</b> if needed, and <b>write back</b> the result.</div>
+<div class="fx">Fetch: IR ← Mem[PC], PC ← PC + 4 · add skips Memory · sw skips Write-back · beq may change the PC</div>
+<figure data-d="D13.2a"></figure></div>
+
+<div class="topic"><h3>13.3 Building the datapath</h3>
+<div class="def">The <b>single-cycle datapath</b> connects the PC, instruction memory, register file, sign-extender, ALU, data memory and multiplexers so that every instruction type (R-type, lw, sw, beq) can use the parts it needs; the <b>main control unit</b> decodes the opcode into control signals and the <b>ALU control</b> uses ALUOp and funct to select the ALU operation.</div>
+<p class="hin"><b>Hinglish:</b> Instruction ke bits alag-alag jagah jaate hain: [31-26] opcode → Control; [25-21] rs → Read reg 1; [20-16] rt → Read reg 2; [15-11] rd → RegDst MUX; [15-0] → sign extend. Chaar MUX yaad karo: RegDst (rt ya rd — kis register mein likhna), ALUSrc (register ya immediate — ALU ka doosra input), MemtoReg (ALU result ya memory data — register mein kya likhna), PCSrc (PC + 4 ya branch target). Branch tabhi hota hai jab Branch = 1 AND ALU ka Zero = 1.</p>
+<div class="fx">
+<table class="tt"><tr><th>Instr</th><th>RegDst</th><th>ALUSrc</th><th>MemtoReg</th><th>RegWrite</th><th>MemRead</th><th>MemWrite</th><th>Branch</th><th>ALUOp</th></tr>
+<tr><td>R-type</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>10</td></tr>
+<tr><td>lw</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>00</td></tr>
+<tr><td>sw</td><td>X</td><td>1</td><td>X</td><td>0</td><td>0</td><td>1</td><td>0</td><td>00</td></tr>
+<tr><td>beq</td><td>X</td><td>0</td><td>X</td><td>0</td><td>0</td><td>0</td><td>1</td><td>01</td></tr>
+<tr><td>addi</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>00</td></tr></table>
+<b>PCSrc = Branch AND Zero</b> · ALUOp 00 add, 01 sub, 10 funct · ALU control add 0010, sub 0110</div>
+<figure data-d="D13.3a"></figure>
+<p class="trick"><b>Trick:</b> X (don't care) only on RegDst and MemtoReg, and only when RegWrite = 0.</p></div>
+
+<div class="topic"><h3>13.4 Tracing instructions</h3>
+<div class="def"><b>Tracing</b> an instruction means marking the path its data takes through the datapath and writing the value of every control signal for it.</div>
+<ul class="kp"><li>Step 1 fetch path → step 2 follow the fields → step 3 mark the MUX inputs used → step 4 fill the control row.</li><li><mark>Never leave ALUOp blank</mark> (lw/sw 00, beq 01, R-type 10).</li></ul>
+<figure data-d="D13.4b"></figure>
+<figure data-d="D13.4d"></figure></div>
+
+<div class="topic"><h3>13.5 Critical path &amp; clock period</h3>
+<div class="def">The <b>critical path</b> is the longest delay path through the circuit between two clock edges; it sets the minimum clock period. In the single-cycle datapath it is the path of <b>lw</b>.</div>
+<div class="fx">lw = IMem + Reg read + ALU + DMem + Reg write = 200 + 100 + 200 + 200 + 100 = <b>800 ps</b> (P&amp;H)<br>sw 700 · R-type 600 · beq 500 · j 200 → clock = 800 ps = 1.25 GHz</div>
+<div class="yr"><b>Yaad rakho:</b> lw is the slowest → it decides the single-cycle clock.</div></div>
+</section>
+
+<!-- ======================= UNIT 14 ======================= -->
+<section>
+<h2>Unit 14 · Pipelining (shorter — no class slides)</h2>
+<div class="topic"><h3>14.1–14.2 The idea</h3>
+<div class="def"><b>Pipelining</b> is a technique in which the execution of an instruction is divided into stages and several instructions are overlapped, each in a different stage, so that one instruction can complete every clock cycle.</div>
+<p class="hin"><b>Hinglish:</b> Laundry socho — ek load dhul raha ho toh doosra dryer mein, teesra fold ho raha. Har load ka time utna hi hai (latency same), par har 30 minute mein ek load ready (throughput badha). CPU mein bhi ek instruction fetch ho rahi hoti hai, doosri decode, teesri execute.</p></div>
+<div class="topic"><h3>14.3–14.6 Five stages, diagrams, speedup, hazards</h3>
+<div class="def">A <b>pipeline register</b> is a register placed between two pipeline stages that holds everything one stage produced (data, register numbers, control signals) for the next stage. <b>Throughput</b> is instructions completed per unit time; <b>latency</b> is the time for one instruction to pass through all stages.</div>
+<ul class="kp"><li>Stages <mark>IF, ID, EX, MEM, WB</mark>; pipeline registers <mark>IF/ID, ID/EX, EX/MEM, MEM/WB</mark>.</li><li>Pipeline diagram: rows = instructions, columns = clock cycles.</li><li>Hazards: structural, data, control (Unit 15).</li></ul>
+<div class="fx">Cycles = <b>k + (n − 1)</b> · Speedup = n·k ÷ (k + n − 1) → <b>k</b> · Clock = <b>slowest stage</b> (+ register overhead)<br>Example: stages 200/100/200/200/100 ps → clock 200 ps → speedup 800/200 = 4</div>
+<figure data-d="D14.4a"></figure>
+<div class="yr"><b>Yaad rakho:</b> pipelining improves throughput, not latency.</div></div>
+</section>
+
+<!-- ======================= UNIT 15 ======================= -->
+<section>
+<h2>Unit 15 · Pipeline Hazards (shorter — no class slides)</h2>
+<div class="topic"><h3>15.1–15.2 Hazard types</h3>
+<div class="def">A <b>hazard</b> is a situation in which the next instruction cannot execute in its planned clock cycle. <b>Structural</b>: two instructions need the same hardware. <b>Data</b>: an instruction needs a result not yet produced. <b>Control</b>: the next instruction depends on an unresolved branch.</div>
+<ul class="kp"><li>RAW (read after write) is the only data hazard in the in-order 5-stage pipeline; WAR and WAW occur only in out-of-order machines.</li></ul></div>
+<div class="topic"><h3>15.3–15.6 Stalls, forwarding, load-use, scheduling</h3>
+<div class="def"><b>Stall (bubble)</b>: delaying an instruction until its operand is ready. <b>Forwarding (bypassing)</b>: sending a result directly from a pipeline register to the ALU input of a later instruction instead of waiting for write-back.</div>
+<p class="hin"><b>Hinglish:</b> Bina forwarding, agla instruction tab tak ruka rahega jab tak result register mein likha na jaaye — 2 cycle ka wait. Forwarding mein result seedha EX/MEM ya MEM/WB register se ALU tak bhej dete hain, toh wait nahi. Sirf load ke turant baad use karne pe (load-use) 1 cycle rukna padta hai, kyunki memory se data MEM stage ke end mein aata hai. Compiler instructions ka order badal ke ye stall bhi hata sakta hai.</p>
+<div class="fx">No forwarding: dependent next instruction → <b>2 stalls</b> · Forwarding: ALU → ALU <b>0 stalls</b> · <b>Load-use: 1 stall</b><br>Paths: EX/MEM → EX, MEM/WB → EX · Scheduling example: 13 cycles → 11 cycles</div>
+<figure data-d="D15.5a"></figure>
+<div class="yr"><b>Yaad rakho:</b> 2 / 0 / 1 — stalls without forwarding / with forwarding / load-use.</div></div>
+</section>
+
+<!-- ======================= CHEAT SHEET ======================= -->
+<section class="sheet">
+<h2>Last-hour cheat sheet</h2>
+<div class="cs">
+<p><b>Gates</b><br>XOR = A'B + AB' (differ) · XNOR = A'B' + AB (equal) · NAND/NOR universal</p>
+<p><b>Laws</b><br>A + AB = A · A(A + B) = A · A + A'B = A + B · AB + AB' = A<br>De Morgan: (AB)' = A' + B', (A + B)' = A'B'</p>
+<p><b>Canonical / K-map</b><br>SOP: 1 → X, 0 → X' · POS: 0 → X, 1 → X'<br>Gray 00 01 11 10 · group 2ᵏ removes k variables · corners wrap</p>
+<p><b>Universal gate counts</b><br>NAND: NOT 1, AND 2, OR 3, XOR 4 · NOR: NOT 1, OR 2, AND 3<br>SOP → NAND-NAND · POS → NOR-NOR</p>
+<p><b>MUX / decoder</b><br>2:1 Y = S'I0 + SI1 · n selects → 2ⁿ inputs · decoder Dk = mk</p>
+<p><b>Adders</b><br>HA: S = A⊕B, C = AB · FA: S = A⊕B⊕Cin, Cout = AB + Cin(A⊕B)<br>CLA: G = AB, P = A⊕B, C(i+1) = Gi + PiCi · ALU: add 0010, sub 0110</p>
+<p><b>Numbers</b><br>2's range −2ⁿ⁻¹ … 2ⁿ⁻¹ − 1 · −x = invert + 1 · MSB weight −2ⁿ⁻¹<br>A − B = A + B' + 1 · V = C3 ⊕ C4 · CF = C4 · sign-extend = copy MSB</p>
+<p><b>Latches / FFs</b><br>NOR SR: 11 forbidden · NAND SR: 00 forbidden · Q⁺ = S + R'Q<br>D latch: transparent when EN = 1 · D FF: Q⁺ = D at the edge<br>JK: Q⁺ = JQ' + K'Q · T: Q⁺ = T⊕Q · T = Q⊕Q⁺</p>
+<p><b>Timing</b><br>T_c ≥ t_pcq + t_pd + t_setup · f = 1/T_c · hold: t_ccq + t_cd ≥ t_hold<br>ring oscillator T = 2·N·t_pd · 1/ns = 1 GHz</p>
+<p><b>Counters / registers</b><br>FFs = ⌈log₂ N⌉ · ripple delay n·t_pd · bit k = f/2^(k+1)<br>T0 = 1, T1 = Q0, T2 = Q0Q1 · load enable Q⁺ = LD + L'Q<br>ring n, Johnson 2n, LFSR 2ⁿ − 1 · SIPO = UART RX, PISO = UART TX</p>
+<p><b>Register file / FSM</b><br>32 × 32, 2 read + 1 write · address bits = log₂(regs)<br>read = MUX (combinational), write = decoder + WE (clocked)<br>Moore: output in circle; Mealy: on arrow · 1011: Mealy 4 states, Moore 5</p>
+<p><b>Memory</b><br>SRAM 6T, no refresh, cache · DRAM 1T1C, refresh 64 ms, destructive read<br>refresh interval = 64 ms ÷ rows (8192 → 7.8 µs) · AMAT = hit + miss rate × penalty</p>
+<p><b>Architecture</b><br>VN: one bus (bottleneck, Backus 1977) · Harvard: two buses · modern: split L1<br>bandwidth = bits/cycle × f ÷ 8 · RISC = fixed length + load/store · CPU time = IC × CPI × T</p>
+<p><b>MIPS</b><br>R 6-5-5-5-5-6 · I 6-5-5-16 · J 6-26 · $zero 0, $v 2-3, $a 4-7, $t 8-15, $s 16-23, $sp 29, $ra 31<br>EA = rs + signext(imm) · branch = PC + 4 + imm×4 · jump = PC+4[31:28] ‖ addr ‖ 00<br>add 0x20, sub 0x22, slt 0x2A, lw 0x23, sw 0x2B, beq 4, addi 8, j 2<br>div: LO = quotient, HI = remainder · A[i] = base + 4i · jal: $ra = PC + 4</p>
+<p><b>Datapath</b><br>R: RegDst 1, ALUSrc 0, MemtoReg 0, RegWrite 1, ALUOp 10<br>lw: 0, 1, 1, 1, MemRead 1, ALUOp 00 · sw: X, 1, X, 0, MemWrite 1, 00<br>beq: X, 0, X, 0, Branch 1, ALUOp 01 · PCSrc = Branch · Zero · lw = critical path</p>
+<p><b>Pipeline</b><br>IF ID EX MEM WB · cycles = k + n − 1 · speedup → k · clock = slowest stage<br>stalls: 2 (no forwarding) / 0 (forwarding) / 1 (load-use)</p>
+</div>
+</section>
