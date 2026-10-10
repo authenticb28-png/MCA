@@ -1,0 +1,425 @@
+<section>
+<h2>Unit 12 · C to MIPS Translation</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 11 mein humne MIPS ke "shabd" seekhe: registers aur instructions (add, lw, beq, j, jal). Ab un shabdon se "vaakya" banayenge: C ka <code>if</code>, <code>while</code>, <code>for</code>, arrays aur functions ko haath se MIPS mein badalna, bilkul waise jaise compiler karta hai. Sabse mushkil hissa functions hain: arguments kaise bhejein, jawab kaise lein, aur recursive function mein <b>stack</b> kaise use karein. Unit 13 mein dekhenge ki ye instructions hardware (datapath) mein kaise chalte hain.</div>
+
+<div class="topic"><h3>12.1 Recap of formats aur translation pattern</h3>
+<div class="why"><b>Pehle socho:</b> C code ek building ka naksha hai jisme kamre (if-block, loop-block) saaf dikhte hain. Assembly ek seedhi lambi line hai, jisme kamron ki jagah <b>labels</b> (naam ke board) hain aur darwaazon ki jagah <b>branches/jumps</b>. Translate karna matlab: <mark>variables ko registers mein bithao, conditions ko compare + branch banao, aur blocks ko labels se jodo</mark>.</div>
+<div class="def"><b>Definition:</b> <b>Translating C to MIPS</b> means mapping each variable to a register, each expression to arithmetic instructions, each condition to a compare-and-branch (slt, beq, bne), and each control structure (if, loop, function) to labelled blocks connected by branches and jumps. Array elements are reached by address = base + index × 4 for word arrays.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Recap: R / I / J</dt><dd>R = sab registers (add, sub, slt). I = 16-bit number wale (addi, lw, sw, beq, bne). J = jumps (j, jal). Har instruction 32 bits.</dd>
+<dt>Label</dt><dd>Code mein ek naam + colon, jaise <code>Loop:</code>. Ye us instruction ka address hai; branch/jump yahan aa sakte hain.</dd>
+<dt>Base address</dt><dd>Array ka pehla element A[0] jis memory address pe hai. Usually ek $s register mein.</dd>
+<dt>Offset</dt><dd>Base se kitne bytes aage. A[i] ka offset = 4 × i (har int 4 bytes).</dd>
+<dt>Byte addressing</dt><dd>Memory mein har byte ka alag address. Isliye 4-byte word ke liye agla word 4 address aage.</dd>
+</dl></div>
+<div class="how"><b>Translation ke 5 rules:</b><ol>
+<li><b>Variables → registers:</b> har C variable ko ek $s ya $t register do (question mein diya hota hai, jaise "f in $s0").</li>
+<li><b>Expressions → arithmetic:</b> ek baar mein ek operation; beech ke results $t mein.</li>
+<li><b>Conditions → compare + branch:</b> == / != ke liye beq/bne; &lt; &gt; ke liye pehle slt, phir beq/bne $zero ke saath.</li>
+<li><b>Reverse the condition:</b> "agar cond, to body" ko likho "agar NOT cond, to body <i>skip</i> karo".</li>
+<li><b>Arrays:</b> A[k] (k constant) → <code>lw $t0, 4k($base)</code>. A[i] (i variable) → pehle 4i banao (<code>sll</code> by 2), base mein jodo, phir <code>lw $t0, 0($t1)</code> ($t1 = base + 4i).</li>
+</ol></div>
+<div class="ex"><b>Solved example 1 (expression):</b> <p class="qq"><code>f = (g + h) - (i + j);</code> with f, g, h, i, j in $s0 to $s4.</p><ol>
+<li>Pehle g + h: <code>add $t0, $s1, $s2</code>.</li>
+<li>Phir i + j: <code>add $t1, $s3, $s4</code>.</li>
+<li>Dono ka difference f mein: <code>sub $s0, $t0, $t1</code>.</li></ol>
+<p class="ans">Answer: add $t0, $s1, $s2 ; add $t1, $s3, $s4 ; sub $s0, $t0, $t1.</p></div>
+<div class="ex"><b>Solved example 2 (array, constant index):</b> <p class="qq"><code>A[12] = h + A[8];</code> with h in $s2 and the base of int array A in $s3.</p><ol>
+<li>A[8] ka offset = 8 × 4 = 32 bytes → <code>lw $t0, 32($s3)</code>.</li>
+<li>Jodo: <code>add $t0, $s2, $t0</code> (h + A[8]).</li>
+<li>A[12] ka offset = 12 × 4 = 48 → <code>sw $t0, 48($s3)</code>.</li></ol>
+<p class="ans">Answer: lw $t0, 32($s3) ; add $t0, $s2, $t0 ; sw $t0, 48($s3).</p></div>
+<div class="ex"><b>Solved example 3 (array, variable index):</b> <p class="qq"><code>g = A[i];</code> with g in $s1, i in $s4, base of A in $s3. If A starts at 0x10010000 and i = 5, which address is read?</p>
+<pre>sll  $t1, $s4, 2     # t1 = i * 4  (2 baar left shift = 4 se guna)
+add  $t1, $t1, $s3   # t1 = base + 4i = &amp;A[i] (A[i] ka address)
+lw   $s1, 0($t1)     # g = A[i]</pre><ol>
+<li>sll by 2 kyun: 1 baar left shift = × 2, 2 baar = × 2 × 2 = × 4. i = 5 = 101 → 10100 = 20.</li>
+<li>Address = 0x10010000 + 20 = 0x10010000 + 0x14 = 0x10010014.</li></ol>
+<p class="ans">Answer: offset 20 bytes, address 0x10010014.</p></div>
+<div class="trap"><b>Galti mat karna:</b> Index ko 4 se guna karna mat bhoolna. <code>lw $t0, 8($s3)</code> A[8] nahi, A[2] hai (8 / 4 = 2). Aur <code>lw $t0, $s4($s3)</code> jaisa kuch MIPS mein hota hi nahi; offset hamesha constant, isliye variable index ke liye address khud banao.</div>
+<p class="trick"><b>Trick:</b> "<b>Index × 4 = offset</b>; sll 2 = × 4". Variable index ka 3-line mantra: <b>sll, add, lw</b>.</p>
+<div class="yr"><b>Ek line mein:</b> Variables → registers, conditions → slt + beq/bne (ulti condition pe skip), blocks → labels, A[i] ka address = base + 4i.</div>
+</div>
+
+<div class="topic"><h3>12.2 If/else aur conditional branching</h3>
+<div class="why"><b>Pehle socho:</b> Railway track pe points (switch) hote hain: train ya to seedhi jaati hai ya doosri line pe mud jaati hai. MIPS mein bhi CPU seedha agla instruction chalata hai, jab tak koi <b>branch</b> use dusri line (label) pe na mode. Twist ye hai ki MIPS ke paas sirf do asli conditional points hain: <code>beq</code> (barabar ho to modo) aur <code>bne</code> (barabar na ho to modo). Isliye <mark>if (a == b) ke liye bne use hota hai: "barabar NAHI hai to body ke upar se kood jao"</mark>.</div>
+<div class="def"><b>Definition:</b> A <b>conditional branch</b> (beq, bne) changes the PC to a label only if its condition is true; otherwise execution falls through to the next instruction. An <b>if</b> statement is translated by branching past the body on the <b>opposite (reversed) condition</b>; an <b>if/else</b> uses one conditional branch to the else-block and an unconditional <code>j</code> at the end of the if-block to skip the else-block. Ordering tests (&lt;, &gt;) use <b>slt</b> to set a flag that is then tested against $zero.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>beq a, b, L</dt><dd>Branch if equal: a == b ho to L pe jao, warna agli line.</dd>
+<dt>bne a, b, L</dt><dd>Branch if not equal: a != b ho to L pe jao.</dd>
+<dt>slt d, a, b</dt><dd>Set on less than: a &lt; b ho to d = 1, warna d = 0. Jaise a = 2, b = 7 → d = 1; a = 7, b = 2 → d = 0.</dd>
+<dt>Flag</dt><dd>Ek register jisme sirf 0 ya 1 hai (haan/na ka jawab).</dd>
+<dt>Fall through</dt><dd>Branch nahi liya to CPU apne aap agli line pe chala jaata hai.</dd>
+<dt>Reversed condition</dt><dd>Ulti condition. == ka ulta !=, &lt; ka ulta &gt;=.</dd>
+<dt>blt / bge / bgt / ble</dt><dd>Pseudo-instructions (asli nahi): assembler inhe slt + beq/bne mein badal deta hai ($at use karke).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (if/else ko translate karne ke steps):</b><ol>
+<li>C condition likho: <code>a == b</code>.</li>
+<li>Ulta karo: <code>a != b</code>. Kyun? Hum chahte hain condition sahi ho to CPU <i>seedha</i> neeche body mein chale (fall through), aur galat ho to body ke upar se kood jaaye.</li>
+<li>Ulti condition ka branch Else label pe: <code>bne $t0, $t1, Else</code>.</li>
+<li>Uske neeche if-body likho.</li>
+<li>If-body ke end mein <code>j Done</code>, warna CPU girte-girte else-body bhi chala dega.</li>
+<li><code>Else:</code> label ke neeche else-body.</li>
+<li><code>Done:</code> label: dono raste yahan milte hain.</li>
+<li>&lt; / &gt; ke liye: pehle <code>slt</code> se flag, phir flag ko $zero se compare. a &gt; b = b &lt; a, to slt ke operands ulte: <code>slt $t3, $t1, $t0</code>.</li>
+</ol></div>
+<pre># if (a == b) c = 1; else c = 0;      a = $t0, b = $t1, c = $t2
+      bne  $t0, $t1, Else   # ULTI condition: a != b ho to Else pe kood
+      li   $t2, 1           # if-body: c = 1 (yahan sirf a == b pe aate hain)
+      j    Done             # ZAROORI: else-body ko skip karo
+Else: li   $t2, 0           # else-body: c = 0
+Done:                       # dono raste yahan milte hain</pre>
+<p><b>Trace:</b> a = 4, b = 4 → bne nahi liya (barabar hain) → c = 1 → j Done. a = 4, b = 5 → bne liya → Else → c = 0.</p>
+<table><tr><th>C condition (body kab chale)</th><th>MIPS: body SKIP karne ke liye</th><th>Kyun</th></tr>
+<tr><td>a == b</td><td>bne a, b, Skip</td><td>barabar nahi → skip</td></tr>
+<tr><td>a != b</td><td>beq a, b, Skip</td><td>barabar → skip</td></tr>
+<tr><td>a &lt; b</td><td>slt t, a, b ; beq t, $zero, Skip</td><td>t = 0 matlab a &lt; b jhooth → skip</td></tr>
+<tr><td>a &gt;= b</td><td>slt t, a, b ; bne t, $zero, Skip</td><td>t = 1 matlab a &lt; b sach → skip</td></tr>
+<tr><td>a &gt; b</td><td>slt t, b, a ; beq t, $zero, Skip</td><td>a &gt; b = b &lt; a (operands ulte)</td></tr>
+<tr><td>a &lt;= b</td><td>slt t, b, a ; bne t, $zero, Skip</td><td>b &lt; a sach → a &gt; b → skip</td></tr></table>
+<figure data-d="D12.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar "start" oval, neeche diamond "a &gt; b ?". Yes wala arrow left box <code>c = a</code> mein, no wala (beq to Else) right box <code>c = b</code> mein. Dono boxes ke neeche arrows "Done" pe milte hain; left wale arrow pe "j Done" likha hai, yahi woh jump hai jo else ko skip karata hai. Right mein matching MIPS code. Trace a = 9, b = 4: slt $t3, $t1, $t0 = (4 &lt; 9) = 1 → beq nahi liya → c = 9 → j Done.</p>
+<div class="ex"><b>Solved example 1 (slt idiom, easy):</b> <p class="qq">Translate <code>if (a &lt; b) c = a + b;</code> (a = $t0, b = $t1, c = $t2). Trace for a = 2, b = 7 and a = 7, b = 2.</p>
+<pre>      slt  $t3, $t0, $t1    # t3 = 1 agar a &lt; b, warna 0
+      beq  $t3, $zero, Skip # flag 0 (a &gt;= b) → body skip
+      add  $t2, $t0, $t1    # body: c = a + b
+Skip:                       # aage ka code</pre><ol>
+<li>a = 2, b = 7: 2 &lt; 7 → $t3 = 1 → beq nahi liya → c = 9.</li>
+<li>a = 7, b = 2: 7 &lt; 2 jhooth → $t3 = 0 → beq liya → Skip, c nahi badla.</li></ol>
+<p class="ans">Answer: slt + beq on $zero; body runs only when a &lt; b.</p></div>
+<div class="ex"><b>Solved example 2 (exam favourite, 5 marks):</b> <p class="qq">Translate (a in $t0, b in $t1, c in $t2): <code>if (a &gt; b) c = a; else c = b;</code> Explain why j Done is needed.</p>
+<pre>      slt  $t3, $t1, $t0    # t3 = (b &lt; a) = (a &gt; b) ; operands ulte!
+      beq  $t3, $zero, Else # a &gt; b jhooth (t3 = 0) → Else pe jao
+      move $t2, $t0         # if-body: c = a
+      j    Done             # else-body skip karo
+Else: move $t2, $t1         # else-body: c = b
+Done:</pre><ol>
+<li>a &gt; b ke liye seedha slt nahi hai, to b &lt; a likho: <code>slt $t3, $t1, $t0</code>.</li>
+<li>Ulti condition (flag = 0) pe Else pe branch.</li>
+<li>Trace a = 9, b = 4: t3 = 1 → c = 9 → j Done. a = 3, b = 8: t3 = 0 → Else → c = 8. a = b = 5: t3 = 0 → c = 5.</li>
+<li>j Done ke bina: a = 9, b = 4 pe c = 9 hota, phir girte hue Else wali line bhi chalti aur c = 4 ho jaata (galat).</li></ol>
+<p class="ans">Answer: code above; j Done stops the if-block from falling through into the else-block.</p></div>
+<div class="ex"><b>Solved example 3 (portal: even or odd):</b> <p class="qq">Read an integer and print Even or Odd.</p>
+<pre>.data
+even: .asciiz "Even"
+odd:  .asciiz "Odd"
+.text
+.globl main
+main:
+    li   $v0, 5             # service 5: integer padho → $v0
+    syscall
+    andi $t0, $v0, 1        # sirf last bit rakho: 0 = even, 1 = odd
+    bne  $t0, $zero, print_odd   # last bit 1 → odd wale block pe
+print_even:
+    la   $a0, even          # "Even" string ka address
+    li   $v0, 4             # service 4: print string
+    syscall
+    j    end                # odd wala block skip
+print_odd:
+    la   $a0, odd           # "Odd" string ka address
+    li   $v0, 4
+    syscall
+end:
+    li   $v0, 10            # exit
+    syscall</pre><ol>
+<li>Kyun andi 1: binary ka last bit 0 ho to number even (6 = 110), 1 ho to odd (7 = 111).</li>
+<li>Input 7 → 7 AND 1 = 1 → bne liya → "Odd". Input 2 → 0 → fall through → "Even".</li></ol>
+<p class="ans">Answer: andi $t0, $v0, 1 then bne on $zero. 2 → Even, 7 → Odd, −3 → Odd.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) <code>j Done</code> bhoolna → if-block else-block mein gir jaata hai. (2) a &gt; b ke liye <code>slt $t3, $t0, $t1</code> likhna (ye a &lt; b hai; operands ulto). (3) == ke liye beq likh ke body neeche rakhna: tab body ulti condition pe chalegi. (4) Encoding question mein blt ko asli instruction maanna.</div>
+<p class="trick"><b>Trick:</b> "<b>Ulta socho, kood jao</b>": C mein jo condition hai, uska ulta branch karo. "<b>Bada chahiye? slt ulta likho</b>": a &gt; b = slt t, b, a.</p>
+<div class="yr"><b>Ek line mein:</b> MIPS mein sirf beq/bne (+ slt) hain; if = ulti condition pe body skip, if/else = branch to Else + if-body ke end mein j Done.</div>
+</div>
+
+<div class="topic"><h3>12.3 Loops: while aur for</h3>
+<div class="why"><b>Pehle socho:</b> Ek ghoomne wala darwaza socho. Andar aate hi guard puchhta hai "abhi aur chakkar lagana hai?" Haan → ek chakkar (body) lagao, counter badhao, wapas guard ke paas. Na → bahar nikal jao. Assembly loop bilkul aisa hai: <mark>top pe test (ulti condition pe bahar), body, increment, aur <code>j Loop</code> se wapas top pe</mark>.</div>
+<div class="def"><b>Definition:</b> A <b>loop</b> in assembly is a labelled block that tests its condition at the top (branching out to an End label on the reversed condition), executes the body, updates the loop variable and jumps back to the label with <code>j</code>. A <b>for</b> loop is a while loop with the initialisation placed before the label and the increment placed just before the jump back.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Iteration</dt><dd>Loop ka ek chakkar.</dd>
+<dt>Init</dt><dd>Loop shuru hone se pehle variable set karna (i = 0). Label se <b>pehle</b> likhte hain, taaki har chakkar mein dobara na ho.</dd>
+<dt>Loop variable / counter</dt><dd>Jo har chakkar mein badalta hai (i++).</dd>
+<dt>Off-by-one</dt><dd>Loop ek baar zyada ya ek baar kam chalna. Sabse common bug.</dd>
+<dt>slti t, a, k</dt><dd>slt ka immediate version: a &lt; k (constant) ho to t = 1.</dd>
+<dt>Pointer</dt><dd>Register jisme kisi element ka address hai; agle word ke liye +4.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (loop skeleton, 5 hisse):</b><ol>
+<li><b>Init</b> (label se pehle): <code>li $t0, 0</code> (i = 0).</li>
+<li><b>Label + test</b>: <code>Loop:</code> phir ulti condition pe bahar: while (i &lt; n) ka ulta i &gt;= n → <code>bge $t0, $t1, End</code>.</li>
+<li><b>Body</b>: asli kaam (sum += i).</li>
+<li><b>Increment</b>: <code>addi $t0, $t0, 1</code> (i++).</li>
+<li><b>Jump back</b>: <code>j Loop</code>; aur loop ke baad <code>End:</code> label.</li>
+</ol></div>
+<pre># while (i &lt; n) { sum += i; i++; }     i = $t0, n = $t1, sum = $s0
+Loop: bge  $t0, $t1, End    # TEST: i &gt;= n ho gaya to bahar (ulti condition)
+      add  $s0, $s0, $t0    # BODY: sum = sum + i
+      addi $t0, $t0, 1      # INCREMENT: i = i + 1
+      j    Loop             # wapas test pe
+End:                        # loop ke baad yahan</pre>
+<table class="tt"><tr><th>Chakkar</th><th>i ($t0)</th><th>i &gt;= n (n = 4)?</th><th>sum ($s0) baad mein</th></tr>
+<tr><td>1</td><td>0</td><td>no</td><td>0</td></tr><tr><td>2</td><td>1</td><td>no</td><td>1</td></tr>
+<tr><td>3</td><td>2</td><td>no</td><td>3</td></tr><tr><td>4</td><td>3</td><td>no</td><td>6</td></tr>
+<tr><td>test</td><td>4</td><td>yes → End</td><td>6</td></tr></table>
+<p><b>Slide correction:</b> class slide ka test <code>blt $t1, $t0, End</code> (n &lt; i pe bahar) hai; ye i == n pe bhi ek baar body chala deta hai (n = 4 pe sum = 10 aata, 6 nahi). Sahi: <code>bge $t0, $t1, End</code> ya <code>slt $t2, $t0, $t1</code> ; <code>beq $t2, $zero, End</code>.</p>
+<figure data-d="D12.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar "init: i = 0" box (label ke bahar). Neeche "Loop:" label pe diamond "i &lt; n ?". Yes → body box (sum += i) → i++ box → highlighted "j Loop" arrow wapas diamond tak. No → right side ka arrow "bge i, n, End" se End: tak. Right mein matching code. Trace n = 2: i = 0 yes, i = 1 yes, i = 2 no → End.</p>
+<div class="ex"><b>Solved example 1 (for loop, class):</b> <p class="qq">Translate <code>for (i = 0; i &lt; 10; i++) sum += i;</code> (i = $t0, sum = $s0 = 0). How many times does the body run, and what is sum?</p>
+<pre>      li   $t0, 0           # INIT: i = 0 (label se pehle, sirf ek baar)
+Loop: slti $t2, $t0, 10     # t2 = 1 agar i &lt; 10
+      beq  $t2, $zero, End  # i &lt; 10 jhooth → bahar
+      add  $s0, $s0, $t0    # BODY: sum += i
+      addi $t0, $t0, 1      # INCREMENT: i++
+      j    Loop             # wapas test pe
+End:</pre><ol>
+<li>Body i = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ke liye chalti hai = 10 baar.</li>
+<li>sum = 0 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 = 45 (formula: 9 × 10 / 2 = 45).</li></ol>
+<p class="ans">Answer: body runs 10 times; sum = 45.</p></div>
+<div class="ex"><b>Solved example 2 (exam 5 marks: array sum):</b> <p class="qq">Translate <code>sum = 0; for (i = 0; i &lt; n; i++) sum = sum + A[i];</code> (A base in $s1, n in $s0, sum in $s2). Explain each part.</p>
+<pre>      li   $s2, 0           # sum = 0
+      li   $t0, 0           # INIT: i = 0
+Loop: slt  $t1, $t0, $s0    # t1 = 1 agar i &lt; n
+      beq  $t1, $zero, End  # TEST: i &gt;= n → bahar
+      sll  $t2, $t0, 2      # t2 = 4i (byte offset)
+      add  $t2, $t2, $s1    # t2 = base + 4i = &amp;A[i]
+      lw   $t3, 0($t2)      # t3 = A[i]
+      add  $s2, $s2, $t3    # BODY: sum += A[i]
+      addi $t0, $t0, 1      # INCREMENT: i++
+      j    Loop             # wapas test pe
+End:</pre><ol>
+<li>Init: sum aur i dono 0, label se pehle.</li>
+<li>Test: slt se flag (i &lt; n), flag 0 → End (ulti condition).</li>
+<li>Address: sll 2 (× 4) → base mein jodo → lw. Ye har chakkar mein A[i] ka naya address banata hai.</li>
+<li>Increment + j Loop.</li>
+<li>Trace A = {10, 20, 30, 40, 50}, n = 5: sum = 10 → 30 → 60 → 100 → 150.</li></ol>
+<p class="ans">Answer: code above; for A = {10, 20, 30, 40, 50}, sum = 150.</p></div>
+<div class="ex"><b>Solved example 3 (mock paper, 6 marks: loop + if inside):</b> <p class="qq">A base in $s0, n in $s1, max in $s2, n ≥ 1: <code>max = A[0]; for (i = 1; i &lt; n; i++) if (A[i] &gt; max) max = A[i];</code></p>
+<pre>      lw   $s2, 0($s0)      # max = A[0] (offset 0)
+      li   $t0, 1           # i = 1
+Loop: slt  $t1, $t0, $s1    # i &lt; n ?
+      beq  $t1, $zero, End  # nahi → loop khatam
+      sll  $t2, $t0, 2      # 4i
+      add  $t2, $t2, $s0    # &amp;A[i]
+      lw   $t3, 0($t2)      # t3 = A[i]
+      slt  $t4, $s2, $t3    # t4 = (max &lt; A[i]) = (A[i] &gt; max)
+      beq  $t4, $zero, Skip # ULTA: A[i] &gt; max nahi → update skip
+      move $s2, $t3         # max = A[i]
+Skip: addi $t0, $t0, 1      # i++
+      j    Loop
+End:</pre><ol>
+<li>"A[i] &gt; max" = "max &lt; A[i]" → <code>slt $t4, $s2, $t3</code> (operands ulte).</li>
+<li>Reversed: flag 0 hone pe Skip pe kood (update mat karo).</li>
+<li>Trace A = {−7, 3, −1, 2}: max = −7 → 3 (update) → −1 nahi → 2 nahi → 3.</li></ol>
+<p class="ans">Answer: code above; for {−7, 3, −1, 2} max = 3.</p></div>
+<div class="ex"><b>Solved example 4 (portal: iterative factorial, counting down):</b> <p class="qq">Compute 5! with a loop that counts down.</p>
+<pre>      li   $t0, 1           # result = 1
+      li   $t1, 5           # counter = 5
+loop: beq  $t1, $zero, done # counter 0 ho gaya → bahar
+      mul  $t0, $t0, $t1    # result = result * counter
+      addi $t1, $t1, -1     # counter-- (MARS mein subi bhi chalta hai)
+      j    loop
+done: move $a0, $t0         # print ke liye $a0 = result</pre><ol>
+<li>result: 1 → 5 → 20 → 60 → 120 → 120 (counter 5, 4, 3, 2, 1 ke baad 0).</li></ol>
+<p class="ans">Answer: 120.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Init ko label ke <i>neeche</i> likhna → har chakkar mein i = 0, infinite loop. (2) Off-by-one exit (slide ka blt $t1, $t0). (3) Array pointer ko +1 karna; word ke liye <b>+4</b>. (4) Test sirf neeche rakhna (do-while) → n = 0 pe bhi body ek baar chal jaati hai.</div>
+<p class="trick"><b>Trick:</b> Loop ka mantra: "<b>Init, Label, Test, Body, Badhao, Wapas</b>" (I-L-T-B-B-W). Test hamesha ulti condition pe <b>bahar</b>.</p>
+<div class="yr"><b>Ek line mein:</b> Loop = init (label se pehle) → Loop: ulti condition pe End → body → increment → j Loop; while (i &lt; n) ka exit = bge $t0, $t1, End.</div>
+</div>
+
+<div class="topic"><h3>12.4 Calling convention: $a, $v, $ra</h3>
+<div class="why"><b>Pehle socho:</b> Tum dost ko phone karke kehte ho "ye 2 numbers jod do" (arguments). Dost jodta hai aur jawab batata hai (return value), phir call khatam karke tum wahin se kaam continue karte ho jahan ruke the (return address). Agar har koi alag tareeke se numbers bheje to gadbad. Isliye <mark>sab ek rule maante hain: arguments $a0-$a3 mein, jawab $v0 mein, wapsi ka pata $ra mein</mark>. Yahi calling convention hai.</div>
+<div class="def"><b>Definition:</b> The <b>MIPS calling convention</b> is the agreed set of rules for function calls: the caller places up to four arguments in <b>$a0 to $a3</b> and calls with <b>jal</b>, which stores the return address (PC + 4) in <b>$ra</b> and jumps; the callee returns results in <b>$v0 (and $v1)</b> and returns with <b>jr $ra</b>. $t registers may be overwritten by the callee (caller-saved); $s registers must be preserved by the callee (callee-saved).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>jal Label (jump and link)</dt><dd>Do kaam: (1) $ra ← PC + 4 (agle instruction ka address "link"), (2) Label pe jump.</dd>
+<dt>jr $ra (jump register)</dt><dd>$ra mein jo address hai wahan jao. Function se wapas aane ka tareeka.</dd>
+<dt>Return address</dt><dd>Caller mein jal ke <b>baad</b> wala instruction. Wahin se caller continue karta hai.</dd>
+<dt>Caller / callee</dt><dd>Caller = bulaane wala (main). Callee = bulaya gaya (sum).</dd>
+<dt>Leaf function</dt><dd>Jo kisi aur function ko call nahi karta (12.5).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (6 steps):</b><ol>
+<li>Caller arguments rakhta hai: <code>li $a0, 10</code> (n = 10).</li>
+<li>Caller <code>jal sum</code>: $ra = jal ke baad wale instruction ka address, PC = sum.</li>
+<li>Callee $a0 padhta hai aur kaam karta hai (zaroorat ho to $s/$ra stack pe save).</li>
+<li>Callee jawab $v0 mein rakhta hai.</li>
+<li>Callee <code>jr $ra</code>: wapas caller mein, jal ke theek baad.</li>
+<li>Caller $v0 se result uthata hai: <code>move $a0, $v0</code>.</li>
+</ol></div>
+<figure data-d="D12.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left box CALLER, right box CALLEE, steps 1 se 6 numbered. Upar ke do arrows right ki taraf: "$a0-$a3 (arguments)" aur highlighted "jal: jump + link". Neeche ke do arrows left ki taraf: "$v0-$v1 (return values)" aur highlighted "jr $ra: back to the instruction after jal". Neeche note: 4 se zyada arguments stack pe; $t callee badal sakta hai, $s nahi.</p>
+<div class="ex"><b>Solved example 1 (class homework: function sum(n)):</b> <p class="qq">Write <code>int sum(int n) { s = 0; for (i = 1; i &lt;= n; i++) s += i; return s; }</code> and call it with n = 10 from main.</p>
+<pre>.text
+.globl main
+main:
+    li   $a0, 10            # argument n = 10, $a0 mein
+    jal  sum                # $ra = agli line ka address, sum pe jao
+    move $a0, $v0           # wapas aaye: result $v0 mein hai
+    li   $v0, 1             # print integer
+    syscall                 # prints 55
+    li   $v0, 10            # exit
+    syscall
+
+sum:                        # LEAF: kisi ko call nahi karta, stack nahi chahiye
+    li   $v0, 0             # s = 0 (seedha $v0 mein, yahi return hoga)
+    li   $t0, 1             # i = 1
+sum_loop:
+    bgt  $t0, $a0, sum_done # i &gt; n → loop khatam
+    add  $v0, $v0, $t0      # s += i
+    addi $t0, $t0, 1        # i++
+    j    sum_loop
+sum_done:
+    jr   $ra                # main mein jal ke baad wali line pe wapas</pre><ol>
+<li>n = 10 → 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10; formula n(n + 1)/2 = 10 × 11 / 2 = 55.</li>
+<li>sum leaf hai aur sirf $t0, $v0 use karta hai → koi save nahi.</li></ol>
+<p class="ans">Answer: prints 55.</p></div>
+<div class="ex"><b>Solved example 2 (numerical):</b> <p class="qq"><code>jal sum</code> is at address 0x00400020. What is written into $ra, and where does jr $ra return?</p><ol>
+<li>jal: $ra ← PC + 4.</li>
+<li>0x00400020 + 4 = 0x00400024.</li>
+<li>Decimal: 0x00400024 = 4 × 16⁵ + 2 × 16 + 4 = 4194304 + 32 + 4 = 4194340.</li>
+<li>jr $ra wapas 0x00400024 pe, yaani jal ke baad wala instruction (move $a0, $v0).</li></ol>
+<p class="ans">Answer: $ra = 0x00400024 (4194340).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Result $a0 mein return karna; return hamesha <b>$v0</b>. (2) jal ko "$ra stack pe push karta hai" samajhna; jal sirf register $ra mein likhta hai, stack software ka kaam. (3) $t registers ko call ke baad same samajhna. (4) jr $ra ki jagah j sum_done jaisa kuch likh dena.</div>
+<p class="trick"><b>Trick:</b> "<b>a = andar (arguments), v = vapas (values), ra = return address</b>". jal = "<b>jump + yaad rakho</b>", jr $ra = "<b>yaad wali jagah lauto</b>".</p>
+<div class="yr"><b>Ek line mein:</b> Arguments $a0-$a3 mein, jal ($ra ← PC + 4, jump), jawab $v0 mein, jr $ra se wapas; $t callee bigaad sakta hai, $s nahi.</div>
+</div>
+
+<div class="topic"><h3>12.5 Stack frames: leaf vs non-leaf</h3>
+<div class="why"><b>Pehle socho:</b> Canteen mein thaaliyon ka dher (stack) socho: nayi thaali hamesha upar rakhte ho, aur uthate bhi upar se ho. Function calls bhi aise hi: main ne A ko bulaya, A ne B ko; B pehle khatam hoga, phir A, phir main. Problem: <b>$ra sirf ek hai</b>. Agar A khud <code>jal B</code> kare to $ra mein B ka return address aa jaayega aur A ka apna wapsi ka pata (main mein) mit jaayega. Isliye A ko <mark>apna $ra pehle stack pe rakhna padta hai</mark>. Har function ka stack pe ye apna hissa = <b>stack frame</b>.</div>
+<div class="def"><b>Definition:</b> A <b>stack frame</b> is the block of stack memory a function allocates on entry to save registers ($ra, $s registers, arguments it still needs) and local data, and frees before returning. The MIPS stack <b>grows downward</b>: $sp is decreased to push and increased to pop. A <b>leaf function</b> calls no other function; a <b>non-leaf function</b> calls others (or itself) and must save $ra (and any $a/$s values needed after the call) on the stack.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Stack</dt><dd>Memory ka hissa (upar ke addresses, 0x7FFFFFFC ke paas se) jo LIFO (last in, first out) chalta hai: aakhri rakha, pehle nikla.</dd>
+<dt>$sp (stack pointer)</dt><dd>Stack ke top (aakhri pushed word) ka address.</dd>
+<dt>Grows down</dt><dd>Naya data <b>chhote</b> address pe. Push = <code>addi $sp, $sp, -8</code> (8 bytes = 2 words ki jagah), pop = <code>addi $sp, $sp, 8</code>.</dd>
+<dt>Push / pop</dt><dd>Push = $sp ghatao + sw. Pop = lw + $sp badhao.</dd>
+<dt>Prologue / epilogue</dt><dd>Function ki shuru ki lines (frame banao, save karo) aur aakhri lines (restore, frame hatao, jr $ra).</dd>
+<dt>Leaf / non-leaf</dt><dd>Leaf = ped ki patti, aage koi shaakha nahi (koi call nahi). Non-leaf = shaakha, aage aur calls.</dd>
+<dt>Balanced stack</dt><dd>Jitna push kiya utna hi pop; jr $ra ke time $sp wahi jo function shuru hone pe tha.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (5-part function template):</b><ol>
+<li><b>Prologue:</b> <code>addi $sp, $sp, -8</code> (jagah banao), <code>sw $ra, 4($sp)</code>, <code>sw $a0, 0($sp)</code> (jo baad mein chahiye woh save).</li>
+<li><b>Base case / kaam:</b> simple case ho to seedha jawab $v0 mein.</li>
+<li><b>Call:</b> argument badlo aur <code>jal</code> (ab $ra overwrite hoga, par humne save kar liya hai).</li>
+<li><b>Combine:</b> stack se apna saved value wapas lo (<code>lw $a0, 0($sp)</code>) aur jawab banao.</li>
+<li><b>Epilogue:</b> <code>lw $ra, 4($sp)</code>, <code>addi $sp, $sp, 8</code> (frame hatao), <code>jr $ra</code>.</li>
+<li><b>Leaf function</b> ko $ra save nahi karna (koi jal nahi). Agar sirf $t/$a/$v use kare to stack bilkul nahi; agar $s use kare to sirf $s save/restore.</li>
+</ol></div>
+<figure data-d="D12.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Lamba dabba: upar high addresses (older frames), neeche low addresses. Upar se: older frames, saved $ra, saved $s0, local variable, phir (free). Left mein arrow "grows down". Right mein highlighted arrow "$sp (top of stack)" sabse neeche wale used word pe. Saath mein push code (addi −8, sw $ra 4, sw $s0 0) aur pop code (lw, lw, addi +8).</p>
+<div class="ex"><b>Solved example 1 (leaf function that uses $s0, P&amp;H):</b> <p class="qq"><code>int leaf(int g, int h, int i, int j) { int f = (g + h) - (i + j); return f; }</code> with f in $s0.</p>
+<pre>leaf:
+    addi $sp, $sp, -4       # 1 word (4 bytes) ki jagah banao
+    sw   $s0, 0($sp)        # $s0 callee-saved hai: purani value bachao
+    add  $t0, $a0, $a1      # t0 = g + h
+    add  $t1, $a2, $a3      # t1 = i + j
+    sub  $s0, $t0, $t1      # f = (g + h) - (i + j)
+    move $v0, $s0           # return value $v0 mein
+    lw   $s0, 0($sp)        # caller ka $s0 wapas daalo
+    addi $sp, $sp, 4        # jagah wapas (stack balanced)
+    jr   $ra                # jal nahi kiya tha, to $ra abhi bhi sahi hai</pre><ol>
+<li>leaf(5, 6, 1, 2): (5 + 6) − (1 + 2) = 11 − 3 = 8.</li>
+<li>$ra save nahi kiya kyunki andar koi jal nahi; $s0 save kiya kyunki callee-saved hai.</li></ol>
+<p class="ans">Answer: returns 8; only $s0 is saved, $ra is not needed.</p></div>
+<div class="ex"><b>Solved example 2 (class: recursive factorial, non-leaf, full):</b> <p class="qq">Write <code>int fact(int n) { if (n &lt;= 1) return 1; return n * fact(n - 1); }</code> with main, and draw the stack during fact(3).</p>
+<pre>.text
+.globl main
+main:
+    li   $v0, 5             # n padho
+    syscall
+    move $a0, $v0           # argument n → $a0
+    jal  fact               # $ra = ret_main (agli line), fact pe jao
+    move $s0, $v0           # ret_main: result yahan aata hai
+    move $a0, $s0           # print ke liye
+    li   $v0, 1             # print integer
+    syscall
+    li   $v0, 10            # exit
+    syscall
+
+fact:
+    # 1. PROLOGUE: 8 bytes ka frame, $ra aur n save
+    addi $sp, $sp, -8       # stack neeche badhao (2 words)
+    sw   $ra, 4($sp)        # apna wapsi ka pata bachao
+    sw   $a0, 0($sp)        # n bachao (call ke baad chahiye)
+    # 2. BASE CASE: n &lt;= 1 → return 1
+    li   $t0, 1
+    ble  $a0, $t0, base_case
+    # 3. RECURSIVE STEP: fact(n - 1)
+    addi $a0, $a0, -1       # argument = n - 1
+    jal  fact               # $ra = ret_fact (agli line)
+    # 4. COMBINE (ret_fact)
+    lw   $a0, 0($sp)        # apna n stack se wapas ($a0 badal gaya tha)
+    mul  $v0, $a0, $v0      # v0 = n * fact(n - 1)
+    j    fact_exit
+base_case:
+    li   $v0, 1             # fact(1) = 1
+fact_exit:
+    # 5. EPILOGUE: restore, frame hatao, wapas
+    lw   $ra, 4($sp)        # apna $ra wapas
+    addi $sp, $sp, 8        # frame hatao (stack balanced)
+    jr   $ra                # caller ke paas lauto</pre>
+<p><b>Stack har step pe</b> (shuru mein $sp = 0x7FFFF000; ret_main = main mein jal ke baad wali line, ret_fact = fact mein jal ke baad wali line):</p>
+<pre>Step 1: main calls fact(3)        Step 2: fact(3) calls fact(2)
+addr        value                 addr        value
+0x7FFFEFFC  $ra = ret_main        0x7FFFEFFC  $ra = ret_main
+0x7FFFEFF8  n = 3   &lt;- $sp        0x7FFFEFF8  n = 3
+                                  0x7FFFEFF4  $ra = ret_fact
+                                  0x7FFFEFF0  n = 2   &lt;- $sp
+
+Step 3: fact(2) calls fact(1)  (DEEPEST: 3 frames = 24 bytes)
+0x7FFFEFFC  $ra = ret_main     | fact(3) ka frame
+0x7FFFEFF8  n = 3              |
+0x7FFFEFF4  $ra = ret_fact     | fact(2) ka frame
+0x7FFFEFF0  n = 2              |
+0x7FFFEFEC  $ra = ret_fact     | fact(1) ka frame
+0x7FFFEFE8  n = 1   &lt;- $sp     |
+fact(1): n &lt;= 1 → $v0 = 1, pop → $sp = 0x7FFFEFF0, jr → fact(2)
+
+Step 4: fact(2) combine           Step 5: fact(3) combine
+lw n = 2 (from 0x7FFFEFF0)        lw n = 3 (from 0x7FFFEFF8)
+$v0 = 2 * 1 = 2                   $v0 = 3 * 2 = 6
+pop → $sp = 0x7FFFEFF8            pop → $sp = 0x7FFFF000
+jr $ra (ret_fact) → fact(3)       jr $ra (ret_main) → main, prints 6</pre><ol>
+<li>Har call apna 8-byte frame banata hai: upar (offset 4) $ra, neeche (offset 0) n.</li>
+<li>fact(3) → fact(2) → fact(1): 3 frames, peak = 3 × 8 = 24 bytes; $sp sabse neeche 0x7FFFEFE8.</li>
+<li>Unwind ulte order mein: 1 → 2 × 1 = 2 → 3 × 2 = 6.</li>
+<li><b>$ra kyun save:</b> andar wala <code>jal fact</code> $ra ko ret_fact se overwrite karta hai; save na karo to fact(3) kabhi main mein wapas nahi pahunchega.</li>
+<li><b>$a0 (n) kyun save:</b> recursive call se pehle humne $a0 = n − 1 kar diya; multiply ke liye asli n chahiye, jo sirf stack pe bacha hai.</li></ol>
+<p class="ans">Answer: fact(3) = 6; peak 3 frames (24 bytes); $ra and n are saved because jal and the argument change overwrite them.</p></div>
+<figure data-d="D12.5b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein teen frames upar se neeche: fact(3), fact(2), fact(1) (sabse neeche highlighted, base case). Har frame mein do dabbe: saved $ra (kahan lautna hai) aur n. Bagal mein addresses (0x7FFFEFFC se 0x7FFFEFE8). Neeche arrow: $sp = 0x7FFFEFE8. Right mein "The unwind": fact(1) returns 1, fact(2) = 2 × 1 = 2, fact(3) = 3 × 2 = 6; har ek 8 bytes pop karke jr $ra.</p>
+<div class="ex"><b>Solved example 3 (mock paper, 6 marks):</b> <p class="qq">Write a recursive MIPS function for <code>int sum(int n) { if (n == 0) return 0; return n + sum(n - 1); }</code>. Show what is saved on the stack and why.</p>
+<pre>sum:  addi $sp, $sp, -8     # 8-byte frame
+      sw   $ra, 4($sp)      # non-leaf: jal $ra ko overwrite karega
+      sw   $a0, 0($sp)      # n call ke baad chahiye
+      bne  $a0, $zero, rec  # n != 0 → recursive case (n == 0 ka ulta)
+      li   $v0, 0           # base case: sum(0) = 0
+      j    done
+rec:  addi $a0, $a0, -1     # argument = n - 1
+      jal  sum              # $v0 = sum(n - 1)
+      lw   $a0, 0($sp)      # apna n wapas
+      add  $v0, $a0, $v0    # n + sum(n - 1)
+done: lw   $ra, 4($sp)      # $ra wapas
+      addi $sp, $sp, 8      # frame hatao
+      jr   $ra</pre><ol>
+<li>Saved: $ra (kyunki andar jal hai) aur $a0 = n (kyunki $a0 ko n − 1 bana diya, par add ke liye n chahiye).</li>
+<li>Yahan base case ka bhi frame banta hai: sum(3) → sum(2) → sum(1) → sum(0) = 4 frames = 32 bytes peak.</li>
+<li>Unwind: 0 → 1 + 0 = 1 → 2 + 1 = 3 → 3 + 3 = 6.</li></ol>
+<p class="ans">Answer: sum(3) = 6; each frame holds $ra and n; peak 4 frames (32 bytes).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Non-leaf mein $ra save na karna → galat jagah return ya infinite loop. (2) Unbalanced stack: −8 push kiya, +4 pop kiya. (3) Call ke baad n ko $a0 se padhna (woh badal chuka); stack se <code>lw</code> karo. (4) Push ke liye $sp <i>badhana</i>; stack neeche badhta hai, push = <b>minus</b>. (5) fact(n) mein frames = n (fact(1) bhi frame banata hai): fact(4) = 4 frames, fact(5) = 40 bytes.</div>
+<p class="trick"><b>Trick:</b> "<b>Neeche jao to rakho (push = −), upar aao to uthao (pop = +)</b>". Non-leaf ka niyam: "<b>jal karega? to $ra bachayega</b>".</p>
+<div class="yr"><b>Ek line mein:</b> Stack neeche badhta hai ($sp − to push); leaf ko $ra save nahi karna, non-leaf ko $ra (aur call ke baad chahiye values) save karne hi padte hain; fact(3) = 3 frames × 8 = 24 bytes, unwind 1 → 2 → 6.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Simple statement / expression to MIPS</td><td>1. Variables ko diye gaye registers. 2. Ek operation per instruction, beech ke results $t mein. 3. Constant ke liye addi.</td></tr>
+<tr><td>Array access A[k] / A[i]</td><td>1. Constant k: offset = 4k → lw/sw 4k(base). 2. Variable i: sll $t, i, 2 → add base → lw 0($t). 3. Address = base + 4i (A[5] → +20).</td></tr>
+<tr><td>if (a == b) / first instruction MCQ</td><td>Ulti condition: bne a, b, Skip. (a != b → beq.)</td></tr>
+<tr><td>if / else translation (5 marks)</td><td>1. Ulti condition pe branch to Else. 2. if-body. 3. j Done. 4. Else: else-body. 5. Done:. 6. Flowchart (D12.2a) + "j Done kyun" explain.</td></tr>
+<tr><td>a &lt; b, a &gt; b, a &gt;= b, a &lt;= b</td><td>slt se flag. a &gt; b aur a &lt;= b ke liye operands ulte (slt t, b, a). Phir flag ko $zero se beq/bne (table 12.2).</td></tr>
+<tr><td>Value of slt / pseudo expansion</td><td>slt d, a, b: a &lt; b → 1 else 0 (slt $t3,$t1,$t0 with $t0 = 5, $t1 = 9 → 9 &lt; 5? → 0). bge = slt + beq; blt = slt + bne.</td></tr>
+<tr><td>while / for loop translation</td><td>Init (label se pehle) → Loop: test ulti condition pe End → body → increment → j Loop → End:. while (i &lt; n) → bge $t0, $t1, End.</td></tr>
+<tr><td>Loop output / iteration count</td><td>Trace table banao: i, condition, variable. for (i = 0; i &lt; 10; i++) = 10 iterations, sum 45. Slide ka blt version ek extra iteration.</td></tr>
+<tr><td>Array loop (sum / max)</td><td>Loop skeleton + andar sll, add, lw. Max ke liye andar slt max, A[i] + beq Skip. Pointer method: +4 per element.</td></tr>
+<tr><td>jal / jr / $ra numericals</td><td>jal: $ra = PC + 4 (0x00400020 → 0x00400024 = 4194340), phir jump. jr $ra = wapas. Return value $v0.</td></tr>
+<tr><td>Function with calling convention (sum(n))</td><td>main: $a0 set, jal, move from $v0. Callee: kaam, result $v0, jr $ra. Leaf + sirf $t → stack nahi.</td></tr>
+<tr><td>Recursive function + stack frames (6 marks)</td><td>1. Prologue: addi $sp,−8; sw $ra,4; sw $a0,0. 2. Base case → $v0. 3. $a0 badlo, jal. 4. lw $a0,0($sp), combine. 5. lw $ra; addi $sp,+8; jr $ra. 6. Frames draw karo + "$ra aur n kyun save" likho.</td></tr>
+<tr><td>Frames / bytes at peak</td><td>fact(n): n frames × 8 bytes (fact(3) = 24, fact(5) = 40). sum(n) with base n == 0: n + 1 frames.</td></tr>
+<tr><td>Push / pop instruction MCQ</td><td>Push k words: addi $sp, $sp, −4k. Pop: addi $sp, $sp, +4k. Stack neeche badhta hai.</td></tr>
+<tr><td>Leaf vs non-leaf</td><td>Leaf: koi call nahi → $ra save nahi; $s use kare to $s save. Non-leaf: $ra save zaroori + call ke baad chahiye values.</td></tr></table></div>
+</section>

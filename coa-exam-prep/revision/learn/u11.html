@@ -189,7 +189,7 @@
 <li>PC + 4 = 0x00400100 + 4 = 0x00400104.</li>
 <li>target − (PC + 4) = 0x004000F0 − 0x00400104. Sirf last digits: 0xF0 = 240, 0x104 = 260. 240 − 260 = −20 bytes.</li>
 <li>Words = −20 / 4 = <b>−5</b> (negative = peeche jaana).</li>
-<li>−5 in 16 bits = 0xFFFB (example 2 jaisa: 0000...0101 → invert 1111...1010 → +1 → 1111 1111 1111 1011).</li>
+<li>−5 in 16 bits = 0xFFFB (example 2 jaisa: 0000 0000 0000 0101 → invert 1111 1111 1111 1010 → +1 → 1111 1111 1111 1011).</li>
 <li>bne opcode = 000101; rs = $t0 = 01000; rt = $zero = 00000.</li>
 <li>000101 01000 00000 1111111111111011 → 0001 0101 0000 0000 1111 1111 1111 1011.</li>
 <li>Check: 0x00400104 + (−5 × 4) = 0x00400104 − 0x14 = 0x004000F0 ✓.</li></ol>
@@ -234,7 +234,7 @@
 <li>26 bits mein: 00 0001 0000 0000 0000 0000 0110.</li>
 <li>Opcode j = 000010. Jodo: 000010 | 00000100000000000000000110.</li>
 <li>4-4 group: 0000 1000 0001 0000 0000 0000 0000 0110 → 0 8 1 0 0 0 0 6.</li>
-<li>Verify: PC+4 upar ke 4 bits = 0000 (code 0x004xxxxx mein hai). 0x100006 × 4 = 0x400018. 0000 ‖ ... → 0x00400018 ✓.</li></ol>
+<li>Verify: PC+4 upar ke 4 bits = 0000 (code 0x004xxxxx mein hai). 0x100006 × 4 = 0x0400018 (28 bits). Aage 0000 chipkao → 0x00400018 ✓.</li></ol>
 <p class="ans">Answer: 0x08100006.</p></div>
 <div class="ex"><b>Solved example 2 (jal):</b> <p class="qq">Encode <code>jal 0x00400030</code>. If this jal is at address 0x00400020, what goes into $ra?</p><ol>
 <li>0x00400030 &gt;&gt; 2 = 0x0010000C (0x30 / 4 = 0x0C, 0x400000 / 4 = 0x100000).</li>

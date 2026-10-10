@@ -1,0 +1,364 @@
+<section>
+<h2>Unit 3 · Combinational Building Blocks</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 1–2 mein humne gates aur unhe chhota karna seekha. Par CPU ko "17 gates aise jodo" soch ke koi design nahi karta. Hum gates se kuch <b>standard blocks</b> banate hain: MUX (choose karna), DEMUX aur decoder (bhejna / line chunna), adder (jodna). Phir in blocks se ALU aur register file bante hain, jo Unit 13 ke CPU datapath ka dil hain. Unit 4 isi adder se subtraction aur two's complement karega.</div>
+
+<div class="topic"><h3>3.1 Motivation: From Gates to Reusable Blocks</h3>
+<div class="why"><b>Pehle socho:</b> Car factory har screw khud nahi dhaalti; catalogue se standard parts mangwaati hai jo pehle se tested hain. Chip designers bhi ek chhota catalogue use karte hain: <b>MUX, decoder, adder, register</b> (lagbhag 5 core types), jo lakhon baar repeat hote hain.</div>
+<div class="def"><b>Definition:</b> A <b>combinational building block</b> is a standard circuit (multiplexer, demultiplexer, decoder, adder) built from logic gates whose outputs depend only on its present inputs, and which is designed and verified once and reused throughout larger designs.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>combinational</dt><dd>Output sirf abhi ke inputs pe depend karta hai; koi memory nahi. Input badla, output turant badla. (Ulta: sequential, jo yaad rakhta hai, Unit 5.)</dd>
+<dt>datapath</dt><dd>CPU ke andar ka raasta jisme data chalta hai: register file → ALU → memory → wapas.</dd>
+<dt>control point</dt><dd>Datapath ka ek MUX jiska select control unit set karta hai, jaise ALUSrc (ALU ko register de ya immediate).</dd>
+<dt>verification</dt><dd>Check karna ki block sahi kaam karta hai. Ek baar test kiya, har copy pe bharosa.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (blocks kyun aur kahan):</b><ol>
+<li><b>Abstraction:</b> "is input ko select karo" socho, "17 gates" nahi.</li>
+<li><b>Reuse:</b> ek verified MUX har jagah lagao.</li>
+<li><b>Verification:</b> block ek baar test, sab copies trusted.</li>
+<li><b>Scale:</b> 2:1 MUX → 4:1 → 8:1 jodte jaao.</li>
+<li>CPU mein (Lab 3): ALU operand select (register ya immediate), PC update (PC + 4 ya branch target ya jump target), memory routing (ek bus, kai destinations).</li>
+</ol></div>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Explain, with two datapath examples, why multiplexers are called the fundamental routing block of a CPU. (3 marks)</p><ol>
+<li>A MUX selects one of several sources and passes it to one output under a control (select) signal.</li>
+<li>ALUSrc MUX: chooses Read data 2 (register) or the sign-extended immediate as the ALU's second operand.</li>
+<li>PCSrc MUX: chooses PC + 4 or the branch target as the next PC. (MemtoReg MUX: ALU result or memory data for write-back.)</li></ol>
+<p class="ans">Answer: definition + any two datapath MUXes.</p></div>
+<div class="trap"><b>Galti mat karna:</b> MUX kuch store nahi karta; wo railway switch hai, godown nahi. Storage register ka kaam hai.</div>
+<div class="yr"><b>Ek line mein:</b> CPU = gates nahi, blocks (MUX, decoder, adder, register) ka jod; har block ek baar bana, baar baar use.</div>
+</div>
+
+<div class="topic"><h3>3.2 Multiplexers: 2:1, 4:1, and Cascading</h3>
+<div class="why"><b>Pehle socho:</b> Railway junction pe kai patriyaan ek patri mein milti hain. Station master ka <b>lever</b> decide karta hai kaunsi train aage jaayegi. Lever badlo, doosri train nikal jaati hai; kuch ruka ya store nahi hota. MUX yahi hai: kai data inputs, ek output, aur <b>select lines</b> = lever.</div>
+<div class="def"><b>Definition:</b> A <b>multiplexer (MUX)</b> is a combinational circuit that selects one of 2ⁿ data inputs and passes it to a single output, according to the binary value on n select lines (a "data selector").</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>data inputs (I0, I1, I2)</dt><dd>Wo signals jinme se ek chuna jaayega (patriyaan).</dd>
+<dt>select lines (S)</dt><dd>Control bits jo batate hain kaunsa input. Select ka binary value = chune gaye input ka number. S1S0 = 10 = 2 → I2.</dd>
+<dt>why 2ⁿ inputs</dt><dd>n select bits se 2ⁿ alag numbers ban sakte hain (1 bit: 0, 1 → 2; 2 bits: 00 to 11 → 4; 3 bits → 8). Har number ek input ko point karta hai. Isliye 8:1 MUX ko 3 select lines.</dd>
+<dt>cascading / tree</dt><dd>Chhote MUX jod ke bada MUX banana.</dd>
+<dt>LUT (look-up table)</dt><dd>MUX jiske data inputs pe truth table ke 0/1 lage hain; select pe variables. FPGA inse bhara hota hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>2:1 MUX</b> (inputs I0, I1; select S): S = 0 → Y = I0; S = 1 → Y = I1.</li>
+<li>Equation banao: "S = 0 <i>aur</i> I0" ya "S = 1 <i>aur</i> I1" → <b>Y = S'·I0 + S·I1</b>. Gates: 1 NOT, 2 AND, 1 OR.</li>
+<li>Check: I0 = 1, I1 = 0, S = 1 → Y = 0·1 + 1·0 = 0 (S = 1 ne I1 = 0 chuna) ✓.</li>
+<li><b>4:1 MUX</b> (I0 to I3, selects S1 S0): har input ke saath uske select number ka minterm AND karo: <b>Y = S1'S0'·I0 + S1'S0·I1 + S1S0'·I2 + S1S0·I3</b>.</li>
+<li>Kisi bhi time sirf ek minterm 1 hota hai, isliye sirf ek input output tak pahunchta hai.</li>
+<li><b>Cascading:</b> 4:1 = teen 2:1 (pehle level pe S0, doosre pe S1). 8:1 = do 4:1 + ek 2:1 (S2 last). General: 2ⁿ:1 tree = <b>2ⁿ − 1</b> two-input MUXes.</li>
+<li><b>MUX se koi bhi function:</b> variables select pe lagao, aur har data input pe truth table ka us row ka output (0 ya 1) lagao. Ek variable kam select pe ho to data inputs pe 0, 1, C ya C' lagte hain.</li>
+</ol>
+<table class="tt"><tr><th>S1</th><th>S0</th><th>Y</th></tr><tr><td>0</td><td>0</td><td>I0</td></tr><tr><td>0</td><td>1</td><td>I1</td></tr><tr><td>1</td><td>0</td><td>I2</td></tr><tr><td>1</td><td>1</td><td>I3</td></tr></table></div>
+<figure data-d="D3.2b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> S ek NOT se S' banata hai. Upar ka AND: A aur S'; neeche ka AND: B aur S. Dono AND ek OR mein. Trace S = 0: upar ka AND = A·1 = A, neeche ka = B·0 = 0 → Y = A. S = 1 pe ulta → Y = B.</p>
+<figure data-d="D3.2c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaar 3-input AND gates, har ek pe ek data input aur do select literals. Right mein select table. Trace S1S0 = 10: sirf teesra AND (I2, S1, S0') ke dono select inputs 1 hain, to Y = I2.</p>
+<figure data-d="D3.2d"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein do 2:1 MUX, dono ka select S0: upar wala I0/I1 mein se, neeche wala I2/I3 mein se chunta hai. Right ka MUX S1 se un dono mein se ek chunta hai. Trace S1S0 = 11: upar → I1, neeche → I3, right (S1 = 1) → I3 ✓.</p>
+<figure data-d="D3.2f"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Select pe A (S1) aur B (S0). Data inputs = XOR ka output column 0, 1, 1, 0. AB = 10 → I2 = 1 → Y = 1 = 1 ⊕ 0 ✓. Ye LUT idea hai.</p>
+<div class="fx"><b>Formula:</b> 2ⁿ:1 MUX → <b>n select lines</b>; 2:1: <b>Y = S'I0 + SI1</b>; 4:1: <b>Y = S1'S0'I0 + S1'S0I1 + S1S0'I2 + S1S0I3</b><br>2ⁿ:1 from 2:1 MUXes: <b>2ⁿ − 1</b>.<br><small>Verilog: <code>assign y = sel ? b : a;</code> (2:1 in one line).</small></div>
+<div class="ex"><b>Solved example 1 (class quiz):</b> <p class="qq">(a) 2:1 MUX with A (I0) = 1, B (I1) = 0, S = 1: Y? (b) 4:1 MUX with S1 = 1, S0 = 0: which input? (c) Select lines of a 32:1 MUX? (d) 2:1 MUXes for a 16:1 MUX?</p><ol>
+<li>(a) S = 1 → B chuna → Y = 0. (Equation: 0·1 + 1·0 = 0.)</li>
+<li>(b) S1S0 = 10 = 1×2 + 0 = 2 → I2.</li>
+<li>(c) 2ⁿ = 32 → 2⁵ = 32 → n = 5.</li>
+<li>(d) Tree: 16 inputs → 8 MUX (16 se 8), → 4 MUX (8 se 4), → 2 MUX (4 se 2), → 1 MUX (2 se 1). 8 + 4 + 2 + 1 = 15 = 16 − 1.</li></ol>
+<p class="ans">Answer: (a) 0; (b) I2; (c) 5; (d) 15.</p></div>
+<div class="ex"><b>Solved example 2 (exam level, mock diagram question):</b> <p class="qq">Implement F(A, B, C) = Σm(0, 3, 5, 6) using a 4:1 MUX with A, B on the select lines (S1 = A, S0 = B).</p><ol>
+<li>Truth table likho, rows ko AB ke hisaab se jodiyon mein baanto (har jodi mein C = 0 aur C = 1):</li></ol>
+<table class="tt"><tr><th>A B</th><th>C = 0 row</th><th>C = 1 row</th><th>F (C = 0, C = 1)</th><th>Data input</th></tr>
+<tr><td>0 0</td><td>m0 → 1</td><td>m1 → 0</td><td>1, 0</td><td>I0 = C'</td></tr>
+<tr><td>0 1</td><td>m2 → 0</td><td>m3 → 1</td><td>0, 1</td><td>I1 = C</td></tr>
+<tr><td>1 0</td><td>m4 → 0</td><td>m5 → 1</td><td>0, 1</td><td>I2 = C</td></tr>
+<tr><td>1 1</td><td>m6 → 1</td><td>m7 → 0</td><td>1, 0</td><td>I3 = C'</td></tr></table><ol start="2">
+<li>Har jodi ke liye F ko C ke roop mein likho: (0, 0) → 0; (1, 1) → 1; (0, 1) → C; (1, 0) → C'.</li>
+<li>AB = 00: F = 1, 0 → C'. AB = 01: 0, 1 → C. AB = 10: 0, 1 → C. AB = 11: 1, 0 → C'.</li>
+<li>Circuit: 4:1 MUX (gate level D3.2c), S1 = A, S0 = B, I0 = C', I1 = C, I2 = C, I3 = C' (C' ke liye ek NOT).</li>
+<li>Check A = 1, B = 1, C = 0 (m6, F should be 1): select 11 → I3 = C' = 1 ✓.</li></ol>
+<p class="ans">Answer: I0 = C', I1 = C, I2 = C, I3 = C'. (With an 8:1 MUX and A, B, C on selects: I0 to I7 = 1, 0, 0, 1, 0, 1, 1, 0.)</p></div>
+<div class="trap"><b>Galti mat karna:</b> 8:1 MUX ko 8 select lines nahi, <b>3</b> chahiye. MUX (many → one) ko DEMUX (one → many) se mix mat karo. Verilog mein {s1, s0} ka order ulta mat karo, aur case mein default bhoole to latch.</div>
+<p class="trick"><b>Trick:</b> "<b>Select ka number = input ka number.</b>" Function ke liye: "variables select pe, truth table data pe."</p>
+<div class="yr"><b>Ek line mein:</b> n select lines → 2ⁿ inputs mein se ek output pe; 4:1 = har input AND uska select-minterm, sab OR.</div>
+</div>
+
+<div class="topic"><h3>3.3a Demultiplexer (DEMUX)</h3>
+<div class="why"><b>Pehle socho:</b> Post office ka sorting counter: ek parcel aata hai, aur pin code (select) dekh ke wo <b>kai dabbon mein se ek</b> mein daal diya jaata hai. Baaki dabbe khaali rehte hain. MUX ka bilkul ulta kaam: ek input, kai outputs.</div>
+<div class="def"><b>Definition:</b> A <b>demultiplexer (DEMUX)</b> is a combinational circuit that routes a single data input to one of 2ⁿ outputs selected by n select lines; the selected output equals the data input and all other outputs are 0.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>data input (D)</dt><dd>Jo signal bhejna hai (parcel). D = 0 ya 1 kuch bhi ho sakta hai.</dd>
+<dt>select lines</dt><dd>Address: batate hain kaunsa output. S1S0 = 11 → Y3.</dd>
+<dt>route</dt><dd>Signal ko ek raaste pe bhejna. Chuna hua output = D, baaki = 0.</dd>
+<dt>1:2, 1:4 naming</dt><dd>Course mein "1 input : outputs" likhte hain. 1:4 DEMUX = 1 data in, 4 out, 2 selects. "2:1 DEMUX" ulta padhta hai, mat likho.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>1:2 DEMUX</b> (input D, select S): S = 0 → Y0 = D, Y1 = 0. S = 1 → Y0 = 0, Y1 = D.</li>
+<li>Equations: <b>Y0 = S'·D</b>, <b>Y1 = S·D</b> (1 NOT + 2 AND).</li>
+<li><b>1:4 DEMUX</b> (selects S1 S0): har output = D AND us output ke number ka select-minterm.</li>
+<li>Y0 = S1'S0'D, Y1 = S1'S0D, Y2 = S1S0'D, Y3 = S1S0D (4 three-input AND + 2 NOT).</li>
+<li>Agar D = 1 permanently laga do to chuna hua output 1 aur baaki 0: ye <b>decoder</b> ban jaata hai (3.3b).</li>
+</ol>
+<table class="tt"><tr><th>S1</th><th>S0</th><th>Y0</th><th>Y1</th><th>Y2</th><th>Y3</th></tr>
+<tr><td>0</td><td>0</td><td>D</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>D</td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>0</td><td>D</td><td>0</td></tr>
+<tr><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>D</td></tr></table>
+<p><b>Teeno blocks ek saath</b> (decoder agle topic mein detail se):</p>
+<table><tr><th></th><th>MUX</th><th>DEMUX</th><th>Decoder</th></tr>
+<tr><td>Inputs</td><td>2ⁿ data + n select</td><td>1 data + n select</td><td>n code bits (+ enable)</td></tr>
+<tr><td>Outputs</td><td>1</td><td>2ⁿ</td><td>2ⁿ (one-hot)</td></tr>
+<tr><td>Kaam</td><td>kai mein se ek chunna</td><td>ek ko kai mein se ek jagah bhejna</td><td>code ke hisaab se ek line jalana</td></tr></table></div>
+<figure data-d="D3.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> D dono AND gates mein jaata hai. S seedha neeche wale AND mein (Y1), aur NOT ke baad S' upar wale AND mein (Y0). Trace D = 1, S = 1: upar = 1·0 = 0, neeche = 1·1 = 1 → Y1 = 1.</p>
+<figure data-d="D3.3b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Ulta trapezoid: left se ek D, right mein Y0 to Y3, neeche S1 S0. Right ki table: jis row mein select hai, wahan D likha hai, baaki 0.</p>
+<div class="ex"><b>Solved example 1:</b> <p class="qq">A 1:4 DEMUX has D = 1, S1S0 = 10. Find Y0 to Y3. What if D = 0?</p><ol>
+<li>S1S0 = 10 = 2 → chuna hua output Y2.</li>
+<li>Y2 = D = 1; Y0 = Y1 = Y3 = 0.</li>
+<li>D = 0: Y2 = D = 0, baaki bhi 0 → sab 0.</li></ol>
+<p class="ans">Answer: Y3 Y2 Y1 Y0 = 0100; with D = 0, 0000.</p></div>
+<div class="ex"><b>Solved example 2 (exam level):</b> <p class="qq">Design a 1:4 DEMUX: equations, gate count, and explain how it becomes a 2-to-4 decoder.</p><ol>
+<li>Har output = D · (select minterm): Y0 = S1'S0'D, Y1 = S1'S0D, Y2 = S1S0'D, Y3 = S1S0D.</li>
+<li>Gates: S1' aur S0' ke liye 2 NOT; har output ke liye ek 3-input AND → 4 AND.</li>
+<li>Check S1S0 = 01, D = 1: Y1 = 1·1·1 = 1; Y0 = 1·0·1 = 0; Y2 = 0; Y3 = 0 ✓.</li>
+<li>D ko "enable" naam do aur 1 pe rakho: Yk = mk (select ka minterm). Yahi 2-to-4 decoder hai; D = 0 → sab outputs 0 = decoder disabled.</li></ol>
+<p class="ans">Answer: 2 NOT + 4 three-input AND; decoder = DEMUX with data input tied to 1 (enable).</p></div>
+<div class="trap"><b>Galti mat karna:</b> Na chune gaye outputs ko "purani value" ya "X" mat likho: wo <b>0</b> hote hain. Verilog mein isliye pehle sab outputs 0 kar dete hain (<code>y = 4'b0000;</code>) phir case.</div>
+<p class="trick"><b>Trick:</b> MUX = "<b>Many → 1</b>" (funnel), DEMUX = "<b>1 → Many</b>" (sorter).</p>
+<div class="yr"><b>Ek line mein:</b> DEMUX ek data input ko select ke number wale output pe bhejta hai; baaki outputs 0.</div>
+</div>
+
+<div class="topic"><h3>3.3b Decoder (n-to-2ⁿ)</h3>
+<div class="why"><b>Pehle socho:</b> Hotel mein 4 rooms hain: 0, 1, 2, 3. Reception pe ek board hai jisme har room ki ek bulb hai. Receptionist room number <i>binary</i> mein daalta hai (do switch: 00, 01, 10, 11) aur <mark>sirf usi room ki bulb jalti hai, baaki teen band rehti hain</mark>. Ye kaam karne wala circuit hi <b>decoder</b> hai: ek "code" (binary number) leke batata hai "kaunsi line?".</div>
+<div class="def"><b>Definition:</b> A <b>decoder</b> is a combinational circuit that converts an n-bit binary input into 2ⁿ output lines, such that for each input combination exactly one output line is active (1) and all others are 0.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>n-to-2ⁿ</dt><dd>n input bits, 2ⁿ output lines. 2 input bits → 2² = 4 outputs (2-to-4). 3 input bits → 2³ = 8 outputs (3-to-8).</dd>
+<dt>one-hot</dt><dd>"Ek hi garam". Outputs ke group mein <b>exactly ek</b> bit 1 hai, baaki sab 0. Jaise 4 outputs D3 D2 D1 D0 = <b>0100</b>: sirf D2 "hot" hai. 0110 one-hot NAHI hai (do 1 hain), 0000 bhi nahi (koi 1 nahi). Decoder ka output hamesha one-hot hota hai (jab enable = 1).</dd>
+<dt>active / asserted</dt><dd>Output "ON" hai, yaani 1 (active-high decoder mein).</dd>
+<dt>enable (E)</dt><dd>Master switch. E = 0 → saare outputs 0 (decoder band). E = 1 → normal kaam.</dd>
+<dt>minterm</dt><dd>Ek AND term jisme har input exactly ek baar aata hai (seedha ya bar ke saath) aur jo sirf <b>ek</b> row mein 1 hota hai. A1'A0' sirf row 00 mein 1 hai, isliye ye minterm m0 hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (2-to-4 decoder, inputs A1 A0):</b><ol>
+<li>Input ek 2-bit number hai: A1A0 = 00, 01, 10 ya 11, yaani decimal 0, 1, 2 ya 3.</li>
+<li>Har number ke liye ek output line hai: D0, D1, D2, D3.</li>
+<li>Rule: <mark>input ka decimal value k hai to sirf Dk = 1</mark>.</li>
+<li>Har output ek AND gate hai jo sirf apne number pe 1 deta hai. D2 ko "10" chahiye, yaani A1 = 1 aur A0 = 0. Isliye D2 = A1 · A0' (A0 pe NOT lagao taaki A0 = 0 hone pe AND ko 1 mile).</li>
+<li>Isi tarah: D0 = A1'·A0', D1 = A1'·A0, D2 = A1·A0', D3 = A1·A0. Har output = ek minterm.</li>
+<li>Enable ho to har AND mein E bhi jod do: D2 = E·A1·A0'.</li>
+</ol>
+<table class="tt"><tr><th>A1</th><th>A0</th><th>D3</th><th>D2</th><th>D1</th><th>D0</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><b>1</b></td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>0</td><td><b>1</b></td><td>0</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td><b>1</b></td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>1</td><td><b>1</b></td><td>0</td><td>0</td><td>0</td></tr></table>
+<p>Table mein dekho: har row mein sirf ek 1 hai, aur woh diagonal pe chalta hai. Yahi "one-hot" hai.</p></div>
+<figure data-d="D3.3c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left se A1, A0 aate hain; har ek ka NOT bhi banta hai (A1', A0'). Right mein 4 AND gates hain, har AND ko teen wire milte hain: E, A1 ya A1', A0 ya A0'. Trace karo A1A0 = 10, E = 1: sirf D2 wale AND ko (1, 1, A0' = 1) teeno 1 milte hain, to sirf D2 = 1.</p>
+<div class="fx"><b>Formula:</b> n inputs → <b>2ⁿ outputs</b>, <b>Dk = mk</b> (output k = minterm k).<br>Gates: 2ⁿ AND gates (each with n inputs, n + 1 with enable) + n NOT gates.<br><small>3-to-8: 8 AND gates of 3 inputs + 3 NOT gates.</small></div>
+<div class="ex"><b>Solved example 1 (direct):</b> <p class="qq">A 3-to-8 decoder has inputs A2A1A0 = 101 and E = 1. Which output is 1? Write the output word D7 to D0.</p><ol>
+<li>101 ko decimal mein badlo: 1×4 + 0×2 + 1×1 = 4 + 0 + 1 = 5.</li>
+<li>Rule: sirf D5 = 1.</li>
+<li>D7 D6 D5 D4 D3 D2 D1 D0 likho, D5 ki jagah 1: 0 0 1 0 0 0 0 0.</li></ol>
+<p class="ans">Answer: D5 = 1; output = 0010 0000 (one-hot).</p></div>
+<div class="ex"><b>Solved example 2 (exam favourite):</b> <p class="qq">Implement a full adder using a 3-to-8 decoder and OR gates.</p><ol>
+<li>Full adder ke inputs A, B, Cin ko decoder ke A2, A1, A0 pe lagao. Ab decoder har row ka minterm khud bana deta hai.</li>
+<li>Sum = 1 jab 1s ki ginti odd ho: rows 001, 010, 100, 111 → decimal 1, 2, 4, 7. Isliye Sum = Σm(1, 2, 4, 7).</li>
+<li>Cout = 1 jab kam se kam do 1 hon: rows 011, 101, 110, 111 → 3, 5, 6, 7. Isliye Cout = Σm(3, 5, 6, 7).</li>
+<li>Ek 4-input OR gate lo: inputs D1, D2, D4, D7 → output Sum.</li>
+<li>Doosra 4-input OR: D3, D5, D6, D7 → output Cout.</li></ol>
+<p class="ans">Answer: Sum = D1 + D2 + D4 + D7; Cout = D3 + D5 + D6 + D7. (Any function = OR of the decoder outputs of its minterms.)</p></div>
+<div class="trap"><b>Galti mat karna:</b> Decoder aur MUX ko mix mat karo. <b>MUX data pass karta hai</b> (many in → one out). <b>Decoder data pass nahi karta</b>, sirf batata hai "kaunsi line" (n in → 2ⁿ out, one-hot). DEMUX = decoder jiska enable hi data input hai.</div>
+<p class="trick"><b>Trick:</b> "<b>De-code = number padho, bulb jalao.</b>" Input ka decimal value = jalne wali bulb ka number.</p>
+<div class="yr"><b>Ek line mein:</b> n-bit number in → 2ⁿ lines out → sirf us number wali line 1 (one-hot); har output ek minterm hai.</div>
+</div>
+
+<div class="topic"><h3>3.4 Half Adder Design</h3>
+<div class="why"><b>Pehle socho:</b> Do single digits jodo: 7 + 5 = 12 → likho 2, carry 1. Binary mein bhi same: 1 + 1 = 10 (do) → likho 0, carry 1. Ek bit ke do numbers jodne wala sabse chhota circuit <b>half adder</b> hai. CPU ka har addition (PC + 4, address calculation, subtraction) adders se hota hai.</div>
+<div class="def"><b>Definition:</b> A <b>half adder</b> is a combinational circuit that adds two single bits A and B and produces a Sum bit and a Carry bit; Sum = A ⊕ B and Carry = A·B. It has no carry input.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Sum (S)</dt><dd>Jod ka right wala bit (jo isi column mein likha jaata hai). 1 + 1 = 10 → S = 0.</dd>
+<dt>Carry (C)</dt><dd>Agle column mein jaane wala bit. 1 + 1 = 10 → C = 1.</dd>
+<dt>carry-in (Cin)</dt><dd>Pichle column se aaya carry. Half adder mein ye input hai hi nahi, isliye "half".</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (truth table se derive karo):</b><ol>
+<li>Chaaron cases jodo: 0 + 0 = 00, 0 + 1 = 01, 1 + 0 = 01, 1 + 1 = 10 (Carry Sum).</li>
+<li>Table banao (neeche).</li>
+<li>Sum column = 0, 1, 1, 0 → 1-rows 01 aur 10 → SOP: Sum = A'B + AB' = <b>A ⊕ B</b> (XOR ka pattern).</li>
+<li>Carry column = 0, 0, 0, 1 → sirf row 11 → Carry = <b>A·B</b> (AND ka pattern).</li>
+<li>Circuit: ek XOR + ek AND, dono ko A aur B milte hain.</li>
+</ol>
+<table class="tt"><tr><th>A</th><th>B</th><th>Carry</th><th>Sum</th><th>A + B (decimal)</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>1</td><td>1</td><td>1</td><td>0</td><td>2 = 10₂</td></tr></table></div>
+<figure data-d="D3.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> A aur B dono gates ko jaate hain (black dots = wire split). Upar XOR → Sum, neeche AND → Carry. Right mein truth table. Trace A = 1, B = 1: XOR = 0, AND = 1 → Carry Sum = 10.</p>
+<div class="fx"><b>Formula:</b> <b>Sum = A ⊕ B = A'B + AB'</b> · <b>Carry = A·B</b><br><small>Gates: 1 XOR + 1 AND. With 2-input NANDs only: 5 (4 for XOR, the first NAND (AB)' reused, 1 more NAND inverts it to AB).</small></div>
+<div class="ex"><b>Solved example 1:</b> <p class="qq">Half adder inputs A = 1, B = 1. Write "Carry Sum".</p><ol>
+<li>Sum = 1 ⊕ 1 = 0 (inputs same → 0).</li>
+<li>Carry = 1·1 = 1.</li>
+<li>Check: 1 + 1 = 2 = 10₂ ✓.</li></ol>
+<p class="ans">Answer: 10.</p></div>
+<div class="ex"><b>Solved example 2 (exam level):</b> <p class="qq">Minimum number of 2-input NAND gates to build a half adder (Sum and Carry)?</p><ol>
+<li>XOR from NANDs (2.5): G1 = (AB)', G2 = (A·G1)', G3 = (B·G1)', Sum = G4 = (G2·G3)' → 4 gates.</li>
+<li>Carry = AB = (G1)' → G1 already hai, bas ek NAND-inverter: G5 = NAND(G1, G1) = AB.</li>
+<li>Total = 4 + 1 = 5.</li>
+<li>Check A = 1, B = 1: G1 = 0, G2 = 1, G3 = 1, G4 = 0 (Sum), G5 = 1 (Carry) ✓.</li></ol>
+<p class="ans">Answer: 5 NAND gates.</p></div>
+<div class="trap"><b>Galti mat karna:</b> Sum = A + B (OR) GALAT: 1 + 1 pe OR 1 deta hai par Sum 0 chahiye. Aur multi-bit addition ke bit 1 pe half adder nahi chalega: wahan teen bits (A1, B1, pichla carry) jodne hain. Example 11 + 01: bit 0 pe carry banta hai jo bit 1 mein jaana chahiye.</div>
+<div class="yr"><b>Ek line mein:</b> Half adder: Sum = A ⊕ B, Carry = AB; carry-in nahi hai, isliye chain nahi ho sakta.</div>
+</div>
+
+<div class="topic"><h3>3.5 Full Adder Design (and Ripple-Carry Adder)</h3>
+<div class="why"><b>Pehle socho:</b> Column addition mein har column mein <b>teen</b> cheezein judti hain: upar ka digit, neeche ka digit, aur pichle column ka carry. Binary mein bhi multi-bit addition ke liye har bit pe A, B aur Cin jodne padte hain. Ye <b>full adder</b> karta hai. n full adders ko line mein jodo to n-bit adder ban jaata hai.</div>
+<div class="def"><b>Definition:</b> A <b>full adder</b> adds three bits, A, B and a carry-in Cin, and produces Sum = A ⊕ B ⊕ Cin and carry-out Cout = AB + Cin(A ⊕ B). An <b>n-bit ripple-carry adder (RCA)</b> chains n full adders, the carry-out of each stage feeding the carry-in of the next.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>parity (Sum)</dt><dd>Teen bits mein 1s ki ginti odd ho to Sum = 1. 1 + 1 + 1 = 3 = 11₂ → Sum 1.</dd>
+<dt>majority (Cout)</dt><dd>Teen mein se kam se kam do 1 hon to Cout = 1 (voting).</dd>
+<dt>ripple</dt><dd>Carry ek stage se agle mein lehar ki tarah chalta hai: bit 0 ka carry bit 1 mein, phir bit 2 mein.</dd>
+<dt>propagation delay</dt><dd>Input aane ke baad output sahi hone mein laga time. Ek gate delay = ek gate paar karne ka time (Δ).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (truth table se derive):</b><ol>
+<li>8 rows (3 inputs). Har row mein A + B + Cin jodo aur 2-bit answer Cout Sum likho.</li>
+<li>Sum = 1 rows: 001, 010, 100, 111 → Σm(1, 2, 4, 7). Cout = 1 rows: 011, 101, 110, 111 → Σm(3, 5, 6, 7).</li>
+<li>Sum ka K-map checkerboard (koi do 1 padosi nahi) → group nahi banta → <b>Sum = A ⊕ B ⊕ Cin</b>.</li>
+<li>Cout ka K-map: teen pairs, sab m7 ke saath: (3, 7) → B·Cin, (5, 7) → A·Cin, (6, 7) → A·B → <b>Cout = AB + BCin + ACin</b>.</li>
+<li>Do half adders wala form: HA1(A, B) → S1 = A ⊕ B, C1 = AB. HA2(S1, Cin) → Sum = S1 ⊕ Cin, C2 = S1·Cin. <b>Cout = C1 + C2 = AB + Cin(A ⊕ B)</b>.</li>
+<li>C1 aur C2 kabhi saath mein 1 nahi (A = B = 1 ho to S1 = 0, to C2 = 0), isliye OR theek hai.</li>
+</ol>
+<table class="tt"><tr><th>row</th><th>A</th><th>B</th><th>Cin</th><th>Cout</th><th>Sum</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>2</td><td>0</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>3</td><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+<tr><td>4</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>5</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+<tr><td>6</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>7</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr></table>
+<div style="display:flex;gap:6mm;align-items:flex-start;flex-wrap:wrap">
+<table class="tt"><tr><th>Sum: A \ B Cin</th><th>00</th><th>01</th><th>11</th><th>10</th></tr><tr><th>0</th><td>0</td><td>1</td><td>0</td><td>1</td></tr><tr><th>1</th><td>1</td><td>0</td><td>1</td><td>0</td></tr></table>
+<table class="tt"><tr><th>Cout: A \ B Cin</th><th>00</th><th>01</th><th>11</th><th>10</th></tr><tr><th>0</th><td>0</td><td>0</td><td>1</td><td>0</td></tr><tr><th>1</th><td>0</td><td>1</td><td>1</td><td>1</td></tr></table></div></div>
+<figure data-d="D3.5b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> HA 1 ko A, B milte hain; uska S1 = A ⊕ B, HA 2 mein Cin ke saath jaata hai → Sum. Dono half adders ke carries (C1 = AB, C2 = S1·Cin) ek OR mein → Cout. Trace A = 1, B = 0, Cin = 1: S1 = 1, Sum = 1 ⊕ 1 = 0, C1 = 0, C2 = 1·1 = 1 → Cout = 1 (1 + 0 + 1 = 10₂ ✓).</p>
+<figure data-d="D3.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Same circuit gate level: do XOR series mein (Sum), do AND (AB aur Cin·(A⊕B)) ek OR mein (Cout).</p>
+<figure data-d="D3.5c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> FA0 right mein (LSB), FA3 left mein (MSB). Har FA ko upar se Ai, Bi milte hain, neeche Si nikalta hai. Carry right se left chalta hai: Cin = 0 → FA0 → C1 → FA1 → C2 → FA2 → C3 → FA3 → Cout. FA3 ka Sum tab tak sahi nahi jab tak C3 nahi aata.</p>
+<div class="fx"><b>Formula:</b> <b>Sum = A ⊕ B ⊕ Cin</b> · <b>Cout = AB + Cin(A ⊕ B) = AB + BCin + ACin</b><br>RCA worst-case delay = <b>n × t(carry per stage)</b>; class model: 2 gate delays per stage → <b>2n gate delays</b> (4-bit 8, 16-bit 32, 64-bit 128).<br><small>FA = 2 HA + 1 OR; n-bit RCA = n FAs = 2n HAs.</small></div>
+<div class="ex"><b>Solved example 1 (class quiz, trace):</b> <p class="qq">A 4-bit RCA (Cin = 0) adds 0111 + 0001. Find the sum and Cout, showing every carry.</p><ol>
+<li>Bit 0: A0 = 1, B0 = 1, Cin = 0 → 1 + 1 + 0 = 2 = 10₂ → S0 = 0, C1 = 1.</li>
+<li>Bit 1: A1 = 1, B1 = 0, C1 = 1 → 1 + 0 + 1 = 2 → S1 = 0, C2 = 1.</li>
+<li>Bit 2: A2 = 1, B2 = 0, C2 = 1 → 2 → S2 = 0, C3 = 1.</li>
+<li>Bit 3: A3 = 0, B3 = 0, C3 = 1 → 1 → S3 = 1, Cout = 0.</li>
+<li>Sum = S3 S2 S1 S0 = 1000. Check: 7 + 1 = 8 = 1000₂ ✓. Carry 3 stages tak ripple hua.</li></ol>
+<p class="ans">Answer: 1000, Cout = 0.</p></div>
+<div class="ex"><b>Solved example 2 (exam level, delay):</b> <p class="qq">A 32-bit ripple-carry adder uses full adders whose carry path is 2 gate delays; one gate delay = 25 ps. (a) Worst-case carry delay? (b) Maximum clock frequency if this adder is the only logic between registers? (c) What limits its speed?</p><ol>
+<li>(a) Gate delays = 2 × 32 = 64. Time = 64 × 25 ps = 1600 ps = 1.6 ns.</li>
+<li>(b) f = 1 / T = 1 / 1.6 ns = 0.625 GHz = 625 MHz.</li>
+<li>(c) Worst case (jaise saare 1s + 1, 4 bits mein 1111 + 0001) mein carry ko bit 0 se bit 31 tak har stage se guzarna padta hai; har stage pichle carry ka wait karta hai. Delay n ke saath linearly badhta hai.</li>
+<li>Fix: carry-lookahead adder (3.E1) jo carries parallel mein nikalta hai.</li></ol>
+<p class="ans">Answer: (a) 1.6 ns; (b) 625 MHz; (c) serial carry propagation, delay ∝ n.</p></div>
+<div class="trap"><b>Galti mat karna:</b> Cout = C1 AND C2 likha to kabhi 1 nahi hoga (dono saath 1 nahi hote): OR chahiye. Cout = AB + Cin bhi galat (A = B = 0, Cin = 1 pe 1 de dega). Ripple-carry ko "fast" mat likhna: wo simple hai, fast nahi.</div>
+<p class="trick"><b>Trick:</b> Sum = "<b>odd</b> hai to 1" (parity), Cout = "<b>do ya zyada</b> to 1" (majority). FA = "2 HA + 1 OR".</p>
+<div class="yr"><b>Ek line mein:</b> Full adder teen bits jodta hai (Sum = A⊕B⊕Cin, Cout = majority); n FAs ki chain = RCA, delay 2n gate delays.</div>
+</div>
+
+<div class="topic"><h3>3.6 CPU Preview: ALU and Register File</h3>
+<div class="why"><b>Pehle socho:</b> CPU ki table pe ek chhoti <b>daraaz</b> (register file: kuch fast slots jinme numbers rakhe hain) aur ek <b>calculator</b> (ALU) hai. Har instruction jaise <code>add</code>: daraaz se do numbers nikalo, calculator pe jodo, result wapas daraaz mein. Ye dono isi unit ke blocks (MUX, decoder, adder) se bante hain.</div>
+<div class="def"><b>Definition:</b> The <b>ALU (Arithmetic Logic Unit)</b> is the combinational unit of the CPU that performs arithmetic (add, subtract) and logic (AND, OR, compare) operations on two operands, selected by ALU control bits. The <b>register file</b> is a small, fast array of registers (32 × 32 bits in MIPS) with two read ports and one write port that supplies the ALU's operands and stores its results.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>1-bit ALU slice</dt><dd>Ek bit ka ALU: AND gate, OR gate, full adder, aur ek MUX jo inme se ek result chunta hai. 32 slices = 32-bit ALU.</dd>
+<dt>Operation (select)</dt><dd>MUX ke select bits: 00 = AND, 01 = OR, 10 = add.</dd>
+<dt>Binvert</dt><dd>Ek 2:1 MUX jo B ya B' adder ko deta hai. B' + CarryIn = 1 se A − B banta hai (two's complement, Unit 4).</dd>
+<dt>Zero flag</dt><dd>Output jo 1 hota hai jab result ke saare bits 0 hon. NOR of all result bits. beq isi se compare karta hai.</dd>
+<dt>read port / write port</dt><dd>Read port = register ki value bahar dena (MUX se). Write port = ek register mein likhna (decoder + write enable, clock edge pe).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>1-bit slice ke andar a aur b (ya b') teen jagah jaate hain: AND, OR, full adder. Teeno parallel mein result banate hain.</li>
+<li>Operation MUX inme se ek ko Result pe bhejta hai.</li>
+<li>Subtract: Binvert = 1 (b' liya) aur pehle slice ka CarryIn = 1 → A + B' + 1 = A − B.</li>
+<li>32 slices jodo: slice i ka CarryOut → slice i+1 ka CarryIn (ripple, 3.5).</li>
+<li>Zero = NOR(R31, R30, down to R0): sab 0 hon tabhi 1.</li>
+<li>4-bit ALU control (Patterson &amp; Hennessy): bits = Ainvert, Bnegate, Operation(2). <b>0000 AND, 0001 OR, 0010 add, 0110 sub</b> (Bnegate = 1 + add), 0111 slt, 1100 NOR (A' AND B' = (A + B)').</li>
+<li>Register file → ALU → register file: har R-type instruction ka loop (Unit 7 aur 13 mein detail).</li>
+</ol></div>
+<figure data-d="D3.6a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein Binvert MUX b ya b' chunta hai. Beech mein AND, OR aur FA (FA ko neeche se CarryIn, bahar CarryOut). Right ka MUX (Operation, 2 bits) teeno mein se Result chunta hai. Trace a = 1, b = 1, Operation = 00: AND = 1 → Result = 1.</p>
+<figure data-d="D3.6b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Register file ke do outputs (operand A, operand B) ALU mein. ALU control upar se aata hai (0010 = add). Result neeche se ghoom ke wapas register file mein likha jaata hai (clock edge pe). Zero flag right mein nikalta hai.</p>
+<div class="ex"><b>Solved example 1 (exam level):</b> <p class="qq">A 4-bit ALU gets a = 0101, b = 0011 and ALU control 0110. Show how it computes the result and the Zero flag.</p><ol>
+<li>0110 = subtract: Binvert (Bnegate) = 1, Operation = add, CarryIn = 1.</li>
+<li>b' = 0011 ulta = 1100.</li>
+<li>a + b' + 1 = 0101 + 1100 + 1: 0101 + 1100 = 10001, 4 bits rakho → 0001; phir + 1 → 0010.</li>
+<li>Check: 5 − 3 = 2 = 0010 ✓.</li>
+<li>Result ke bits 0, 0, 1, 0: sab zero nahi → Zero = 0. (Agar a = b = 0011 hota to result 0000, Zero = 1.)</li></ol>
+<p class="ans">Answer: Result = 0010, Zero = 0.</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this):</b> <p class="qq">Draw a 1-bit ALU for AND, OR, add and subtract. How do 32 slices form a 32-bit ALU and how is Zero produced? (5 marks)</p><ol>
+<li>Draw D3.6a: Binvert MUX on b; AND, OR and full adder in parallel; 3:1 Operation MUX gives Result.</li>
+<li>Operation 00 = AND, 01 = OR, 10 = add; subtraction = add with Binvert = 1 and CarryIn = 1.</li>
+<li>32 slices: CarryOut of slice i → CarryIn of slice i + 1; slice 0's CarryIn = 1 for subtract.</li>
+<li>Zero = NOR of all 32 result bits (tree of ORs + one inverter); used by beq.</li></ol>
+<p class="ans">Answer: diagram + subtract rule + chaining + Zero = NOR(result bits).</p></div>
+<div class="trap"><b>Galti mat karna:</b> ALU kuch store nahi karta (combinational); storage register file hai. Subtraction mein sirf B' kaafi nahi, CarryIn = 1 bhi chahiye (warna one's complement, answer 1 kam).</div>
+<p class="trick"><b>Trick:</b> "<b>add 0010, sub 0110</b>": sub = add + Bnegate bit (bit 2) on.</p>
+<div class="yr"><b>Ek line mein:</b> ALU = AND + OR + adder + MUX per bit (sub = B' + carry 1, Zero = NOR); register file = 2 read ports (MUX) + 1 write port (decoder).</div>
+</div>
+
+<div class="topic"><h3>3.E1 Extra from slides: Carry-Lookahead Adder</h3>
+<div class="why"><b>Pehle socho:</b> Ripple adder mein bit 31 ko apne carry ke liye bit 0 se 30 tak sabka intezaar karna padta hai, jaise line mein khade log ek ek karke message aage bolte hain. Kya har aadmi seedha shuru wale se message nahi le sakta? CLA yahi karta hai: <mark>har carry ko seedha inputs se nikal leta hai</mark>, bina wait ke.</div>
+<div class="def"><b>Definition:</b> A <b>carry-lookahead adder (CLA)</b> computes all carries in parallel directly from the inputs, using a generate signal Gi = Ai·Bi and a propagate signal Pi = Ai ⊕ Bi for each bit, with C(i+1) = Gi + Pi·Ci expanded into two-level logic, instead of waiting for the carry to ripple.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Generate Gi = Ai·Bi</dt><dd>"Ye bit <b>khud carry banata hai</b>", chahe neeche se carry aaye ya na aaye. Ai = Bi = 1 → 1 + 1 = 10 → carry pakka.</dd>
+<dt>Propagate Pi = Ai ⊕ Bi</dt><dd>"Ye bit neeche se aaya carry <b>aage pass kar deta hai</b>". Ai, Bi mein ek 1: 1 + 0 + Ci → Ci = 1 ho to carry aage jaata hai.</dd>
+<dt>C0</dt><dd>Sabse pehla carry-in (addition ke liye 0, subtraction ke liye 1).</dd>
+<dt>two-level logic</dt><dd>AND phir OR (SOP): sirf 2 gate delays, chahe term kitne bhi hon.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (C1 se C4 nikalna):</b><ol>
+<li>Basic rule: bit i se carry tab nikalega jab bit i khud generate kare, YA propagate kare aur neeche se carry aaye: <b>C(i+1) = Gi + Pi·Ci</b>.</li>
+<li>i = 0: <b>C1 = G0 + P0C0</b>.</li>
+<li>i = 1: C2 = G1 + P1C1. C1 ki jagah upar wala daalo: C2 = G1 + P1(G0 + P0C0) = <b>G1 + P1G0 + P1P0C0</b>.</li>
+<li>i = 2: C3 = G2 + P2C2 = <b>G2 + P2G1 + P2P1G0 + P2P1P0C0</b>.</li>
+<li>i = 3: C4 = G3 + P3C3 = <b>G3 + P3G2 + P3P2G1 + P3P2P1G0 + P3P2P1P0C0</b>.</li>
+<li>Har carry ab sirf G, P aur C0 pe depend karta hai, kisi doosre carry pe nahi. Isliye sab carries <b>ek saath</b> bante hain.</li>
+<li>Sum: <b>Si = Pi ⊕ Ci</b>.</li>
+<li>Delay: G, P (1 gate) → saare carries (AND-OR = 2 gates) → Sum (1 XOR) ≈ 4 gate delays, bit position se independent. 4-bit RCA mein carry ke liye 8.</li>
+<li>Keemat: zyada gates (C4 mein 5-input AND tak), isliye area badhta hai; real CPUs 4-bit CLA blocks jodte hain ya hybrid adders use karte hain.</li>
+</ol></div>
+<figure data-d="D3.E1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar chaar boxes, har bit ke liye Gi = AiBi aur Pi = Ai⊕Bi. Sab neeche ek bade "lookahead" box mein jaate hain jo C1, C2, C3 ek saath nikalta hai (C4 neeche likha hai). Koi carry arrow ek box se doosre mein nahi jaata: yahi ripple se farak hai.</p>
+<div class="fx"><b>Formula:</b> <b>Gi = AiBi</b>, <b>Pi = Ai ⊕ Bi</b>, <b>C(i+1) = Gi + PiCi</b>, <b>Si = Pi ⊕ Ci</b><br>C1 = G0 + P0C0 · C2 = G1 + P1G0 + P1P0C0 · C3 = G2 + P2G1 + P2P1G0 + P2P1P0C0<br>C4 = G3 + P3G2 + P3P2G1 + P3P2P1G0 + P3P2P1P0C0</div>
+<div class="ex"><b>Solved example 1 (exam level):</b> <p class="qq">A = 1011, B = 0110, C0 = 0. Find all Gi, Pi, the carries C1 to C4 with the lookahead equations, and the sum.</p><ol>
+<li>Bit by bit (bit 0 = right): A0 = 1, B0 = 0 → G0 = 0, P0 = 1. A1 = 1, B1 = 1 → G1 = 1, P1 = 0. A2 = 0, B2 = 1 → G2 = 0, P2 = 1. A3 = 1, B3 = 0 → G3 = 0, P3 = 1.</li>
+<li>C1 = G0 + P0C0 = 0 + 1·0 = 0.</li>
+<li>C2 = G1 + P1G0 + P1P0C0 = 1 + 0 + 0 = 1.</li>
+<li>C3 = G2 + P2G1 + P2P1G0 + P2P1P0C0 = 0 + 1·1 + 0 + 0 = 1.</li>
+<li>C4 = G3 + P3G2 + P3P2G1 + P3P2P1G0 + P3P2P1P0C0 = 0 + 0 + 1·1·1 + 0 + 0 = 1.</li>
+<li>Sums: S0 = P0 ⊕ C0 = 1 ⊕ 0 = 1; S1 = 0 ⊕ 0 = 0; S2 = 1 ⊕ 1 = 0; S3 = 1 ⊕ 1 = 0.</li>
+<li>Check: 1011 = 11, 0110 = 6, 11 + 6 = 17 = 1 0001₂ → C4 = 1, S = 0001 ✓.</li></ol>
+<p class="ans">Answer: C1 C2 C3 C4 = 0 1 1 1; Sum = 0001 with carry-out 1.</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this):</b> <p class="qq">Explain generate and propagate and why a CLA is faster than a ripple-carry adder. (5 marks)</p><ol>
+<li>Gi = AiBi: bit i produces a carry by itself. Pi = Ai ⊕ Bi: bit i passes an incoming carry to the next bit.</li>
+<li>C(i+1) = Gi + PiCi; substituting repeatedly gives each carry in terms of G, P and C0 only (write C1 to C4).</li>
+<li>All carries are therefore computed in parallel by two-level AND-OR logic, after one level for G and P.</li>
+<li>Delay ≈ constant (about 4 gate delays for a 4-bit block) instead of 2n for ripple; cost is more gates (area, fan-in).</li></ol>
+<p class="ans">Answer: G/P meaning + equations + parallel carries → speed, at the cost of area.</p></div>
+<div class="trap"><b>Galti mat karna:</b> G aur P ulta mat karo: G = AND (generate), P = XOR (propagate). Kuch books P = A + B likhti hain, wo carry ke liye chalta hai par Sum = P ⊕ C ke liye nahi; course XOR use karta hai. Aur CLA "kam gates" wala nahi hai: zyada gates, kam delay.</div>
+<p class="trick"><b>Trick:</b> "<b>G = Ghar ka carry</b> (khud banaya), <b>P = Pass karo</b>." Ck ka pattern: "G + P·(pichla carry)" ko khol do.</p>
+<div class="yr"><b>Ek line mein:</b> CLA: G = AB, P = A⊕B, C(i+1) = G + PC ko kholke saare carries ek saath; area zyada, delay kam.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>MUX: select lines / which input / output value</td><td>1. 2ⁿ = inputs → n = selects (8:1 → 3). 2. Select bits ka decimal = input number. 3. Y = us input ki value.</td></tr>
+<tr><td>2:1 MUXes needed for a big MUX</td><td>2ⁿ:1 → 2ⁿ − 1 (16:1 → 15). Or count levels: 8 + 4 + 2 + 1.</td></tr>
+<tr><td>Implement F with a 4:1 MUX (A, B on selects)</td><td>1. Truth table. 2. AB = 00, 01, 10, 11 ki jodiyan. 3. Har jodi (C = 0, C = 1): 00 → 0, 11 → 1, 01 → C, 10 → C'. 4. I0 to I3 likho. 5. Ek row check.</td></tr>
+<tr><td>Draw 4:1 MUX with gates</td><td>4 three-input ANDs (Ik + select minterm) → 4-input OR; 2 NOTs for S1', S0'; select table.</td></tr>
+<tr><td>DEMUX outputs / equations</td><td>1. Select ka decimal = output number. 2. Woh output = D, baaki 0. 3. Yk = D · (select minterm k).</td></tr>
+<tr><td>Decoder: outputs, AND count, which line</td><td>1. n-to-2ⁿ: outputs 2ⁿ, ANDs 2ⁿ, NOTs n. 2. Input ka decimal k → sirf Dk = 1 (enable = 1). 3. One-hot word likho.</td></tr>
+<tr><td>Implement F (or full adder) with decoder + OR</td><td>1. Inputs decoder pe. 2. F ki Σm list. 3. OR gate pe un Dk ko jodo. FA: Sum = D1 + D2 + D4 + D7, Cout = D3 + D5 + D6 + D7.</td></tr>
+<tr><td>Half / full adder design (5 to 6 marks)</td><td>1. Truth table. 2. Sum K-map (checkerboard → XOR), Cout K-map (3 pairs → majority). 3. Equations. 4. Gate circuit. 5. FA = 2 HA + OR diagram, why OR works.</td></tr>
+<tr><td>RCA result trace</td><td>Bit 0 se shuru: A + B + C → Sum bit, carry agle bit mein. Last carry = Cout. Decimal se check.</td></tr>
+<tr><td>RCA delay / max frequency</td><td>1. Delay = n × (gate delays per stage, usually 2) × t_gate. 2. f = 1 / delay. 3. Reason: serial carry, ∝ n.</td></tr>
+<tr><td>CLA equations / carries for given A, B</td><td>1. Gi = AiBi, Pi = Ai⊕Bi per bit. 2. C(i+1) = Gi + PiCi, expand C1 to C4. 3. Values daalo. 4. Si = Pi ⊕ Ci. 5. Decimal check.</td></tr>
+<tr><td>ALU: subtract, control codes, Zero</td><td>1. Sub = Binvert 1 + CarryIn 1 (A + B' + 1). 2. Codes: 0000 AND, 0001 OR, 0010 add, 0110 sub, 0111 slt. 3. Zero = NOR of result bits.</td></tr>
+<tr><td>Which block? (MUX vs DEMUX vs decoder)</td><td>Many → one = MUX; one data → one of many = DEMUX; code → one line high (no data) = decoder.</td></tr>
+</table></div>
+</section>
