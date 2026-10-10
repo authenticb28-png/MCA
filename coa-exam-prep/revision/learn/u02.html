@@ -1,0 +1,346 @@
+<section>
+<h2>Unit 2 · Logic Minimisation &amp; Universal Gates</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 1 mein laws se expression chhota kiya, par har baar "kaunsa law lagaun?" sochna padta tha. Is unit mein ek seedha tareeka hai: truth table → Σm/ΠM → <b>K-map</b> pe gole banao → minimum expression. Phir De Morgan aur bubble pushing se wahi circuit sirf NAND ya sirf NOR gates se banana seekhte hain, kyunki factory mein NAND sabse sasta hai. Unit 3 mein inhi tricks se MUX, decoder aur adders design honge.</div>
+
+<div class="topic"><h3>2.1 Motivation for Minimisation (Cost/Power)</h3>
+<div class="why"><b>Pehle socho:</b> Ek hi cake ki do recipes: ek mein 16 steps, doosri mein 2. Cake same bana, par doosri mein mehnat, gas, samay sab kam. Circuit mein bhi same truth table kai tarah se ban sakti hai; jisme kam gates hon wo chhota, sasta, thanda aur fast.</div>
+<div class="def"><b>Definition:</b> <b>Logic minimisation</b> is the process of finding the simplest circuit (fewest gates, gate inputs, literals and logic levels) that implements a given Boolean function, i.e. with the same truth table.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>literal</dt><dd>Variable ka ek appearance (seedha ya bar wala). AB + AB' + A'B = 6 literals.</dd>
+<dt>area</dt><dd>Chip pe gates ki jagah. Chhota die → ek wafer pe zyada chips → sasta.</dd>
+<dt>dynamic power</dt><dd>Gates ke switch (0↔1) hone mein lagne wali bijli. Kam gates → kam switching → kam power.</dd>
+<dt>propagation delay</dt><dd>Input badalne ke baad output badalne mein lagne wala time. Gate ki chain jitni lambi, delay utna zyada.</dd>
+<dt>logic levels</dt><dd>Input se output tak kitne gates paar karne padte hain. AND-OR = 2 levels.</dd>
+<dt>logic synthesis</dt><dd>Software (Synopsys Design Compiler, Cadence Genus) jo Verilog ko minimum gates mein badalta hai, automatically.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (cost kaise naapte hain):</b><ol>
+<li>Expression likho, terms (products) gino.</li>
+<li>Literals gino: har variable appearance = 1.</li>
+<li>Gates gino: har product term ek AND, terms ko jodne ke liye ek OR, har alag bar wala variable ek NOT.</li>
+<li>Simplify karo (laws ya K-map) aur dobara gino.</li>
+<li>Chaar fayde likho: <mark>area, power, speed (delay), cost</mark>.</li>
+</ol>
+<p>Class slide: ek typical 4-variable function lagbhag 16 gates se 2 gates tak aa sakta hai. Apple M3 mein 98 billion transistors (TSMC N3E) hain, isliye 1% bachat bhi bahut paisa hai. CMOS NAND = 4 transistors, CMOS AND = NAND + inverter = 6 transistors.</p></div>
+<div class="ex"><b>Solved example 1:</b> <p class="qq">F = AB + AB' + A'B. Count literals before and after simplification, and the gates saved.</p><ol>
+<li>Before: AB (2) + AB' (2) + A'B (2) = 6 literals.</li>
+<li>Gates before: 3 two-input ANDs + 1 three-input OR + 2 NOTs (A', B') = 6 gates.</li>
+<li>Simplify: AB + AB' = A(B + B') = A·1 = A.</li>
+<li>F = A + A'B = A + B (redundant-literal law, 1.5).</li>
+<li>After: A + B = 2 literals, 1 OR gate.</li></ol>
+<p class="ans">Answer: 6 literals → 2 literals; 6 gates → 1 gate.</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this):</b> <p class="qq">Why is logic minimisation important in VLSI design? (5 marks)</p><ol>
+<li>Area: each gate occupies silicon; fewer gates give a smaller die, more dies per wafer and higher yield.</li>
+<li>Power: dynamic power ∝ switched capacitance × V² × f; fewer gates switch less capacitance.</li>
+<li>Delay: fewer levels and shorter paths reduce the critical path, allowing a higher clock frequency.</li>
+<li>Cost: silicon area and yield dominate chip cost; at billions of gates even 1% matters.</li>
+<li>Example: F = AB + AB' = A removes four gates; synthesis tools (Design Compiler, Genus) do this automatically.</li></ol>
+<p class="ans">Answer: area, power, delay, cost + one example.</p></div>
+<div class="trap"><b>Galti mat karna:</b> "Kam terms = hamesha kam literals" nahi hota; dono gino. Aur kabhi kabhi speed (kam levels) ke liye zyada gates lagaye jaate hain.</div>
+<div class="yr"><b>Ek line mein:</b> Same truth table, kam gates → kam area, kam power, zyada speed, kam cost.</div>
+</div>
+
+<div class="topic"><h3>2.2 Canonical Forms: SOP and POS</h3>
+<div class="why"><b>Pehle socho:</b> Ek alarm ka rule do tarah likh sakte ho. (1) "In situations mein <b>bajna chahiye</b>" (list of 1s) = SOP. (2) "In situations mein <b>chup rehna chahiye</b>" (list of 0s) = POS. Dono same alarm describe karte hain. Truth table se seedha expression likhne ka yahi standard tareeka hai.</div>
+<div class="def"><b>Definition:</b> A <b>minterm</b> is a product (AND) term containing every variable exactly once (true or complemented) that equals 1 for exactly one input row. A <b>maxterm</b> is a sum (OR) term containing every variable exactly once that equals 0 for exactly one row. <b>Canonical SOP</b> (sum of products) is the OR of the minterms of the rows where F = 1; <b>canonical POS</b> (product of sums) is the AND of the maxterms of the rows where F = 0.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>product term</dt><dd>Variables ka AND, jaise AB'C. "Product" = AND.</dd>
+<dt>sum term</dt><dd>Variables ka OR, jaise (A + B' + C). "Sum" = OR.</dd>
+<dt>minterm mₖ</dt><dd>Row k ka AND term, sirf row k pe 1. Rule: <b>bit 1 → X, bit 0 → X'</b>. Row 101 = 5 → m5 = AB'C (A = 1, B = 0, C = 1 daalo: 1·1·1 = 1).</dd>
+<dt>maxterm Mₖ</dt><dd>Row k ka OR term, sirf row k pe 0. Rule <b>ulta</b>: <b>bit 0 → X, bit 1 → X'</b>. Row 010 = 2 → M2 = A + B' + C (A = 0, B = 1, C = 0 daalo: 0 + 0 + 0 = 0).</dd>
+<dt>canonical</dt><dd>"Standard, poora": har term mein har variable hai. Chhota nahi kiya gaya.</dd>
+<dt>Σm( ) aur ΠM( )</dt><dd>Shorthand. Σ = OR of minterms, Π = AND of maxterms. F = Σm(1, 3) matlab F = m1 + m3.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (truth table → Σm → expression, aur ΠM):</b><ol>
+<li>Truth table mein F = 1 wali rows dhoondo, unke decimal numbers likho → <b>Σm list</b>.</li>
+<li>Har aisi row ka minterm likho (1 → X, 0 → X'), sabko + se jodo → <b>canonical SOP</b>.</li>
+<li>F = 0 wali rows ke numbers → <b>ΠM list</b> (ye Σm list ke bache hue numbers hi hain).</li>
+<li>Har aisi row ka maxterm likho (0 → X, 1 → X'), brackets ko AND karo → <b>canonical POS</b>.</li>
+<li>Check: Σm list + ΠM list = 0 se 2ⁿ − 1 tak har number exactly ek baar.</li>
+</ol></div>
+<figure data-d="D2.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Har row mein pehle m (row number), phir A B C, phir F. F = 1 wali rows (highlighted) pe minterm likha hai, F = 0 wali rows pe maxterm. Row 3 dekho: 011, F = 1 → m3 = A'BC. Row 2: 010, F = 0 → M2 = A + B' + C. Isliye F = Σm(1, 3, 5, 7) = ΠM(0, 2, 4, 6).</p>
+<div class="fx"><b>Formula:</b> minterm: <b>1 → X, 0 → X'</b> · maxterm: <b>0 → X, 1 → X'</b><br>F = Σm(1-rows) = ΠM(0-rows); F' = Σm(0-rows); mₖ' = Mₖ.<br><small>n variables: number of maxterms = 2ⁿ − (number of minterms). 4 variables with 6 minterms → 16 − 6 = 10 maxterms.</small></div>
+<div class="ex"><b>Solved example 1 (identify terms):</b> <p class="qq">(a) Minterm for A = 1, B = 0, C = 1, D = 0. (b) Maxterm for A = 0, B = 1, C = 1.</p><ol>
+<li>(a) 1010 = 8 + 0 + 2 + 0 = 10. Minterm rule (1 → X, 0 → X'): A B' C D'. So m10 = AB'CD'.</li>
+<li>(b) 011 = 0 + 2 + 1 = 3. Maxterm rule (0 → X, 1 → X'): A, B', C'. So M3 = A + B' + C'.</li>
+<li>Check (b): put 0, 1, 1 → 0 + 0 + 0 = 0. Maxterm sirf apni row pe 0 hota hai. ✓</li></ol>
+<p class="ans">Answer: m10 = AB'CD'; M3 = (A + B' + C').</p></div>
+<div class="ex"><b>Solved example 2 (full conversion, Lab 2 Q2/Q3):</b> <p class="qq">F(A, B, C) is 1 for rows 001, 010, 100, 111 and 0 elsewhere. Write Σm, canonical SOP, ΠM and canonical POS.</p>
+<table class="tt"><tr><th>row</th><th>A B C</th><th>F</th><th>term</th></tr>
+<tr><td>0</td><td>0 0 0</td><td>0</td><td>M0 = A + B + C</td></tr>
+<tr><td>1</td><td>0 0 1</td><td>1</td><td>m1 = A'B'C</td></tr>
+<tr><td>2</td><td>0 1 0</td><td>1</td><td>m2 = A'BC'</td></tr>
+<tr><td>3</td><td>0 1 1</td><td>0</td><td>M3 = A + B' + C'</td></tr>
+<tr><td>4</td><td>1 0 0</td><td>1</td><td>m4 = AB'C'</td></tr>
+<tr><td>5</td><td>1 0 1</td><td>0</td><td>M5 = A' + B + C'</td></tr>
+<tr><td>6</td><td>1 1 0</td><td>0</td><td>M6 = A' + B' + C</td></tr>
+<tr><td>7</td><td>1 1 1</td><td>1</td><td>m7 = ABC</td></tr></table><ol>
+<li>1-rows: 1, 2, 4, 7 → F = Σm(1, 2, 4, 7).</li>
+<li>Minterms (1 → X, 0 → X'): m1 = A'B'C, m2 = A'BC', m4 = AB'C', m7 = ABC.</li>
+<li>Canonical SOP: F = A'B'C + A'BC' + AB'C' + ABC.</li>
+<li>0-rows: 0, 3, 5, 6 → F = ΠM(0, 3, 5, 6). (Check: 1, 2, 4, 7 + 0, 3, 5, 6 = all of 0 to 7. ✓)</li>
+<li>Maxterms (0 → X, 1 → X'): M0 = A + B + C, M3 = A + B' + C', M5 = A' + B + C', M6 = A' + B' + C.</li>
+<li>Canonical POS: F = (A + B + C)(A + B' + C')(A' + B + C')(A' + B' + C).</li></ol>
+<p class="ans">Answer: F = Σm(1, 2, 4, 7) = ΠM(0, 3, 5, 6). (This F is the 3-input XOR: 1 when the count of 1s is odd.)</p></div>
+<div class="ex"><b>Solved example 3 (expression → Σm, mock NAT):</b> <p class="qq">How many minterms are 1 in F(A, B, C) = A + B'C? Write F in Σm and ΠM.</p><ol>
+<li>Term A: A = 1, B and C kuch bhi → rows 100, 101, 110, 111 = 4, 5, 6, 7.</li>
+<li>Term B'C: B = 0, C = 1, A kuch bhi → rows 001, 101 = 1, 5.</li>
+<li>Union (5 do baar aaya, ek baar gino): 1, 4, 5, 6, 7 → 5 minterms.</li>
+<li>Bache hue: 0, 2, 3 → ΠM(0, 2, 3).</li></ol>
+<p class="ans">Answer: 5 minterms; F = Σm(1, 4, 5, 6, 7) = ΠM(0, 2, 3).</p></div>
+<div class="trap"><b>Galti mat karna:</b> Maxterm mein minterm wala rule lagana THE trap hai. M2 (row 010) = A + B' + C hai, A'BC' nahi. Yaad rakho: maxterm us row pe <b>0</b> dena chahiye, to har literal 0 hona chahiye.</div>
+<p class="trick"><b>Trick:</b> "<b>SOP = 1s = m = seedha 1</b>; <b>POS = 0s = M = seedha 0</b>." Jo bit term ko "seedha" (bina bar) likhwata hai: minterm mein 1, maxterm mein 0.</p>
+<div class="yr"><b>Ek line mein:</b> SOP = 1-rows ke minterms ka OR; POS = 0-rows ke maxterms ka AND; dono lists milke saare rows cover karti hain.</div>
+</div>
+
+<div class="topic"><h3>2.3 Karnaugh Maps: 2, 3, and 4 Variables</h3>
+<div class="why"><b>Pehle socho:</b> Laws se simplify karne mein asli trick ek hi hai: XY + XY' = X (jo variable badal raha hai wo cancel). Problem: aise pairs dhoondna mushkil. K-map truth table ko aise ghar mein rakh deta hai ki <mark>padosi cells mein sirf ek variable badle</mark>. Ab pair dhoondna = padosi 1s pe gola banana. Maths ki jagah pattern dekhna.</div>
+<div class="def"><b>Definition:</b> A <b>Karnaugh map (K-map)</b> is a grid arrangement of a truth table in which adjacent cells (including wrap-around at the edges) differ in exactly one variable, so that adjacent 1s can be grouped in rectangles of 1, 2, 4, 8 or 16 cells to obtain a minimal SOP expression.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>cell</dt><dd>Map ka ek dabba = truth table ki ek row. Andar F ki value (0, 1 ya X) likhte hain.</dd>
+<dt>Gray code</dt><dd>Aisi counting jisme agla number sirf ek bit badalta hai: 00 → 01 → 11 → 10. Binary 01 → 10 mein do bits badalte hain, isliye binary order K-map mein nahi chalta.</dd>
+<dt>adjacent (padosi)</dt><dd>Upar-neeche ya left-right wale cells (diagonal nahi). Map ke edges mude hue maano: left edge right edge ka padosi, top bottom ka, aur 4-variable map ke chaaron corners ek doosre ke padosi.</dd>
+<dt>group / implicant</dt><dd>Padosi 1s ka rectangle. Size: pair (2), quad (4), octet (8).</dd>
+<dt>wrap-around</dt><dd>Map ko ek "donut" ki tarah socho: right se nikle to left mein aa gaye.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b>
+<p><b>(A) Map draw karna, cell numbers ke saath</b> (cell ke andar row number = minterm index likha hai):</p>
+<div style="display:flex;gap:6mm;align-items:flex-start;flex-wrap:wrap"><table class="tt"><tr><th>A \ B</th><th>0</th><th>1</th></tr><tr><th>0</th><td>0</td><td>1</td></tr><tr><th>1</th><td>2</td><td>3</td></tr></table>
+<table class="tt"><tr><th>A \ BC</th><th>00</th><th>01</th><th>11</th><th>10</th></tr><tr><th>0</th><td>0</td><td>1</td><td>3</td><td>2</td></tr><tr><th>1</th><td>4</td><td>5</td><td>7</td><td>6</td></tr></table>
+<table class="tt"><tr><th>AB \ CD</th><th>00</th><th>01</th><th>11</th><th>10</th></tr><tr><th>00</th><td>0</td><td>1</td><td>3</td><td>2</td></tr><tr><th>01</th><td>4</td><td>5</td><td>7</td><td>6</td></tr><tr><th>11</th><td>12</td><td>13</td><td>15</td><td>14</td></tr><tr><th>10</th><td>8</td><td>9</td><td>11</td><td>10</td></tr></table></div>
+<p>Dhyan do: Gray order ki wajah se columns mein 3 pehle aata hai, 2 baad mein (0 1 3 2), aur rows mein 12 pehle, 8 baad mein. Cell number nikalna: row bits + column bits jodo, jaise row 11, column 01 → 1101 = 8 + 4 + 0 + 1 = 13.</p>
+<p><b>(B) Grouping rules:</b></p><ol>
+<li>Sirf 1s (aur zaroorat ho to X) ko gher lo; 0 kabhi group mein nahi.</li>
+<li>Group ka size <b>2 ki power</b>: 1, 2, 4, 8, 16. 3 ya 6 cells ka group illegal.</li>
+<li>Group <b>rectangle</b> hona chahiye; diagonal nahi.</li>
+<li>Wrap-around allowed: left-right edge, top-bottom edge, aur chaaron corners (4-variable) ek group.</li>
+<li>Groups <b>jitne bade ho sakein</b> utne bade banao (bada group = kam literals).</li>
+<li>Groups overlap kar sakte hain; har 1 kam se kam ek group mein ho.</li>
+<li>Groups <b>jitne kam</b> ho sakein; jo group poora doosron se already cover ho, use hata do.</li>
+</ol>
+<p><b>(C) Group ko term mein padhna:</b></p><ol>
+<li>Group ke saare cells ke liye har variable ki value dekho.</li>
+<li>Jo variable group ke andar <b>badalta hai</b> (kahin 0 kahin 1) → wo drop (X + X' = 1).</li>
+<li>Jo <b>constant</b> rehta hai: 1 hai to X likho, 0 hai to X'.</li>
+<li>Bache variables ka AND = us group ka term. Saare terms ka OR = answer.</li>
+</ol>
+<p><b>(D) Poora procedure:</b> map bharo → pehle wo 1s dekho jinka group sirf ek tarah ban sakta hai → sabse bade groups gher lo → har 1 cover karo → har group ka term likho → OR karo.</p></div>
+<figure data-d="D2.3b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Row = A (0, 1), columns = BC Gray order mein (00, 01, 11, 10). 1s beech ke do columns (01 aur 11) mein hain, dono rows mein = quad. Quad mein A badalta hai (0, 1), B badalta hai (0, 1), C hamesha 1 → F = C.</p>
+<figure data-d="D2.3c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Rows AB, columns CD, dono Gray order. Row 01 poori 1 → quad A'B (A = 0, B = 1 constant, C, D badalte hain). Beech ka 2×2 block (cells 5, 7, 13, 15) → B = 1, D = 1 → BD. Column 00 aur 10 ke upar ke do rows (cells 0, 2, 4, 6) edge se wrap hote hain → A = 0, D = 0 → A'D'. F = A'B + BD + A'D'.</p>
+<figure data-d="D2.3d"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaaron corners (0, 2, 8, 10) ek hi group hain kyunki map mudta hai. Corners mein B = 0 aur D = 0 hamesha → B'D'. Beech ka quad (5, 7, 13, 15) → BD. F = B'D' + BD.</p>
+<div class="fx"><b>Formula:</b> n-variable map mein <b>2ᵏ cells ka group → n − k literals</b>.<br><small>4-variable: pair (k = 1) → 3 literals, quad (k = 2) → 2 literals, octet (k = 3) → 1 literal, all 16 → F = 1.</small></div>
+<div class="ex"><b>Solved example 1 (3-variable, Lab 2 Q16):</b> <p class="qq">Minimise F(A, B, C) = Σm(0, 2, 3, 5) using a K-map.</p><ol>
+<li>Map bharo (cells 0, 2, 3, 5 mein 1):</li></ol>
+<table class="tt"><tr><th>A \ BC</th><th>00</th><th>01</th><th>11</th><th>10</th></tr><tr><th>0</th><td>1 (m0)</td><td>0</td><td>1 (m3)</td><td>1 (m2)</td></tr><tr><th>1</th><td>0</td><td>1 (m5)</td><td>0</td><td>0</td></tr></table><ol start="2">
+<li>m5 ke padosi: m1 (0), m4 (0), m7 (0). Koi padosi 1 nahi → m5 akela group: A = 1, B = 0, C = 1 → AB'C.</li>
+<li>m0 ke padosi 1: sirf m2 (wrap-around: column 00 aur column 10 padosi hain). Pair m0, m2: A = 0, C = 0 constant, B badalta → A'C'.</li>
+<li>m3 ka padosi 1: m2. Pair m2, m3: A = 0, B = 1 constant, C badalta → A'B.</li>
+<li>Saare 1s cover: m0, m2 (A'C'), m3 (A'B), m5 (AB'C).</li></ol>
+<p class="ans">Answer: F = A'C' + A'B + AB'C.</p></div>
+<div class="ex"><b>Solved example 2 (4-variable, exam level, mock 6 marks):</b> <p class="qq">Minimise F(A, B, C, D) = Σm(0, 1, 2, 5, 8, 9, 10) in SOP and POS.</p><ol>
+<li>Map bharo:</li></ol>
+<table class="tt"><tr><th>AB \ CD</th><th>00</th><th>01</th><th>11</th><th>10</th></tr><tr><th>00</th><td>1 (0)</td><td>1 (1)</td><td>0 (3)</td><td>1 (2)</td></tr><tr><th>01</th><td>0 (4)</td><td>1 (5)</td><td>0 (7)</td><td>0 (6)</td></tr><tr><th>11</th><td>0 (12)</td><td>0 (13)</td><td>0 (15)</td><td>0 (14)</td></tr><tr><th>10</th><td>1 (8)</td><td>1 (9)</td><td>0 (11)</td><td>1 (10)</td></tr></table><ol start="2">
+<li>Four corners 0, 2, 8, 10 sab 1 → quad. B = 0, D = 0 constant (A, C badalte) → <b>B'D'</b>.</li>
+<li>Cells 0, 1, 8, 9 (rows 00 aur 10 wrap, columns 00, 01) → quad. B = 0, C = 0 constant → <b>B'C'</b>.</li>
+<li>m5 bacha. Padosi: m1 (1), m4 (0), m7 (0), m13 (0). Sirf pair m1, m5 → A = 0, C = 0, D = 1 constant, B badalta → <b>A'C'D</b>.</li>
+<li>SOP: F = B'D' + B'C' + A'C'D.</li>
+<li>POS ke liye <b>0s</b> ko group karo (F' ka SOP): 0s at 3, 4, 6, 7, 11, 12, 13, 14, 15.</li>
+<li>Zero-group 1: row 11 poori (12, 13, 14, 15) → A = 1, B = 1 → AB.</li>
+<li>Zero-group 2: column 11 poora (3, 7, 15, 11) → C = 1, D = 1 → CD.</li>
+<li>Zero-group 3: rows 01, 11 aur columns 00, 10 (wrap) = cells 4, 6, 12, 14 → B = 1, D = 0 → BD'.</li>
+<li>Saare 9 zeros cover: F' = AB + CD + BD'.</li>
+<li>De Morgan: F = (AB)'·(CD)'·(BD')' = (A' + B')(C' + D')(B' + D).</li></ol>
+<p class="ans">Answer: SOP F = B'D' + B'C' + A'C'D; POS F = (A' + B')(C' + D')(B' + D).</p></div>
+<div class="trap"><b>Galti mat karna:</b> Columns ko 00, 01, 10, 11 (binary) likhna sabse common galti hai. 3 cells ka group, diagonal group, aur corners/edges miss karna bhi. Ek group jo poora doosre groups se cover hai, wo extra term hai: hata do.</div>
+<p class="trick"><b>Trick:</b> Gray order: "<b>00, 01, 11, 10</b>": beech mein 11 pehle. Group padhte waqt bolo: "<b>jo badla wo gaya</b>."</p>
+<div class="yr"><b>Ek line mein:</b> Gray order map, 2 ki power ke rectangles (wrap allowed), sabse bade groups, badalne wala variable drop.</div>
+</div>
+
+<div class="topic"><h3>2.4 DeMorgan's Theorems and Bubble Pushing</h3>
+<div class="why"><b>Pehle socho:</b> "Chai aur coffee dono mil gaye, aisa NAHI hua" = kam se kam ek nahi mila (chai nahi YA coffee nahi). "Na chai mili na coffee" = chai nahi AUR coffee nahi. Ye roz ki baat hi De Morgan hai. Circuit mein isi se NOT ko gates ke andar-bahar khiskaate hain, aur AND-OR circuit ko sirf NAND se bana dete hain.</div>
+<div class="def"><b>Definition:</b> <b>De Morgan's theorems</b> state that the complement of a product equals the sum of the complements, (AB)' = A' + B', and the complement of a sum equals the product of the complements, (A + B)' = A'B'. <b>Bubble pushing</b> is the graphical use of these theorems: moving inversion bubbles from a gate's output to its inputs (or back) while changing AND to OR or OR to AND.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>bubble</dt><dd>Gate ke input ya output pe chhota gola = NOT.</dd>
+<dt>complement of a function</dt><dd>F' = F ka ulta: jahan F = 1 tha wahan 0. Nikalne ke liye: har literal ulta karo aur + ↔ · badlo (0 ↔ 1 bhi).</dd>
+<dt>double bubble</dt><dd>Ek wire pe do NOT = kuch nahi: (A')' = A. Do bubbles cancel.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b>
+<table class="tt"><tr><th>A</th><th>B</th><th>(AB)'</th><th>A' + B'</th><th>(A + B)'</th><th>A'B'</th></tr>
+<tr><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></table>
+<p>Columns 3 = 4 aur 5 = 6: dono theorems truth table se proved.</p><ol>
+<li><b>Algebra mein:</b> sabse bahar wala bar pehle tod do: bar ke neeche ke har tukde pe bar lagao aur sign badlo (· → +, + → ·).</li>
+<li>Andar koi bar bacha ho to wahi step dobara. Double bar mile to hata do.</li>
+<li><b>Picture mein (bubble pushing):</b> gate ke output ka bubble uthao, gate ke har input pe bubble lagao, aur gate badlo (AND ↔ OR).</li>
+<li>Isliye <b>NAND = OR with inverted inputs</b> aur <b>NOR = AND with inverted inputs</b>.</li>
+<li>Ek wire pe do bubbles aa jaayein (ek gate ke output pe, agle ke input pe) to dono cancel. Yahi AND-OR ko NAND-NAND banata hai (2.5).</li>
+</ol></div>
+<figure data-d="D2.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left: NAND (AND + output bubble). Right: OR jiske dono inputs pe bubble. Beech mein ≡ = dono same. Trace A = 1, B = 1: NAND → 0; right side: A' = 0, B' = 0, OR = 0. ✓</p>
+<figure data-d="D2.4b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left: NOR (OR + output bubble). Right: AND with bubbled inputs. Trace A = 0, B = 0: NOR → 1; right: 1·1 = 1. ✓</p>
+<div class="ex"><b>Solved example 1 (class slide):</b> <p class="qq">Simplify ~(A·B + C).</p><ol>
+<li>Bahar ka bar: (AB + C)' = (AB)'·C' (OR tha → AND, har tukde pe bar).</li>
+<li>Andar bacha (AB)': = A' + B'.</li>
+<li>Result: (A' + B')·C'.</li></ol>
+<p class="ans">Answer: (~A + ~B)·~C.</p></div>
+<div class="ex"><b>Solved example 2 (exam level, Lab 2 Q30):</b> <p class="qq">Simplify F = ((A' + B)' + (A·C)')'.</p><ol>
+<li>Andar ke tukde: (A' + B)' = A''·B' = AB' (De Morgan, double bar hataya).</li>
+<li>(AC)' = A' + C' (De Morgan).</li>
+<li>F = (AB' + A' + C')'.</li>
+<li>Bahar ka bar (teen terms ka OR → teeno ke complement ka AND): F = (AB')'·(A')'·(C')'.</li>
+<li>= (A' + B)·A·C (De Morgan on (AB)', involution on the others).</li>
+<li>= A·C·(A' + B) = AA'C + ABC = 0 + ABC (distributive, complement).</li></ol>
+<p class="ans">Answer: F = ABC.</p></div>
+<div class="ex"><b>Solved example 3 (complement of a function, Lab 2 Q13):</b> <p class="qq">Find the complement of F = (A + B)(A' + C).</p><ol>
+<li>F' = [(A + B)(A' + C)]' = (A + B)' + (A' + C)' (product ka complement = complements ka sum).</li>
+<li>(A + B)' = A'B'; (A' + C)' = A·C'.</li></ol>
+<p class="ans">Answer: F' = A'B' + AC'.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (AB)' = A'B' GALAT; sign badalna zaroori: A' + B'. Sirf bahar ka bar tod ke ruk mat jao, andar ke bars bhi tod do. Function ka complement lete waqt constants bhi badlo (0 ↔ 1).</div>
+<p class="trick"><b>Trick:</b> "<b>Bar tod do, sign badlo.</b>" Picture mein: "<b>bubble khiskao, gate badlo.</b>"</p>
+<div class="yr"><b>Ek line mein:</b> (AB)' = A' + B', (A + B)' = A'B'; NAND = bubbled-input OR, NOR = bubbled-input AND.</div>
+</div>
+
+<div class="topic"><h3>2.5 Universal Gates (NAND/NOR) Demonstration</h3>
+<div class="why"><b>Pehle socho:</b> Ek LEGO set jisme sirf <b>ek hi shape ki brick</b> hai, phir bhi usse kuch bhi ban sakta hai. Factory ke liye ye best hai: ek hi cell design karo, perfect karo, lakhon baar copy karo. CMOS mein NAND sirf 4 transistors ka hai (AND 6 ka), isliye chips zyada NAND se bante hain.</div>
+<div class="def"><b>Definition:</b> A set of gates is <b>functionally complete</b> if every Boolean function can be built from it; {AND, OR, NOT} is such a set. A <b>universal gate</b> is a single gate type that is functionally complete by itself; NAND and NOR are universal gates.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>functionally complete</dt><dd>Is set se koi bhi truth table ban sakti hai. {AND, OR} complete nahi, kyunki NOT nahi ban sakta.</dd>
+<dt>NAND-NAND form</dt><dd>Do levels, dono NAND. AND-OR (SOP) circuit ka NAND version.</dd>
+<dt>NOR-NOR form</dt><dd>OR-AND (POS) circuit ka NOR version.</dd>
+<dt>inputs tie karna</dt><dd>Gate ke dono inputs ek hi signal se jodna. NAND(A, A) = (A·A)' = A'.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (NAND se NOT, AND, OR):</b><ol>
+<li><b>NOT:</b> NAND ke dono inputs pe A: (A·A)' = A'. Check A = 1: (1·1)' = 0. → <b>1 gate</b>.</li>
+<li><b>AND:</b> NAND(A, B) = (AB)', phir ek NAND-inverter: ((AB)')' = AB. → <b>2 gates</b>.</li>
+<li><b>OR:</b> pehle A' = NAND(A, A), B' = NAND(B, B); phir NAND(A', B') = (A'B')' = A + B (De Morgan). → <b>3 gates</b>.</li>
+<li><b>NOR se (mirror):</b> NOT = NOR(A, A) (1); OR = NOR phir NOR-inverter (2); AND = NOR(A', B') = (A' + B')' = AB (3).</li>
+<li><b>XOR:</b> 4 NANDs (D2.5c), 5 NORs.</li>
+</ol>
+<table class="tt"><tr><th>Build</th><th>NAND only</th><th>NOR only</th></tr>
+<tr><td>NOT</td><td>1</td><td>1</td></tr><tr><td>AND</td><td>2</td><td>3</td></tr><tr><td>OR</td><td>3</td><td>2</td></tr><tr><td>XOR</td><td>4</td><td>5</td></tr></table>
+<p><b>SOP → NAND-NAND (steps):</b></p><ol>
+<li>Minimal SOP likho (K-map se). Circuit = level 1 ANDs, level 2 ek OR.</li>
+<li>Har AND ke output pe ek bubble aur OR ke har input pe ek bubble lagao (wire pe 2 bubbles = koi farak nahi).</li>
+<li>Ab AND + output bubble = NAND. OR + input bubbles = NAND (2.4). Sab NAND.</li>
+<li>Agar koi akela literal (jaise C) seedha OR mein jaa raha tha, to ab use C' karke daalo (uska bubble cancel karne wala koi nahi).</li>
+<li>Complemented inputs (A', B') available nahi to har ek ke liye NAND(X, X) inverter jodo.</li>
+</ol>
+<p><b>POS → NOR-NOR:</b> same steps, OR ki jagah NOR (level 1), AND ki jagah NOR (level 2).</p></div>
+<figure data-d="D2.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left: ek NAND, dono inputs A se jude → A'. Beech: NAND(A, B) ka output agle NAND ke dono inputs pe → AB (2 gates). Right: A aur B pehle alag alag NAND-inverters se A', B' bante hain, phir teesra NAND → A + B (3 gates). Trace OR with A = 0, B = 1: A' = 1, B' = 0, NAND(1, 0) = 1 ✓.</p>
+<figure data-d="D2.5c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Pehla NAND G1 = (AB)'. G1 do NANDs mein jaata hai: G2 = (A·G1)', G3 = (B·G1)'. Last NAND G4 = (G2·G3)' = A ⊕ B. Trace A = 1, B = 0: G1 = 1, G2 = (1·1)' = 0, G3 = (0·1)' = 1, G4 = (0·1)' = 1 ✓ (1 ⊕ 0 = 1).</p>
+<div class="ex"><b>Solved example 1 (mock MCQ):</b> <p class="qq">Minimum 2-input NAND gates for a 2-input OR? Verify with a truth table.</p><ol>
+<li>OR = (A'B')' (De Morgan). A' = NAND(A, A), B' = NAND(B, B), result = NAND(A', B').</li>
+<li>Check all rows: 00 → A' = 1, B' = 1 → NAND = 0. 01 → 1, 0 → 1. 10 → 0, 1 → 1. 11 → 0, 0 → 1. Column 0111 = OR ✓.</li></ol>
+<p class="ans">Answer: 3 NAND gates.</p></div>
+<div class="ex"><b>Solved example 2 (exam level, mock 6 marks, second half):</b> <p class="qq">Implement F = B'D' + B'C' + A'C'D (from 2.3, example 2) using only NAND gates. Only true inputs A, B, C, D are available.</p><ol>
+<li>SOP circuit: AND1 = B'D', AND2 = B'C', AND3 = A'C'D (3-input), OR of three.</li>
+<li>Bubble push: har AND → NAND, OR (bubbled inputs) → NAND. F = ((B'D')'·(B'C')'·(A'C'D)')'.</li>
+<li>Complements banao: A' = NAND(A, A), B' = NAND(B, B), C' = NAND(C, C), D' = NAND(D, D) → 4 gates.</li>
+<li>Level 1: N1 = NAND(B', D'), N2 = NAND(B', C'), N3 = NAND(A', C', D) (3-input) → 3 gates.</li>
+<li>Level 2: F = NAND(N1, N2, N3) (3-input) → 1 gate.</li>
+<li>Check A = 0, B = 1, C = 0, D = 1 (m5, should be 1): N1 = NAND(0, 0) = 1, N2 = NAND(0, 1) = 1, N3 = NAND(1, 1, 1) = 0, F = NAND(1, 1, 0) = 1 ✓.</li></ol>
+<p class="ans">Answer: F = NAND(NAND(B', D'), NAND(B', C'), NAND(A', C', D')): 4 inverter NANDs + 3 + 1 = 8 NAND gates.</p></div>
+<div class="ex"><b>Solved example 3 (NOR only):</b> <p class="qq">Implement F = (A + B)(C + D) using only 2-input NOR gates.</p><ol>
+<li>POS circuit: OR1 = A + B, OR2 = C + D, AND of both.</li>
+<li>Bubble push: OR + output bubble = NOR; AND with bubbled inputs = NOR.</li>
+<li>F = ((A + B)' + (C + D)')' = NOR(NOR(A, B), NOR(C, D)).</li>
+<li>Check A = 1, B = 0, C = 0, D = 0 (F should be (1)(0) = 0): NOR(1, 0) = 0, NOR(0, 0) = 1, NOR(0, 1) = 0 ✓.</li></ol>
+<p class="ans">Answer: 3 NOR gates. (Similarly AB + CD = NAND(NAND(A, B), NAND(C, D)) = 3 NANDs.)</p></div>
+<div class="trap"><b>Galti mat karna:</b> NAND "zyada powerful" nahi, sirf <b>self-sufficient</b> hai. NAND-NAND mein akela literal (jaise AB + C mein C) seedha mat daalo: C' daalna padta hai, F = ((AB)'·C')'. Aur sirf 2-input gates allowed hon to 3-input term ke liye extra gates lagenge.</div>
+<p class="trick"><b>Trick:</b> NAND: <b>1-2-3</b> (NOT-AND-OR). NOR: <b>1-3-2</b>. SOP ↔ NAND-NAND, POS ↔ NOR-NOR ("S-N-A, P-N-O").</p>
+<div class="yr"><b>Ek line mein:</b> NAND/NOR akele har circuit bana sakte hain; SOP ko NAND-NAND, POS ko NOR-NOR bubble pushing se.</div>
+</div>
+
+<div class="topic"><h3>2.6 Don't-Cares in K-Maps</h3>
+<div class="why"><b>Pehle socho:</b> Menu mein ek dish hai jo koi kabhi order hi nahi karta. Chef us dish ke liye jo chahe maan le, kisi ko farak nahi padta. Circuit mein bhi kuch input combinations <b>kabhi aate hi nahi</b> (jaise BCD mein 1010 se 1111). Unka output hum apni suvidha se 0 ya 1 maan sakte hain, taaki groups bade ho jaayein.</div>
+<div class="def"><b>Definition:</b> A <b>don't-care</b> (written X or d) is an input combination whose output does not matter, because it never occurs or its output is never used. In a K-map it may be treated as 1 or 0, whichever gives a simpler expression.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>X / d( )</dt><dd>Don't-care ka nishan. F = Σm(5, 6, 7) + d(10, 11) matlab 5, 6, 7 pe F = 1 aur 10, 11 pe "kuch bhi".</dd>
+<dt>BCD</dt><dd>Binary Coded Decimal: ek decimal digit (0 to 9) ko 4 bits mein likhna. 4 bits 16 values bana sakti hain, par sirf 0000 to 1001 use hote hain; 1010 to 1111 (10 to 15) kabhi nahi aate → don't-cares.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Map mein 1s, 0s aur X sab bharo.</li>
+<li>Har X ke liye socho: kya isse 1 maan ke koi group bada hota hai? Haan → 1 maano. Nahi → 0 maano.</li>
+<li><b>Sirf X ka group kabhi mat banao</b> (wo koi 1 cover nahi karta, bekar term).</li>
+<li>X ko cover karna zaroori nahi; sirf saare 1s cover hone chahiye.</li>
+<li>Groups ko normal tareeke se padho (badalne wala variable drop).</li>
+</ol></div>
+<figure data-d="D2.6a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Row 00 mein m0, m1 = 1, m3 = X; row 01 mein m5, m7 = X. Cells 1, 3, 5, 7 ka quad (X ko 1 maana) → A = 0, D = 1 → A'D. m0 bacha → pair m0, m1 → A'B'C'. F = A'D + A'B'C'. X ki wajah se ek pair ki jagah quad mila.</p>
+<div class="ex"><b>Solved example 1 (3-variable):</b> <p class="qq">Minimise F(A, B, C) = Σm(0, 1, 6) + d(2, 3, 7).</p>
+<table class="tt"><tr><th>A \ BC</th><th>00</th><th>01</th><th>11</th><th>10</th></tr><tr><th>0</th><td>1</td><td>1</td><td>X</td><td>X</td></tr><tr><th>1</th><td>0</td><td>0</td><td>X</td><td>1</td></tr></table><ol>
+<li>Row A = 0: m0, m1 = 1, m3, m2 = X. Chaaron ko 1 maano → quad (0, 1, 3, 2), sirf A = 0 constant → A'.</li>
+<li>m6 bacha. Cells 2, 3, 6, 7 (columns 11, 10 dono rows) = X, X, 1, X → quad, B = 1 constant → B.</li>
+<li>Saare 1s (0, 1, 6) cover.</li></ol>
+<p class="ans">Answer: F = A' + B (2 literals). Without don't-cares it would be A'B' + ABC'.</p></div>
+<div class="ex"><b>Solved example 2 (4-variable, exam level):</b> <p class="qq">A circuit gets a BCD digit ABCD and outputs 1 when the digit is 5 or more. F = Σm(5, 6, 7, 8, 9) + d(10, 11, 12, 13, 14, 15). Minimise.</p>
+<table class="tt"><tr><th>AB \ CD</th><th>00</th><th>01</th><th>11</th><th>10</th></tr><tr><th>00</th><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><th>01</th><td>0</td><td>1 (5)</td><td>1 (7)</td><td>1 (6)</td></tr><tr><th>11</th><td>X (12)</td><td>X (13)</td><td>X (15)</td><td>X (14)</td></tr><tr><th>10</th><td>1 (8)</td><td>1 (9)</td><td>X (11)</td><td>X (10)</td></tr></table><ol>
+<li>m8, m9: rows 11 aur 10 (8 cells: 8, 9, 10, 11, 12, 13, 14, 15) mein baaki sab X → octet, A = 1 constant → <b>A</b>.</li>
+<li>m5, m7: cells 5, 7, 13, 15 (rows 01, 11; columns 01, 11) → quad, B = 1, D = 1 → <b>BD</b>.</li>
+<li>m6: cells 6, 7, 14, 15 (rows 01, 11; columns 11, 10) → quad, B = 1, C = 1 → <b>BC</b>.</li>
+<li>Check: 5 (BD), 6 (BC), 7 (BD), 8 (A), 9 (A) sab cover; 0 to 4 koi group mein nahi ✓.</li></ol>
+<p class="ans">Answer: F = A + BD + BC (5 literals). Without don't-cares: AB'C' + A'BD + A'BC (9 literals).</p></div>
+<div class="trap"><b>Galti mat karna:</b> X ko cover karne ke liye alag group banana = bekar term. Aur X ko "zaroor 1" mat samjho; jo X kisi group ko bada nahi karta use 0 hi rehne do.</div>
+<div class="yr"><b>Ek line mein:</b> X = "help kare to 1, warna 0"; sirf X ka group kabhi nahi.</div>
+</div>
+
+<div class="topic"><h3>2.E1 Extra from slides: Prime Implicants, EPIs and the Consensus Theorem</h3>
+<div class="why"><b>Pehle socho:</b> K-map pe gole banate waqt sawaal aata hai: "kaunse group <b>zaroori</b> hain aur kaunse optional?" Jaise ek class mein kuch students hi kisi ek topic ko padha sakte hain: jo topic sirf ek student jaanta hai, us student ko team mein lena hi padega. Wahi "essential" hai.</div>
+<div class="def"><b>Definition:</b> An <b>implicant</b> is any product term (group of 1s and don't-cares) for which F = 1. A <b>prime implicant (PI)</b> is an implicant that cannot be enlarged (combined into a bigger group). An <b>essential prime implicant (EPI)</b> is a prime implicant that covers at least one 1 that no other prime implicant covers. A minimal SOP contains all EPIs plus the fewest additional PIs needed to cover the remaining 1s.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>implicant</dt><dd>Koi bhi valid group (1, 2, 4 cells). Jaise m0, m2 ka pair.</dd>
+<dt>prime implicant</dt><dd>Group jo aur bada nahi ho sakta. Agar m0, m2 ka pair ek quad (0, 2, 8, 10) ka hissa hai to pair prime nahi; quad prime hai.</dd>
+<dt>essential PI</dt><dd>Prime group jo kisi ek 1 ko <b>akela</b> cover karta hai. Us 1 ke liye koi aur option nahi, to ye answer mein hona hi chahiye.</dd>
+<dt>cyclic map</dt><dd>Map jisme har 1 do PIs se cover hota hai, koi EPI nahi. Choice trial se karte hain.</dd>
+<dt>consensus term</dt><dd>XY aur X'Z se bana YZ (X hata ke baaki ka AND). Ye redundant hota hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (PIs aur EPIs dhoondna):</b><ol>
+<li>Map bharo. Har 1 ke liye uska <b>sabse bada possible group</b> dhoondo. Ye saare alag alag groups = PIs.</li>
+<li>Har 1 ke liye gino: kitne PIs isko cover karte hain?</li>
+<li>Jis 1 ko sirf ek PI cover karta hai, wo PI = EPI. Use answer mein daalo.</li>
+<li>EPIs se jo 1s bach gaye, unhe kam se kam extra PIs se cover karo.</li>
+<li>Koi EPI na mile (cyclic) → ek PI choose karo, baaki chain ki tarah follow karo.</li>
+</ol></div>
+<figure data-d="D2.E1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> 6 ones ek ring mein: m0, m1, m5, m7, m6, m2. Har 1 ke do padosi 1 hain, isliye har 1 do pairs mein aa sakta hai. Teen alternate pairs chuno: A'B' (0, 1), AC (5, 7), BC' (2, 6). Saare 6 cover, 3 terms.</p>
+<div class="ex"><b>Solved example 1 (EPIs present):</b> <p class="qq">Find all PIs and EPIs of F = Σm(0, 1, 2, 5, 8, 9, 10) (map of 2.3, example 2).</p><ol>
+<li>PIs: B'D' (0, 2, 8, 10), B'C' (0, 1, 8, 9), A'C'D (1, 5). Koi aur group inse bada ya alag nahi banta.</li>
+<li>m5 ko kaun cover karta hai? Sirf A'C'D → EPI.</li>
+<li>m9: sirf B'C' (m13, m11 = 0, isliye koi aur group nahi) → EPI.</li>
+<li>m2 aur m10: sirf B'D' → EPI.</li>
+<li>Teeno EPIs saare 1s cover karte hain, extra PI nahi chahiye.</li></ol>
+<p class="ans">Answer: 3 PIs, all 3 essential; F = B'D' + B'C' + A'C'D.</p></div>
+<div class="ex"><b>Solved example 2 (cyclic, Lab 2 Q23):</b> <p class="qq">F(A, B, C) = Σm(0, 1, 2, 5, 6, 7). How many PIs and EPIs? Give a minimal SOP.</p><ol>
+<li>Har 1 ke pairs: m0: (0, 1) A'B', (0, 2) A'C'. m1: (1, 0), (1, 5) B'C. m5: (5, 1), (5, 7) AC. m7: (7, 5), (7, 6) AB. m6: (6, 7), (6, 2) BC'. m2: (2, 0), (2, 6).</li>
+<li>Koi quad nahi banta (har quad mein koi 0 aata hai). To PIs = 6 pairs: A'B', A'C', B'C, AC, AB, BC'.</li>
+<li>Har 1 do PIs se cover hai → koi EPI nahi (0).</li>
+<li>A'B' chuno (0, 1). Bache 2, 5, 6, 7: AC (5, 7) + BC' (2, 6) le lo → sab cover.</li></ol>
+<p class="ans">Answer: 6 PIs, 0 EPIs; F = A'B' + AC + BC' (other valid cover: A'C' + B'C + AB).</p></div>
+<div class="fx"><b>Consensus theorem:</b> <b>XY + X'Z + YZ = XY + X'Z</b><br>Why: YZ = 1 means Y = Z = 1; then X = 1 makes XY = 1, X = 0 makes X'Z = 1, so YZ never adds a new 1.<br><small>Example (Lab 2 Q11): (A + B)(A' + C) = AA' + AC + A'B + BC = AC + A'B + BC = AC + A'B (BC is the consensus of AC and A'B).</small></div>
+<div class="trap"><b>Galti mat karna:</b> "PIs ki ginti = EPIs ki ginti" hamesha nahi (cyclic map mein 6 PIs, 0 EPI). EPI kabhi drop nahi hota. Don't-care PI ke andar ho sakta hai, par sirf don't-care cover karne se koi PI essential nahi banta.</div>
+<div class="yr"><b>Ek line mein:</b> PI = sabse bada group; EPI = kisi 1 ka akela sahara, hamesha answer mein; consensus term YZ redundant.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Write minterm / maxterm for a row</td><td>1. Bits ka decimal = index. 2. Minterm: 1 → X, 0 → X'. 3. Maxterm: 0 → X, 1 → X'. 4. Row daal ke check (minterm = 1, maxterm = 0).</td></tr>
+<tr><td>Σm ↔ ΠM, count maxterms</td><td>1. Missing numbers likho (0 to 2ⁿ − 1). 2. Wahi doosri list. 3. Count = 2ⁿ − given count.</td></tr>
+<tr><td>Count minterms of an expression (A + B'C)</td><td>1. Har term ki rows likho (missing variable = dono values). 2. Union lo, duplicate ek baar. 3. Gino.</td></tr>
+<tr><td>K-map minimise (3 or 4 variables) SOP</td><td>1. Gray order map, cell numbers. 2. 1s bharo. 3. Akele option wale 1s pehle. 4. Sabse bade 2ᵏ rectangles, wrap/corners. 5. Badalne wala variable drop. 6. OR karo.</td></tr>
+<tr><td>K-map POS</td><td>1. 0s group karo → F' SOP. 2. De Morgan → F = product of sums.</td></tr>
+<tr><td>K-map with don't-cares</td><td>1. X bharo. 2. X ko 1 tabhi maano jab group bada ho. 3. Sirf X ka group nahi. 4. Normal padho.</td></tr>
+<tr><td>De Morgan / complement of a function</td><td>1. Bahar ka bar tod do, sign badlo. 2. Andar ke bars repeat. 3. Double bar hatao. 4. Laws se simplify.</td></tr>
+<tr><td>NAND/NOR gate count (NOT, AND, OR, XOR)</td><td>NAND 1-2-3, XOR 4; NOR 1-3-2, XOR 5. (A + B)(C + D) with 2-input NANDs = 6.</td></tr>
+<tr><td>Implement with NAND only / NOR only</td><td>1. Minimal SOP (NAND) ya POS (NOR). 2. Bubble push → NAND-NAND / NOR-NOR. 3. Akela literal ulta karke. 4. Complements ke liye NAND(X, X). 5. Gates gino, ek row se check.</td></tr>
+<tr><td>PI / EPI count, cyclic map</td><td>1. Har 1 ka sabse bada group = PIs. 2. Jo 1 sirf ek PI mein → woh EPI. 3. Koi EPI nahi → cyclic, trial se cover.</td></tr>
+<tr><td>Why minimise (theory)</td><td>Area, power, delay, cost (1 line each) + example AB + AB' = A.</td></tr>
+</table></div>
+</section>

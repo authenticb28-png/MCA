@@ -1,0 +1,332 @@
+<section>
+<h2>Unit 1 · Boolean Algebra &amp; Gates</h2>
+<div class="story"><b>Is unit ki kahani:</b> Computer andar se sirf switches ka dher hai: switch ON = 1, OFF = 0. Is unit mein hum seekhte hain ki ye 0/1 kaise "socha" jaata hai: gates (AND, OR, NOT, XOR), unki truth tables, aur Boolean laws jinse ek bada circuit chhota ho jaata hai. Saath mein Verilog, jisme hum circuit ko text ki tarah likhte hain. Unit 2 inhi laws ko K-map se fast banata hai, aur Unit 3 inhi gates se MUX, decoder, adder jaise bade blocks banata hai.</div>
+
+<div class="topic"><h3>1.1 Course Introduction and Roadmap</h3>
+<div class="why"><b>Pehle socho:</b> Ek building ka <b>naksha</b> (kitne kamre, kahan darwaza, kahan switch) residents ko dikhta hai. Deewar ke andar ki <b>wiring aur plumbing</b> nahi dikhti. Do buildings ka naksha same ho sakta hai par wiring alag. Computer mein bhi yahi do cheezein hain: jo programmer ko dikhta hai (<b>architecture</b>) aur jo andar chhupa hai (<b>organisation</b>).</div>
+<div class="def"><b>Definition:</b> <b>Computer architecture</b> is the set of attributes of a computer visible to the programmer, mainly the instruction set architecture (ISA): instructions, registers, data types and memory model ("what" the machine does). <b>Computer organisation</b> is the hidden implementation of that architecture: pipelines, caches, clock rate, control signals ("how" it does it).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>ISA (Instruction Set Architecture)</dt><dd>CPU ki "vocabulary": kaun kaun se instructions hain (ADD, LOAD), kitne registers hain. Jaise "is CPU mein ADD instruction hai" ek ISA statement hai.</dd>
+<dt>organisation / microarchitecture</dt><dd>Same cheez ke do naam: ADD andar se kaise bana hai. Jaise "ADD ek cycle mein is adder se hota hai" ya "L1 cache 48 KB hai".</dd>
+<dt>programmer-visible</dt><dd>Jo cheez program ke result pe asar daale. Register count visible hai (program usse use karta hai). Cache size visible nahi (program same chalega, bas speed badlegi).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (course ka raasta):</b><ol>
+<li>Course CSA222 gates se shuru hokar AI accelerator tak jaata hai: 12 weeks, 24 lectures, <b>6 modules</b>.</li>
+<li>M1 Digital Foundations (gates, Boolean algebra, combinational blocks, numbers) → M2 Sequential &amp; Memory (flip-flops, registers, counters, FSM).</li>
+<li>M3 Organisation &amp; ISA (MIPS, C → machine code) → M4 Datapath &amp; Pipelining (CPU banana, fast karna).</li>
+<li>M5 Memory Hierarchy (cache) → M6 Parallelism (multicore, GPU, TPU).</li>
+<li>Grading: end-sem 40%, mid-sem 20%, contests 20%, projects 10%, assignments 10%. Tools: Verilog simulation (M1, M2), MARS MIPS simulator (M3).</li>
+</ol></div>
+<figure data-d="D1.1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar ki row M1 → M2 → M3, neeche ki row M4 → M5 → M6; arrow batata hai ki har module pichle wale pe khada hai. Har box mein top line module ka naam aur weeks hai, neeche ki lines topics.</p>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Differentiate between computer architecture and computer organisation with two examples of each. (5 marks)</p><ol>
+<li>Architecture: attributes visible to the programmer, the hardware/software contract (ISA). It answers "what does the machine do?".</li>
+<li>Organisation: the operational units and their interconnections that implement the architecture. It answers "how does it do it?".</li>
+<li>Architecture examples: instruction set and formats, number of registers, addressing modes, data types.</li>
+<li>Organisation examples: pipelining, cache size, clock rate, adder type (ripple vs lookahead), control signals.</li>
+<li>Impact: changing the architecture breaks old software; changing the organisation keeps programs running, only speed and cost change. Example: Intel and AMD x86-64 chips share the architecture but differ in organisation.</li></ol>
+<p class="ans">Answer: Architecture = what (ISA, visible); Organisation = how (implementation, hidden).</p></div>
+<div class="trap"><b>Galti mat karna:</b> "L1 cache 48 KB hai" ya "pipeline 5 stage ki hai" ko architecture mat bolna. Program ka result in pe depend nahi karta, sirf speed karti hai, isliye ye <b>organisation</b> hai.</div>
+<div class="yr"><b>Ek line mein:</b> Architecture = programmer ko kya dikhta hai (ISA); Organisation = andar se kaise bana hai (pipeline, cache, clock).</div>
+</div>
+
+<div class="topic"><h3>1.2 Why Architecture Matters: the Abstraction Stack</h3>
+<div class="why"><b>Pehle socho:</b> Car chalate waqt aap steering aur brake use karte ho; engine ke andar petrol kaise jalta hai, ye jaanne ki zaroorat nahi. Har layer neeche wali layer ki details <b>chhupa</b> deti hai. Computer bhi aise hi layers mein bana hai, warna ek program likhne ke liye transistors yaad rakhne padte.</div>
+<div class="def"><b>Definition:</b> The <b>abstraction stack</b> is the set of layers from which a computer system is built, each layer using the one below it while hiding its details: AI/ML models → applications &amp; languages → operating system → <b>ISA</b> → datapath &amp; control → logic gates → transistors.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>abstraction</dt><dd>Details chhupa ke sirf kaam ki cheez dikhana. Steering wheel = engine ka abstraction.</dd>
+<dt>ISA as contract</dt><dd>Software (compiler, OS) ISA ke hisaab se likha jaata hai, hardware ISA ko implement karta hai. Dono contract maante rahein to dono alag alag badal sakte hain: purana program naye chip pe chalta hai.</dd>
+<dt>datapath &amp; control</dt><dd>Datapath = registers, ALU, MUX jinse data chalta hai. Control = signals jo batate hain kab kya karna hai.</dd>
+<dt>transistor</dt><dd>Silicon ka switch: ON = 1, OFF = 0. Gates transistors se bante hain.</dd>
+<dt>Moore's law</dt><dd>Chip pe transistors ki ginti lagbhag har 2 saal mein double hoti hai. Ye clock speed ke baare mein NAHI hai.</dd>
+<dt>VLSI flow</dt><dd>Chip banane ke steps: Specification → RTL (Verilog) → Simulation → Synthesis → Gate netlist → Place &amp; Route → Physical verification (DRC/LVS/STA) → Fabrication → Post-silicon validation.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (ek line code har layer se guzarti hai):</b><ol>
+<li>Aap likhte ho <code>A[i] = B[i] + C[i]</code> (Python / C layer).</li>
+<li>Compiler isse 4 MIPS instructions banata hai: <code>lw</code> (B[i] lao), <code>lw</code> (C[i] lao), <code>add</code>, <code>sw</code> (A[i] mein rakho). Ye ISA layer hai.</li>
+<li>Datapath: register file do numbers ALU ko deta hai, ALU jodta hai, result wapas register file mein likha jaata hai.</li>
+<li>ALU ka adder XOR aur AND gates se bana hai (carry logic).</li>
+<li>Har gate transistors (switches) se bana hai.</li>
+<li>Ye course beech ki layers chadhta hai: gates → datapath → ISA.</li>
+</ol></div>
+<figure data-d="D1.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Neeche sabse chaudi patti transistors, upar sabse abstract (AI/ML). Highlight wali patti ISA hai: uske upar sab software, neeche sab hardware. Left ka arrow upar ki taraf "more abstract" dikhata hai.</p>
+<figure data-d="D1.2b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar se neeche padho: ek hi line pehle source code, phir lw/lw/add/sw, phir regfile → ALU → regfile, aur aakhir mein XOR/AND gates. Har arrow = ek layer neeche jaana.</p>
+<p><b>History jo slides mein hai:</b> 1847 Boole (algebra of logic), 1937 Shannon (switching circuits Boolean algebra follow karte hain), 1947 transistor ne vacuum tube ki jagah li (ENIAC: lagbhag 18,000 tubes, 30 ton), 1958 Kilby ka pehla IC, 1971 <b>Intel 4004</b>: pehla single-chip CPU, lagbhag 2,300 transistors, 740 kHz, 4-bit. Apple M2 (2022): lagbhag 20 billion transistors.</p>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Explain the abstraction stack using A[i] = B[i] + C[i]. Why is the ISA called the hardware/software contract? (5 marks)</p><ol>
+<li>Draw the seven layers: AI/ML → applications → OS → ISA → datapath &amp; control → gates → transistors.</li>
+<li>Compiler maps the statement to <code>lw, lw, add, sw</code> (4 MIPS instructions).</li>
+<li>Control unit sets the datapath: register file sends two operands to the ALU, sum is written back.</li>
+<li>The ALU adder is built from XOR/AND gates (full adders); gates are CMOS transistors acting as switches.</li>
+<li>ISA = contract: everything above is written to it, everything below must implement it; both sides can evolve independently.</li></ol>
+<p class="ans">Answer: labelled stack + trace through 4 layers + contract line.</p></div>
+<div class="trap"><b>Galti mat karna:</b> OS ko ISA ke neeche mat rakhna; OS ISA ke upar chalta hai. Aur Moore's law = transistor count double, clock speed double nahi.</div>
+<div class="yr"><b>Ek line mein:</b> Har layer neeche wali ko chhupati hai; ISA beech mein hardware/software ka contract hai.</div>
+</div>
+
+<div class="topic"><h3>1.3 Boolean Logic Basics: AND, OR, NOT, XOR Gates</h3>
+<div class="why"><b>Pehle socho:</b> Ek bulb aur do switch. Switch <b>series</b> mein lagao: bulb tabhi jalega jab dono ON hon (AND). <b>Parallel</b> mein lagao: koi bhi ek ON ho to jalega (OR). Ek ulta switch jo dabane pe band ho jaaye: NOT. Pura computer inhi teen ideas se bana hai.</div>
+<div class="def"><b>Definition:</b> A <b>logic gate</b> is an electronic circuit that performs a Boolean function on one or more binary inputs (0 = LOW/false, 1 = HIGH/true) and produces a single binary output.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>binary signal (0/1)</dt><dd>1 = TRUE = HIGH (lagbhag 3.3 V ya 5 V), 0 = FALSE = LOW (0 V). Sirf "voltage hai / nahi hai" pehchanna hota hai, isliye reliable.</dd>
+<dt>bubble</dt><dd>Gate symbol pe chhota gola = NOT (ulta karna). AND + bubble = NAND.</dd>
+<dt>"+" aur "·"</dt><dd>Boolean mein + ka matlab OR, · ka matlab AND. Isliye 1 + 1 = 1 (2 nahi).</dd>
+<dt>universal gate</dt><dd>Aisa gate jisse akele har doosra gate ban jaaye. NAND aur NOR universal hain. Jaise NOT A = A NAND A.</dd>
+<dt>parity</dt><dd>1s ki ginti odd hai ya even. XOR = 1 jab 1s ki ginti odd ho.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (har gate ka rule, ek 0/1 example ke saath):</b><ol>
+<li><b>NOT</b> (Y = A'): input ulta. A = 1 → Y = 0.</li>
+<li><b>AND</b> (Y = A·B): 1 sirf jab <b>saare</b> inputs 1. A = 1, B = 0 → Y = 0.</li>
+<li><b>OR</b> (Y = A + B): 1 jab <b>kam se kam ek</b> input 1. A = 1, B = 0 → Y = 1.</li>
+<li><b>NAND</b> = AND phir NOT: Y = (AB)'. Sirf 1,1 pe 0, baaki sab pe 1.</li>
+<li><b>NOR</b> = OR phir NOT: Y = (A + B)'. Sirf 0,0 pe 1, baaki sab pe 0.</li>
+<li><b>XOR</b> (Y = A ⊕ B = A'B + AB'): 1 jab inputs <b>alag</b> hon. 1,0 → 1; 1,1 → 0.</li>
+<li><b>XNOR</b> (Y = (A ⊕ B)' = A'B' + AB): 1 jab inputs <b>barabar</b> hon (equality detector). 1,1 → 1.</li>
+</ol>
+<table class="tt"><tr><th>A</th><th>B</th><th>AND</th><th>OR</th><th>NAND</th><th>NOR</th><th>XOR</th><th>XNOR</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr></table>
+<p>Table mein dekho: NAND column = AND column ulta; NOR = OR ulta; XNOR = XOR ulta. OR aur XOR sirf last row (1,1) mein alag hain.</p></div>
+<figure data-d="D1.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> AND = "D" shape (seedhi peeth). OR = curved peeth, nukeeli naak. XOR = OR ke peeche ek extra curve. Output pe bubble ho to ulta: NAND, NOR, XNOR. NOT = triangle + bubble. Har symbol ke neeche uska formula likha hai.</p>
+<div class="fx"><b>Formula:</b> AND A·B · OR A + B · NOT A' · NAND (AB)' · NOR (A + B)' · <b>XOR A'B + AB'</b> · <b>XNOR A'B' + AB</b><br>Verilog operators: <code>&amp;</code> AND, <code>|</code> OR, <code>~</code> NOT, <code>^</code> XOR, <code>~^</code> XNOR.<br><small>n-input XOR = 1 when the number of 1s is odd.</small></div>
+<div class="ex"><b>Solved example 1 (class quick check):</b> <p class="qq">For A = 1, B = 0, which of AND, OR, NAND, NOR, XOR, XNOR give 1?</p><ol>
+<li>AND: dono 1 chahiye, B = 0 hai → 0.</li>
+<li>OR: ek 1 kaafi hai → 1.</li>
+<li>NAND = AND ulta = 0 ulta → 1.</li>
+<li>NOR = OR ulta = 1 ulta → 0.</li>
+<li>XOR: inputs alag (1 aur 0) → 1. XNOR = XOR ulta → 0.</li></ol>
+<p class="ans">Answer: OR, NAND, XOR give 1.</p></div>
+<div class="ex"><b>Solved example 2:</b> <p class="qq">(a) A 3-input XOR gets 1, 1, 1. Output? (b) Which gate is <code>assign y = ~(a ^ b);</code>?</p><ol>
+<li>(a) 1s ki ginti = 3, jo odd hai. XOR rule: odd → 1. Step by step: 1 ⊕ 1 = 0, phir 0 ⊕ 1 = 1.</li>
+<li>(b) <code>^</code> = XOR, uske bahar <code>~</code> = NOT. NOT of XOR = XNOR.</li></ol>
+<p class="ans">Answer: (a) 1; (b) XNOR.</p></div>
+<div class="trap"><b>Galti mat karna:</b> "+" ko jod mat samjho: A + 1 = 1, 2 nahi. Aur OR ko XOR mat samjho: 1,1 pe OR = 1 par XOR = 0. NAND ≠ AND (bubble bhoolna common galti hai).</div>
+<p class="trick"><b>Trick:</b> AND = series, OR = parallel. XOR = "alag ho to 1", XNOR = "same ho to 1".</p>
+<div class="yr"><b>Ek line mein:</b> AND sab 1 maange, OR ek 1 maange, XOR alag maange; bubble lagao to ulta.</div>
+</div>
+
+<div class="topic"><h3>1.4 Truth Tables</h3>
+<div class="why"><b>Pehle socho:</b> Dukaan ki <b>poori price list</b>: har item ka daam likha hai, kuch chhoota nahi. Truth table bhi ek circuit ki poori list hai: har possible input ke liye output. Agar do expressions ki truth table same hai, to dono circuits same kaam karte hain, chahe dikhne mein alag hon.</div>
+<div class="def"><b>Definition:</b> A <b>truth table</b> lists the output of a logic function for every possible combination of its inputs. For n inputs it has 2ⁿ rows, written in binary counting order.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>row</dt><dd>Inputs ka ek combination. 3 inputs (A, B, C) → 000, 001, 010, 011, 100, 101, 110, 111 = 8 rows.</dd>
+<dt>2ⁿ rows</dt><dd>Har input 0 ya 1 (2 choices). n inputs → 2 × 2 × 2 (n baar) = 2ⁿ. 4 inputs → 16 rows.</dd>
+<dt>MSB (first variable)</dt><dd>Sabse left wala bit, sabse bada weight. ABC = 101 mein A = MSB, value = 4 + 0 + 1 = 5.</dd>
+<dt>row number / minterm index</dt><dd>Row ka decimal value. Row ABC = 011 → 0 + 2 + 1 = 3, isko m3 bolte hain (Unit 2 mein detail).</dd>
+<dt>helper column</dt><dd>Beech ka column jaise BC, taaki bada expression tukdon mein bane.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (expression se truth table banana):</b><ol>
+<li>Variables gino: n. Rows = 2ⁿ.</li>
+<li>Inputs binary counting order mein likho: 000 se 111 tak (A = MSB).</li>
+<li>Har chhote tukde (jaise BC) ka helper column banao.</li>
+<li>Helper columns ko jod ke final output column banao.</li>
+<li>Jin rows mein output 1 hai, unke numbers likho: yahi Σm list hai.</li>
+</ol>
+<p><b>Example: Y = A + BC</b> (L01 homework).</p>
+<table class="tt"><tr><th>row</th><th>A</th><th>B</th><th>C</th><th>BC</th><th>Y = A + BC</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>2</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>3</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>4</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>5</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>6</td><td>1</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>7</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr></table>
+<p>A = 1 wali chaaron rows mein Y = 1 (OR mein ek 1 kaafi). A = 0 pe Y = BC, jo sirf row 3 mein 1 hai. Isliye Y = Σm(3, 4, 5, 6, 7).</p></div>
+<figure data-d="D1.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Pehle do columns A, B ki chaar rows (00, 01, 10, 11) hain; baaki har column ek gate ka output. Kisi gate ko pehchanna ho to uska column upar se neeche padho: AND = 0001, OR = 0111, XOR = 0110, NAND = 1110, NOR = 1000, XNOR = 1001.</p>
+<div class="fx"><b>Formula:</b> rows = <b>2ⁿ</b>; distinct Boolean functions of n variables = <b>2^(2ⁿ)</b>.<br><small>n = 2: 2² = 4 rows, functions = 2⁴ = 16. n = 3: 2³ = 8 rows, functions = 2⁸ = 256.</small></div>
+<div class="ex"><b>Solved example 1 (direct):</b> <p class="qq">(a) Rows in the truth table of a 5-input circuit? (b) How many distinct Boolean functions of 3 variables exist?</p><ol>
+<li>(a) 2⁵ = 2 × 2 × 2 × 2 × 2 = 32 rows.</li>
+<li>(b) Rows = 2³ = 8. Har row ka output 0 ya 1 ho sakta hai, to output column ke 2 × 2 × (8 baar) = 2⁸ = 256 alag pattern.</li></ol>
+<p class="ans">Answer: (a) 32; (b) 256.</p></div>
+<div class="ex"><b>Solved example 2 (exam level):</b> <p class="qq">Construct the truth table of F = AB' + A'C + BC' and express F in Σm form. (5 marks)</p><ol>
+<li>3 variables → 8 rows. Helper columns: AB', A'C, BC'.</li>
+<li>AB' = 1 sirf jab A = 1, B = 0: rows 100, 101.</li>
+<li>A'C = 1 jab A = 0, C = 1: rows 001, 011.</li>
+<li>BC' = 1 jab B = 1, C = 0: rows 010, 110.</li>
+<li>F = OR of three: rows 1, 2, 3, 4, 5, 6 mein 1; rows 0 (000) aur 7 (111) mein 0.</li></ol>
+<table class="tt"><tr><th>ABC</th><th>AB'</th><th>A'C</th><th>BC'</th><th>F</th></tr>
+<tr><td>000</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>001</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>010</td><td>0</td><td>0</td><td>1</td><td>1</td></tr><tr><td>011</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>100</td><td>1</td><td>0</td><td>0</td><td>1</td></tr><tr><td>101</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>110</td><td>0</td><td>0</td><td>1</td><td>1</td></tr><tr><td>111</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></table>
+<p class="ans">Answer: F = Σm(1, 2, 3, 4, 5, 6) (F = 0 only when A = B = C).</p></div>
+<div class="trap"><b>Galti mat karna:</b> Rows random order mein likhoge to minterm numbers galat ho jaayenge. Hamesha 000, 001, 010 counting order. Aur 4 inputs = 16 rows, 8 nahi.</div>
+<div class="yr"><b>Ek line mein:</b> n inputs → 2ⁿ rows, counting order mein; same truth table = same circuit.</div>
+</div>
+
+<div class="topic"><h3>1.5 Boolean Laws &amp; Simplification</h3>
+<div class="why"><b>Pehle socho:</b> Normal maths mein "x × 1 = x", "x + 0 = x" jaise rules se lamba expression chhota karte ho. Boolean mein bhi aise rules (laws) hain. Chhota expression = kam gates = kam area, kam power, zyada speed. Achhi baat: har variable sirf 0 ya 1 ho sakta hai, isliye <mark>har law ko A = 0 aur A = 1 daal ke khud check kar sakte ho</mark>.</div>
+<div class="def"><b>Definition:</b> <b>Boolean algebra</b> is the algebra of variables that take only the values 0 and 1, with the operations AND (·), OR (+) and NOT ('). Its laws allow an expression to be rewritten into a simpler equivalent expression with the same truth table.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>literal</dt><dd>Variable ka ek appearance, seedha ya bar ke saath. AB' + C mein 3 literals (A, B', C).</dd>
+<dt>complement (A')</dt><dd>A ka ulta. A = 1 → A' = 0.</dd>
+<dt>dual</dt><dd>Law ka "mirror": + ko · se, · ko + se, 0 ko 1 se, 1 ko 0 se badlo (variables same rakho). A + 0 = A ka dual A · 1 = A. Ek law sahi hai to uska dual bhi sahi.</dd>
+<dt>perfect induction</dt><dd>Law ko proof karna har possible 0/1 value daal ke. Sirf 2 ya 4 cases hote hain, isliye easy.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (har law + "kyun sahi hai" 0/1 se):</b>
+<table><tr><th>Law</th><th>Formula</th><th>Kyun sahi hai (0/1 daal ke)</th></tr>
+<tr><td>Identity</td><td>A + 0 = A; A·1 = A</td><td>A = 0: 0 + 0 = 0; A = 1: 1 + 0 = 1. Dono baar answer = A.</td></tr>
+<tr><td>Null</td><td>A + 1 = 1; A·0 = 0</td><td>OR mein ek 1 ho to output 1, chahe A kuch bhi ho. AND mein ek 0 ho to output 0.</td></tr>
+<tr><td>Idempotent</td><td>A + A = A; A·A = A</td><td>0 + 0 = 0, 1 + 1 = 1 (OR, jod nahi). Isliye 2A jaisa kuch nahi hota.</td></tr>
+<tr><td>Complement</td><td>A + A' = 1; A·A' = 0</td><td>A aur A' mein ek hamesha 1 hai (OR → 1) aur ek hamesha 0 hai (AND → 0).</td></tr>
+<tr><td>Involution</td><td>(A')' = A</td><td>Do baar ulta = seedha: 1 → 0 → 1.</td></tr>
+<tr><td>Commutative</td><td>A + B = B + A; AB = BA</td><td>Gate ko farak nahi padta kaunsa wire upar laga hai.</td></tr>
+<tr><td>Associative</td><td>(A + B) + C = A + (B + C)</td><td>OR = "koi ek 1?"; brackets kahin bhi, jawab same. AND ke liye bhi.</td></tr>
+<tr><td>Distributive 1</td><td>A(B + C) = AB + AC</td><td>A = 0: dono side 0. A = 1: dono side B + C.</td></tr>
+<tr><td>Distributive 2</td><td>A + BC = (A + B)(A + C)</td><td>A = 1: dono side 1. A = 0: left = BC, right = B·C. Same! (Normal maths mein ye nahi hota.)</td></tr>
+<tr><td>Absorption</td><td>A + AB = A; A(A + B) = A</td><td>A = 1: 1 + B = 1 = A. A = 0: 0 + 0 = 0 = A. B ka koi role nahi.</td></tr>
+<tr><td>Redundant literal</td><td>A + A'B = A + B</td><td>A = 1: dono side 1. A = 0: left = 1·B = B, right = B. Same.</td></tr>
+<tr><td>De Morgan</td><td>(AB)' = A' + B'; (A + B)' = A'B'</td><td>(AB)' sirf A = B = 1 pe 0 hai; A' + B' bhi sirf tab 0 jab A' = B' = 0, yaani A = B = 1. Same row.</td></tr>
+<tr><td>Consensus</td><td>AB + A'C + BC = AB + A'C</td><td>BC = 1 matlab B = C = 1. Tab A = 1 ho to AB = 1, A = 0 ho to A'C = 1. BC kabhi akela kaam nahi aata, isliye hata do.</td></tr>
+</table></div>
+<div class="fx"><b>Formula (sabse zyada use hone wale):</b> <b>A + AB = A</b> · <b>A + A'B = A + B</b> · <b>A + BC = (A + B)(A + C)</b> · <b>(AB)' = A' + B'</b> · <b>(A + B)' = A'B'</b><br><small>Duality: + ↔ ·, 0 ↔ 1. A + 0 = A ↔ A·1 = A.</small></div>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Prove (i) A + AB = A and (ii) A + A'B = A + B using the basic laws, naming each law. (5 marks)</p><ol>
+<li>(i) A + AB = A·1 + A·B &nbsp;&nbsp;<i>[Identity: A = A·1]</i></li>
+<li>= A(1 + B) &nbsp;&nbsp;<i>[Distributive: take A common]</i></li>
+<li>= A·1 &nbsp;&nbsp;<i>[Null: 1 + B = 1]</i></li>
+<li>= A &nbsp;&nbsp;<i>[Identity]</i></li>
+<li>(ii) A + A'B = (A + A')(A + B) &nbsp;&nbsp;<i>[Distributive 2: X + YZ = (X + Y)(X + Z)]</i></li>
+<li>= 1·(A + B) &nbsp;&nbsp;<i>[Complement: A + A' = 1]</i></li>
+<li>= A + B &nbsp;&nbsp;<i>[Identity]</i></li>
+<li>Check by truth table: both sides of (ii) are 0 only at A = B = 0, 1 elsewhere.</li></ol>
+<p class="ans">Answer: (i) A + AB = A (absorption); (ii) A + A'B = A + B.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (AB)' = A'B' likhna GALAT hai. De Morgan mein bar todne ke saath sign bhi badalta hai: (AB)' = A' + B'. Aur A + A = 2A nahi, A hai.</div>
+<p class="trick"><b>Trick:</b> De Morgan = "<b>bar tod do, sign badlo</b>". Koi law yaad na aaye to A = 0 aur A = 1 daal ke check kar lo, 30 second lagte hain.</p>
+<div class="yr"><b>Ek line mein:</b> Har Boolean law 0/1 daal ke check ho sakta hai; sabse kaam ke: A + AB = A, A + A'B = A + B, aur De Morgan.</div>
+</div>
+
+<div class="topic"><h3>1.6 Worked Simplification Examples</h3>
+<div class="why"><b>Pehle socho:</b> L01 ka example: Y = AB + AB'. Isko seedha banao to 2 AND, 1 OR, 1 NOT = 4 gates. Par AB + AB' = A(B + B') = A·1 = A. Matlab poora circuit sirf <b>ek wire</b> hai! Simplification ka yahi fayda hai: same kaam, kam hardware.</div>
+<div class="def"><b>Definition:</b> <b>Simplification</b> is the process of reducing a Boolean expression to fewer terms and literals (hence fewer gates) by applying Boolean laws, while keeping the same truth table.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>term</dt><dd>+ ke beech ka tukda. AB' + BC mein do terms: AB' aur BC.</dd>
+<dt>common factor</dt><dd>Jo variable do terms mein common hai, use bahar nikalo: AB'C + AB'C' = AB'(C + C').</dd>
+<dt>complement pair</dt><dd>X aur X' saath mein: X + X' = 1 (OR mein), X·X' = 0 (AND mein). Yahi variable ko "cancel" karta hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (5-step strategy):</b><ol>
+<li>Aise do terms dhoondo jo sirf ek variable mein alag hon (ek mein X, doosre mein X').</li>
+<li>Common factor bahar nikalo, andar X + X' = 1 bachega, wo variable gayab.</li>
+<li>Absorption (A + AB = A) aur A + A'B = A + B lagao.</li>
+<li>Kisi group ke upar bar ho to De Morgan se bar tod do, andar tak.</li>
+<li>Final answer ko truth table (ya 2 rows) se check karo.</li>
+</ol></div>
+<figure data-d="D1.6a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left se B aur C ek AND gate mein jaate hain (output BC). Phir A aur BC ek OR gate mein jaate hain, output Y = A + BC. Trace: A = 0, B = 1, C = 1 → BC = 1 → Y = 0 + 1 = 1.</p>
+<div class="ex"><b>Solved example 1 (class quiz):</b> <p class="qq">Simplify F = AB'C + A'BC + ABC + AB'C'.</p><ol>
+<li>F = AB'C + AB'C' + A'BC + ABC &nbsp;&nbsp;<i>[Commutative: rearrange so matching terms are together]</i></li>
+<li>= AB'(C + C') + BC(A' + A) &nbsp;&nbsp;<i>[Distributive: take AB' and BC common]</i></li>
+<li>= AB'·1 + BC·1 &nbsp;&nbsp;<i>[Complement: C + C' = 1, A' + A = 1]</i></li>
+<li>= AB' + BC &nbsp;&nbsp;<i>[Identity]</i></li>
+<li>Check: F should be 1 at rows 100, 101 (AB') and 011, 111 (BC) = m4, m5, m3, m7. Original terms are exactly m5, m3, m7, m4. ✓</li></ol>
+<p class="ans">Answer: F = AB' + BC.</p></div>
+<div class="ex"><b>Solved example 2 (class quiz, product of sums):</b> <p class="qq">Simplify F = (A' + B)(A' + B')(A + B).</p><ol>
+<li>(A' + B)(A' + B') = A' + B·B' &nbsp;&nbsp;<i>[Distributive 2: (X + Y)(X + Z) = X + YZ, with X = A']</i></li>
+<li>= A' + 0 &nbsp;&nbsp;<i>[Complement: B·B' = 0]</i></li>
+<li>= A' &nbsp;&nbsp;<i>[Identity]</i></li>
+<li>Now F = A'(A + B) = A'A + A'B &nbsp;&nbsp;<i>[Distributive 1]</i></li>
+<li>= 0 + A'B &nbsp;&nbsp;<i>[Complement: A'A = 0]</i></li>
+<li>= A'B &nbsp;&nbsp;<i>[Identity]</i></li>
+<li>Check A = 0, B = 1: (1 + 1)(1 + 0)(0 + 1) = 1·1·1 = 1, and A'B = 1·1 = 1. ✓</li></ol>
+<p class="ans">Answer: F = A'B.</p></div>
+<div class="ex"><b>Solved example 3 (exam level, Lab 2 Q27):</b> <p class="qq">Simplify F = ((A + B)'·C)' + (A·B)' and draw the circuit.</p><ol>
+<li>Inner bar: (A + B)' = A'B' &nbsp;&nbsp;<i>[De Morgan]</i></li>
+<li>So first term = (A'B'C)' = A + B + C' &nbsp;&nbsp;<i>[De Morgan for 3 variables: (XYZ)' = X' + Y' + Z', and (A')' = A]</i></li>
+<li>Second term: (AB)' = A' + B' &nbsp;&nbsp;<i>[De Morgan]</i></li>
+<li>F = A + B + C' + A' + B' &nbsp;&nbsp;<i>[just write both together]</i></li>
+<li>= (A + A') + (B + B') + C' &nbsp;&nbsp;<i>[Commutative / associative: regroup]</i></li>
+<li>= 1 + 1 + C' &nbsp;&nbsp;<i>[Complement]</i></li>
+<li>= 1 &nbsp;&nbsp;<i>[Null: anything + 1 = 1]</i></li></ol>
+<p class="ans">Answer: F = 1 always; the "circuit" is the output tied to logic 1 (VDD), zero gates.</p></div>
+<div class="ex"><b>Solved example 4 (Lab 2 Q12):</b> <p class="qq">Simplify F = A'B'C + A'BC + AB'C + ABC + A'B.</p><ol>
+<li>A'B'C + A'BC = A'C(B' + B) = A'C &nbsp;&nbsp;<i>[Distributive, Complement, Identity]</i></li>
+<li>AB'C + ABC = AC(B' + B) = AC &nbsp;&nbsp;<i>[same three laws]</i></li>
+<li>A'C + AC = C(A' + A) = C &nbsp;&nbsp;<i>[same three laws]</i></li>
+<li>F = C + A'B &nbsp;&nbsp;<i>[nothing more combines: A'B has no C]</i></li></ol>
+<p class="ans">Answer: F = C + A'B.</p></div>
+<div class="trap"><b>Galti mat karna:</b> Pehla grouping karke ruk mat jao; har step ke baad dobara dekho ki absorption ya complement pair bacha to nahi. Aur factor nikalte waqt koi term gum na ho: wapas multiply karke check karo.</div>
+<p class="trick"><b>Trick:</b> Exam mein har line ke aage bracket mein law ka naam likho; marks usi ke milte hain.</p>
+<div class="yr"><b>Ek line mein:</b> Common factor nikalo → X + X' = 1 se variable udao → absorption/De Morgan → truth table se check.</div>
+</div>
+
+<div class="topic"><h3>1.E1 Extra from slides: Verilog &amp; HDL Fundamentals</h3>
+<div class="why"><b>Pehle socho:</b> Ek billion gates ka chip haath se draw nahi ho sakta. Isliye engineers circuit ko <b>text</b> mein likhte hain (jaise code), phir software usse test karta hai (simulation) aur asli gates mein badalta hai (synthesis). Par dhyan: ye "program" nahi hai jo line by line chale; ye ek <b>wiring diagram</b> hai jisme sab gates ek saath kaam karte hain.</div>
+<div class="def"><b>Definition:</b> A <b>Hardware Description Language (HDL)</b> such as Verilog describes the structure and behaviour of digital circuits as text, so that they can be <b>simulated</b> (behaviour checked over simulated time) and <b>synthesised</b> (converted into a gate-level netlist for fabrication).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>module / endmodule</dt><dd>Ek hardware block ka dabba, ports (input/output) ke saath. Jaise <code>module and_gate (input a, input b, output y);</code></dd>
+<dt>wire</dt><dd>Asli taar: jo usse chala raha hai uski value hamesha dikhata hai. <code>assign</code> ke saath use hota hai.</dd>
+<dt>reg</dt><dd>Variable jo <code>always</code> ya <code>initial</code> block ke andar value paata hai aur agle assignment tak rakhta hai. reg ka matlab hamesha flip-flop nahi hai.</dd>
+<dt>assign</dt><dd>Continuous assignment: <code>assign y = a &amp; b;</code> matlab y hamesha a AND b hai; a ya b badle to y turant badle.</dd>
+<dt>always @(*)</dt><dd>Combinational block: koi bhi input badle to block dobara chale. Har case cover karna zaroori (default), warna latch ban jaata hai.</dd>
+<dt>always @(posedge clk)</dt><dd>Sequential block: sirf clock ke 0→1 edge pe chale. Andar <code>&lt;=</code> (non-blocking) use karo.</dd>
+<dt>testbench</dt><dd>Bina ports wala module jo design (DUT) ko inputs deta hai aur outputs print karta hai. <code>#10</code> = 10 time units ruko.</dd>
+<dt>simulation vs synthesis</dt><dd>Simulation (iverilog/vvp, waveform GTKWave mein) = check karna, kuch banta nahi. Synthesis (Synopsys DC, Cadence Genus) = asli gate netlist banana.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (Lab 1 ka flow):</b><ol>
+<li>Design file likho, jaise <code>and_gate.v</code>.</li>
+<li>Testbench likho (<code>and_tb.v</code>) jo saare input combinations deta hai.</li>
+<li>Compile: <code>iverilog -o and.vvp and_gate.v and_tb.v</code> (saari files ek saath).</li>
+<li>Run: <code>vvp and.vvp</code> (text output aata hai, aur VCD waveform file banti hai).</li>
+<li>Waveform dekho: <code>gtkwave and.vcd</code>.</li>
+</ol>
+<pre>// 2-input AND gate
+module and_gate (
+    input  wire a,
+    input  wire b,
+    output wire y
+);
+    assign y = a &amp; b;   // y updates whenever a or b changes
+endmodule</pre>
+<p><b>Line by line:</b></p><ol>
+<li><code>// 2-input AND gate</code>: comment, compiler ignore karta hai.</li>
+<li><code>module and_gate (</code>: naya hardware block shuru, naam and_gate.</li>
+<li><code>input wire a, input wire b</code>: do input taar a aur b.</li>
+<li><code>output wire y</code>: ek output taar y.</li>
+<li><code>assign y = a &amp; b;</code>: y ko hamesha a AND b se jod do. Ye ek AND gate ban jaata hai.</li>
+<li><code>endmodule</code>: block khatam.</li>
+</ol>
+<pre>module y_abc (input a, b, c, output y);
+    assign y = a | (b &amp; c);        // Y = A + BC, version 1
+endmodule
+
+module y_abc_v2 (input a, b, c, output reg y);
+    always @(*)                    // re-run when a, b or c changes
+        y = a | (b &amp; c);           // same circuit, version 2 (y must be reg)
+endmodule</pre>
+<p>Dono modules same circuit (D1.6a) banate hain. Version 2 mein y ko <code>reg</code> declare kiya kyunki usse always block ke andar value mil rahi hai.</p></div>
+<figure data-d="D1.E1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein ek hi Verilog file. Upar ka raasta: simulator → waveform (sirf check). Neeche ka raasta: synthesis tool → gate netlist → asli silicon. Same language, do kaam.</p>
+<div class="ex"><b>Solved example 1 (lab MCQ):</b> <p class="qq">a = 4'b0101, b = 4'b0010. Find a &amp; b and a &amp;&amp; b.</p><ol>
+<li><code>&amp;</code> bitwise hai: bit by bit AND. 0101 AND 0010: bit3 0·0 = 0, bit2 1·0 = 0, bit1 0·1 = 0, bit0 1·0 = 0 → 0000.</li>
+<li><code>&amp;&amp;</code> logical hai: poora number zero hai ya nahi. a = 5 (non-zero → true), b = 2 (non-zero → true). true AND true = 1 (ek bit).</li></ol>
+<p class="ans">Answer: a &amp; b = 4'b0000; a &amp;&amp; b = 1'b1.</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this):</b> <p class="qq">Differentiate wire and reg, and simulation and synthesis. (5 marks)</p><ol>
+<li>wire: a net driven continuously (by <code>assign</code> or a module output); it has no memory.</li>
+<li>reg: a variable assigned inside <code>always</code>/<code>initial</code>; it holds its value until the next assignment.</li>
+<li>Simulation runs the HDL on a computer over simulated time to check behaviour (waveforms); nothing is built.</li>
+<li>Synthesis converts the same RTL into a gate-level netlist for fabrication or FPGA.</li>
+<li>Example: <code>assign y1 = a &amp; b;</code> (wire) and <code>always @(*) y2 = a &amp; b;</code> (reg) both synthesise to one AND gate.</li></ol>
+<p class="ans">Answer: wire ↔ assign, reg ↔ always/initial; simulation checks, synthesis builds.</p></div>
+<div class="trap"><b>Galti mat karna:</b> <code>always</code> ke andar wire ko assign karna error hai (reg chahiye). <code>always @(*)</code> mein case ka <code>default</code> bhoole to latch ban jaata hai. Waveform khaali aaye to check karo <code>$dumpfile</code> aur <code>$dumpvars</code> dono likhe hain.</div>
+<p class="trick"><b>Trick:</b> "<b>assign → wire, always → reg</b>". Verilog padhte waqt socho "ye taar kahan jud raha hai", "pehle ye line chalegi" nahi.</p>
+<div class="yr"><b>Ek line mein:</b> Verilog = circuit ka text roop; assign se wire, always se reg; simulation check karta hai, synthesis gates banata hai.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Given inputs, which gate gives 1? / identify gate from output column</td><td>1. Gate table (1.3) yaad karo: AND 0001, OR 0111, NAND 1110, NOR 1000, XOR 0110, XNOR 1001. 2. Given row pe har gate ka rule lagao. 3. Bubble = ulta.</td></tr>
+<tr><td>Count rows / count functions</td><td>1. n gino. 2. Rows = 2ⁿ. 3. Functions = 2^(rows). (n = 3: 8 rows, 256 functions.)</td></tr>
+<tr><td>Truth table from expression, write Σm</td><td>1. 2ⁿ rows counting order. 2. Har term ka helper column. 3. OR karke F. 4. F = 1 wali rows ke decimal numbers = Σm.</td></tr>
+<tr><td>Simplify an expression (MCQ or 5 marks)</td><td>1. X / X' wale term pairs dhoondo. 2. Factor nikalo, X + X' = 1. 3. Absorption, A + A'B = A + B. 4. Bar ho to De Morgan. 5. Har line pe law ka naam. 6. 1–2 rows se check.</td></tr>
+<tr><td>Prove a law (absorption, A + A'B)</td><td>1. Identity se A = A·1 likho. 2. Distributive se factor. 3. Null/complement. 4. Identity. 5. Truth table se verify.</td></tr>
+<tr><td>Dual of an expression</td><td>+ ↔ ·, 0 ↔ 1; variables aur bars mat chhuo. A + 0 = A → A·1 = A.</td></tr>
+<tr><td>Architecture vs organisation classify</td><td>Program ke result pe asar? Haan → architecture (ISA, registers, formats). Sirf speed pe → organisation (cache, pipeline, clock).</td></tr>
+<tr><td>Abstraction stack / A[i] = B[i] + C[i]</td><td>7 layers draw karo, ISA highlight. Trace: lw, lw, add, sw → regfile → ALU → regfile → XOR/AND → transistors.</td></tr>
+<tr><td>Verilog: what does this line implement / wire vs reg</td><td>1. Operator padho (&amp; | ~ ^ ~^). 2. Bahar ka ~ = ulta. 3. always ke andar assign → reg; assign → wire. 4. &amp;&amp; = 1-bit logical, &amp; = bitwise.</td></tr>
+</table></div>
+</section>

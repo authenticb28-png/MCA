@@ -1,0 +1,271 @@
+<section>
+<h2>Unit 10 · CISC vs RISC</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 9 mein humne dekha CPU memory se <i>kaise</i> juda hai (Von Neumann, Harvard). Ab sawaal hai: CPU <i>kaunsi bhasha</i> samajhta hai? Us bhasha ko <b>ISA</b> kehte hain. ISA design karne ke do tareeke hain: har instruction mein bahut kaam bhar do (<b>CISC</b>, jaise x86) ya har instruction ko chhota aur simple rakho (<b>RISC</b>, jaise MIPS, ARM). Is unit mein dono ka matlab, fayda, nuksaan aur history samjhenge. Unit 11 mein ek RISC (MIPS) ki bhasha bit-by-bit seekhenge, aur Unit 14 mein dekhenge ki RISC pipelining ke liye kyun perfect hai.</div>
+
+<div class="topic"><h3>10.1 Recap (Von Neumann / Harvard) aur ISA ka matlab</h3>
+<div class="why"><b>Pehle socho:</b> Tumhare paas ek Android app hai. Wahi app Samsung ke phone pe bhi chalti hai aur Xiaomi pe bhi, jabki dono ke andar chip alag company ne banayi hai. Kaise? Kyunki dono chips <mark>ek hi "bhasha" (ARM ISA) samajhti hain</mark>. Jaise do alag restaurants ek hi menu card follow karein: customer (software) menu se order deta hai, kitchen (hardware) andar kaise banata hai, customer ko farak nahi padta. Ye "menu card" hi <b>ISA</b> hai.</div>
+<div class="def"><b>Definition:</b> The <b>Instruction Set Architecture (ISA)</b> is the part of a processor visible to the programmer: its instructions, registers, data types, addressing modes and memory model. It is the <b>contract between software and hardware</b>: compilers translate programs <i>to</i> the ISA, and the hardware (microarchitecture) <i>executes</i> the ISA.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Von Neumann (recap)</dt><dd>Ek hi memory aur ek hi bus, jisme instructions aur data dono rehte hain. Fetch aur data access baari-baari hote hain (bottleneck).</dd>
+<dt>Harvard (recap)</dt><dd>Instruction memory alag, data memory alag, bus bhi alag. Ek hi cycle mein instruction fetch aur data read dono ho sakte hain.</dd>
+<dt>Modified Harvard (recap)</dt><dd>Aaj ke CPU: L1 cache do hisson mein (L1-I instructions ke liye, L1-D data ke liye), neeche L2/L3 aur RAM ek hi (unified).</dd>
+<dt>ISA</dt><dd>CPU ki "bhasha": kaunse instructions hain (add, lw, beq), kitne registers hain ($0 se $31), memory kaise address hoti hai. Example: x86, ARM, MIPS, RISC-V.</dd>
+<dt>Microarchitecture (organisation)</dt><dd>ISA ko andar se <i>kaise</i> banaya: kitne pipeline stages, cache kitna bada. Intel i3 aur i9 ka ISA same (x86-64), microarchitecture alag.</dd>
+<dt>Memory operand</dt><dd>Instruction ka input/output seedha memory address ho, register nahi. Jaise <code>add [x], eax</code>: x memory mein hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (recap se ISA tak ka pul):</b><ol>
+<li>Unit 9 ne bataya: CPU aur memory ke beech bus hai, aur har memory access mein time lagta hai.</li>
+<li>Ab har instruction kitni baar memory chhoota hai, ye ISA decide karta hai.</li>
+<li>CISC instruction <code>add [mem1], [mem2]</code>: 1 baar instruction fetch + 2 baar data read + 1 baar result write = ek hi instruction mein bus pe 4 trips.</li>
+<li>RISC ka <code>add $t0, $t1, $t2</code>: sirf instruction fetch, data registers mein hai, bus pe koi data trip nahi. Memory sirf <code>lw</code>/<code>sw</code> chhoote hain, aur woh bhi ek baar.</li>
+<li>Isliye recap pehle aata hai: <mark>ISA ka design seedha memory traffic decide karta hai</mark>.</li>
+<li>ISA ek contract hai: upar software (compiler, OS, apps) ISA mein compile hota hai, neeche hardware ISA ko execute karta hai. Dono contract maante hain to Intel naya chip banaye, purana program phir bhi chalega.</li>
+</ol></div>
+<figure data-d="D10.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Teen patti upar se neeche: Software, beech mein highlighted ISA, neeche Hardware. Upar wala arrow "compiles TO the ISA" (tumhara C code ISA ke instructions ban jata hai), neeche wala "EXECUTES the ISA" (chip un instructions ko chalata hai). Trace: <code>c = a + b</code> → compiler <code>add</code> instruction banata hai (ISA level) → chip ka ALU usse jodta hai (hardware level).</p>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Differentiate between architecture (ISA) and organisation. Why is the ISA called a contract? (3 marks)</p><ol>
+<li>Architecture (ISA) = the "what": instructions, registers, addressing modes visible to the programmer.</li>
+<li>Organisation (microarchitecture) = the "how": pipelines, caches, buses that implement the ISA.</li>
+<li>Example: Intel Core i3 and i9 share the x86-64 ISA but have different organisation.</li>
+<li>Contract: software is compiled only against the ISA; any hardware that honours the ISA runs it. So hardware and software can be improved independently (old programs run on new chips).</li></ol>
+<p class="ans">Answer: ISA = what the CPU understands; organisation = how it is built. Same ISA, different chips, same software.</p></div>
+<div class="trap"><b>Galti mat karna:</b> "Architecture" aur "organisation" ko same mat likhna. Cache size, pipeline depth = organisation. Instruction list, register count = architecture (ISA).</div>
+<div class="yr"><b>Ek line mein:</b> ISA = CPU ki bhasha aur software-hardware ka contract; Unit 9 batata hai CPU memory tak kaise pahunchta hai, Unit 10 batata hai CPU kya samajhta hai.</div>
+</div>
+
+<div class="topic"><h3>10.2 RISC vs CISC: definitions aur design goals</h3>
+<div class="why"><b>Pehle socho:</b> Do tarah ke cook socho. <b>Cook A (CISC)</b> ko tum ek hi bada order dete ho: "<i>Paneer butter masala bana do</i>". Ek command, par cook ko andar se 20 kaam khud karne padte hain, aur aisi sainkdon recipes yaad rakhni padti hain. <b>Cook B (RISC)</b> sirf chhote simple steps samajhta hai: "fridge se paneer nikalo", "kaato", "kadhai mein daalo", "milao". Tumhe (compiler ko) zyada lines likhni padti hain, par har step itna simple hai ki cook B bahut tez aur bina confusion ke kaam karta hai, aur ek step khatam hone se pehle agla shuru kar sakta hai (pipelining). <mark>CISC = ek complex command; RISC = bahut saare simple steps</mark>.</div>
+<div class="def"><b>Definition:</b> A <b>CISC (Complex Instruction Set Computer)</b> provides a large number of powerful, <b>variable-length</b> instructions, many of which can operate <b>directly on memory</b>, often implemented with microcode (e.g. x86, VAX, 68000). A <b>RISC (Reduced Instruction Set Computer)</b> provides a small set of simple, <b>fixed-length (32-bit)</b> instructions, each doing one simple operation, in a <b>load/store architecture</b> where only load and store instructions access memory (e.g. MIPS, ARM, RISC-V, SPARC).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Variable length</dt><dd>Instructions alag-alag size ke. x86 mein ek instruction 1 byte ka bhi ho sakta hai aur 15 bytes ka bhi.</dd>
+<dt>Fixed length</dt><dd>Har instruction same size. MIPS mein har instruction 32 bits = 4 bytes. Isliye agla instruction hamesha PC + 4 pe.</dd>
+<dt>Load/store architecture</dt><dd>Sirf do kaam memory chhoo sakte hain: <b>load</b> (memory → register, <code>lw</code>) aur <b>store</b> (register → memory, <code>sw</code>). <code>add</code>, <code>sub</code> sirf registers pe kaam karte hain.</dd>
+<dt>Decoder</dt><dd>CPU ka woh hissa jo instruction ke bits padh ke samajhta hai "ye kaunsa instruction hai, kaunse registers". (Unit 3 wala decoder ka bada roop.)</dd>
+<dt>Microcode</dt><dd>CPU ke andar chhupa ek mini-program. Ek complex CISC instruction aane pe CPU ROM se uska chhota program chalata hai jo usse kai chhote steps mein karta hai.</dd>
+<dt>Pipelining</dt><dd>Assembly line: ek instruction decode ho raha hai tab tak agla fetch ho raha hai. (Unit 14.)</dd>
+<dt>Code density</dt><dd>Kitne bytes mein kitna kaam. Kam bytes mein zyada kaam = high density (CISC ka fayda).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (same task, dono styles):</b> Task: <code>C = A + B</code>, teeno variables memory mein hain.<ol>
+<li><b>CISC soch:</b> ek instruction memory se operand utha sakta hai. VAX mein ek hi instruction <code>ADDL3 A, B, C</code> (memory A + memory B → memory C) poora kaam kar deta tha. x86 thoda kam flexible hai (ek instruction mein max ek memory operand), to wahan <code>mov eax,[A]</code> ; <code>add eax,[B]</code> ; <code>mov [C],eax</code>.</li>
+<li><b>RISC soch:</b> pehle data ko register mein lao, register pe kaam karo, phir wapas memory mein rakho.</li>
+<li><code>lw $t1, A</code>: A ki value memory se $t1 mein.</li>
+<li><code>lw $t2, B</code>: B ki value $t2 mein.</li>
+<li><code>add $t3, $t1, $t2</code>: registers pe jod (memory ko chhua bhi nahi).</li>
+<li><code>sw $t3, C</code>: result memory ke C mein rakho.</li>
+<li>Result: CISC ne kam instructions likhe, RISC ne 4 likhe, par RISC ke chaaron instructions simple, fixed 32-bit, aur ek-ek cycle wale hain.</li>
+</ol></div>
+<pre>; Class activity: C = A + B ; D = C * 2
+
+; CISC style (x86-like): 5 instructions, memory operands allowed
+mov  ax, [A]      ; ax = A (memory se seedha)
+add  ax, [B]      ; ax = A + B  (B memory operand hai)
+mov  [C], ax      ; C = A + B, memory mein likh diya
+shl  ax, 1        ; ax = C * 2 (left shift 1 = 2 se guna)
+mov  [D], ax      ; D = C * 2
+
+# RISC style (MIPS-like): 6 instructions, sirf lw/sw memory chhoote hain
+lw   r1, A        # r1 = A (load: memory se register)
+lw   r2, B        # r2 = B
+add  r3, r1, r2   # r3 = A + B (sirf registers)
+sw   r3, C        # C = r3 (store: register se memory)
+add  r4, r3, r3   # r4 = C + C = C * 2
+sw   r4, D        # D = r4</pre>
+<figure data-d="D10.2b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar wali line RISC: teen barabar chaudai ke dabbe, har ek 32 bits, fields (opcode, rs, rt, rd, shamt, funct) hamesha same jagah. CPU ko pata hai agla instruction 4 bytes baad shuru hoga, to woh bina padhe agla fetch kar sakta hai. Neeche wali line CISC: dabbe alag lambai ke (prefix, op, modRM, disp, imm), aur dabbe ki boundary tab tak pata nahi jab tak pichla instruction decode na ho jaye. Isliye CISC ko pipeline karna mushkil hai.</p>
+<table><tr><th>Point</th><th>CISC</th><th>RISC</th><th>WHY (kyun)</th></tr>
+<tr><td>Number of instructions</td><td>hundreds, many complex</td><td>few, simple</td><td>CISC: har common kaam ke liye hardware mein ready-made instruction. RISC: sirf woh jo compiler sach mein use karta hai.</td></tr>
+<tr><td>Instruction length</td><td>variable (x86: 1 to 15 bytes)</td><td>fixed 32 bits</td><td>CISC: chhota instruction kam byte le, memory bache. RISC: fixed size → agla instruction hamesha PC + 4, fetch aasaan.</td></tr>
+<tr><td>Memory access</td><td>arithmetic can use memory operands</td><td>load/store only</td><td>CISC: programmer ka kaam kam. RISC: memory sirf 2 instructions mein, baaki sab registers pe → predictable timing.</td></tr>
+<tr><td>Decoder / control</td><td>complex, often microcoded</td><td>simple, hardwired</td><td>Variable format padhne ke liye bada decoder chahiye. Fixed format ke fields hamesha same bit pe, to decode lagbhag free.</td></tr>
+<tr><td>Cycles per instruction</td><td>many, varies per instruction</td><td>about 1 (ideally)</td><td>Ek CISC instruction andar kai kaam karta hai; RISC instruction ek hi simple kaam.</td></tr>
+<tr><td>Instructions per program</td><td>fewer</td><td>more</td><td>Ek CISC instruction = kai RISC instructions ka kaam.</td></tr>
+<tr><td>Code density</td><td>high (small programs)</td><td>lower</td><td>Kam aur chhote instructions → kam bytes.</td></tr>
+<tr><td>Pipelining</td><td>hard</td><td>easy</td><td>Fixed length, same format, same time per instruction → assembly line smooth.</td></tr>
+<tr><td>Registers</td><td>fewer general-purpose (x86: 8 originally)</td><td>many (32 in MIPS)</td><td>Load/store mein data registers mein rakhna padta hai, isliye RISC ko zyada registers chahiye.</td></tr>
+<tr><td>Complexity lives in</td><td>hardware</td><td>compiler</td><td>Kaam kahin to hoga: CISC mein chip karti hai, RISC mein compiler instructions ki sequence banata hai.</td></tr>
+<tr><td>Examples</td><td>x86, VAX, Motorola 68000</td><td>MIPS, ARM, RISC-V, SPARC</td><td>Class slide ki list.</td></tr></table>
+<div class="ex"><b>Solved example 1 (direct):</b> <p class="qq">Name the two hallmarks of a RISC ISA. (class exit ticket)</p><ol>
+<li>RISC ki pehchaan wo cheez hai jo CISC mein nahi hoti.</li>
+<li>Pehli: har instruction same size (fixed 32-bit).</li>
+<li>Doosri: memory sirf load/store se (load/store architecture).</li></ol>
+<p class="ans">Answer: (1) fixed-length instructions, (2) load/store-only memory access.</p></div>
+<div class="ex"><b>Solved example 2 (exam favourite, 5 marks):</b> <p class="qq">Compare CISC and RISC (six points) with examples, and write C = A + B; D = 2C in both styles.</p><ol>
+<li>Definition dono ki ek-ek line mein (upar wali definition).</li>
+<li>Upar wali table ki pehli 6 rows likho: number of instructions, length, memory access, decoder, CPI, pipelining (har row ke saath "why" ek chhoti line).</li>
+<li>Examples: CISC = x86, VAX, 68000; RISC = MIPS, ARM, RISC-V, SPARC.</li>
+<li>Upar wala code likho: CISC 5 instructions (mov, add, mov, shl, mov), RISC 6 (lw, lw, add, sw, add, sw).</li>
+<li>Conclusion line: RISC zyada instructions chalata hai, par har ek simple aur pipeline-friendly hai; complexity hardware se compiler mein shift hoti hai.</li></ol>
+<p class="ans">Answer: 6-point table + code (CISC 5 instructions, RISC 6) + "complexity moves from hardware to compiler".</p></div>
+<div class="trap"><b>Galti mat karna:</b> "RISC = kam instructions chalte hain" GALAT hai. RISC mein instruction <b>types</b> kam hain, par ek program chalane mein instructions <b>zyada</b> lagte hain (upar: 6 vs 5). "Reduced" ka matlab har instruction ka kaam reduced (simple) hai.</div>
+<p class="trick"><b>Trick:</b> RISC ke do hallmarks = <b>"Fixed + Load/Store"</b>, jaise railway: fixed time-table (har instruction 4 bytes) aur chadhna-utarna sirf platform pe (memory sirf lw/sw se).</p>
+<div class="yr"><b>Ek line mein:</b> CISC = kam lekin bhaari, variable-length, memory-operand instructions (complexity hardware mein); RISC = zyada lekin halke, fixed 32-bit, load/store instructions (complexity compiler mein).</div>
+</div>
+
+<div class="topic"><h3>10.3 Historical context: VAX, x86, MIPS, ARM, RISC-V</h3>
+<div class="why"><b>Pehle socho:</b> 1970s mein memory bahut mehengi thi (kuch KB ke liye lakhon rupaye) aur programmer zyada tar assembly <i>haath se</i> likhte the. Aise mein sabse samajhdari kya thi? Program ko chhota rakho aur programmer ka kaam aasaan karo: "ek instruction mein zyada kaam". Isliye pehle <b>CISC</b> aaya. 1980s tak memory sasti ho gayi, compilers smart ho gaye, aur researchers ne dekha ki compiler complex instructions use hi nahi karta. Tab <b>RISC</b> aaya: simple instructions, tez chip, pipelining.</div>
+<div class="def"><b>Definition:</b> The <b>ISA family tree</b> shows two lineages: the <b>CISC</b> line (VAX 1977, Motorola 68000 1979, Intel x86 1978 → x86-64 2003) and the <b>RISC</b> line (IBM 801 → MIPS (Stanford, 1984), SPARC, ARM (1985) → RISC-V (Berkeley, 2010)). CISC came first because memory was scarce and expensive; RISC followed when better compilers and the need for pipelining made simple instructions more attractive.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Lineage</dt><dd>Vansh / khaandan. Kaunsa ISA kis se prerit hua.</dd>
+<dt>Backward compatibility</dt><dd>Naya chip purane programs bina badle chala sake. x86 ka sabse bada hathiyaar: 1978 ka code aaj bhi chal sakta hai.</dd>
+<dt>Licensing (ARM model)</dt><dd>ARM khud chip nahi bechta, design ka licence bechta hai. Qualcomm, Apple, Samsung licence leke apni chip banate hain.</dd>
+<dt>Royalty-free</dt><dd>Use karne ke liye koi fees nahi. RISC-V aisa hai.</dd>
+<dt>Compiler</dt><dd>Program jo C jaisi bhasha ko ISA instructions mein badalta hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise hua (time-line, step by step):</b><ol>
+<li><b>1970s, CISC kyun pehle:</b> memory mehengi aur chhoti → program kam bytes mein hona chahiye → ek instruction mein zyada kaam (high code density). Programmer assembly haath se likhte the → powerful instructions unka kaam aasaan karte the. Compilers kamzor the.</li>
+<li><b>CISC family:</b> VAX (DEC, 1977), x86 (Intel 8086, 1978), Motorola 68000 (1979). Baad mein AMD ne x86 ko 64-bit kiya: x86-64 (2003).</li>
+<li><b>1980, RISC kyun aaya:</b> IBM 801 project ne dekha ki compiler zyada tar simple instructions hi use karta hai. Memory sasti ho rahi thi, compilers achhe ho rahe the. Simple instructions → chhota decoder → tez clock aur <b>pipelining</b> aasaan.</li>
+<li><b>RISC family:</b> IBM 801 → MIPS (Stanford, John Hennessy, 1984), SPARC (Sun, Berkeley RISC se), ARM (1985), aur RISC-V (Berkeley, 2010).</li>
+<li><b>MIPS kahan chala (Lab 11):</b> SGI workstations, original PlayStation (R3000A, 33.8688 MHz), Nintendo 64 (VR4300, 93.75 MHz), PlayStation 2 (R5900). Hennessy aur Patterson ko RISC ke liye 2017 Turing Award mila. 2021 mein MIPS company RISC-V pe shift ho gayi.</li>
+<li><b>1990s se, do samrajya:</b> ARM ne mobile jeeta (simple design = kam power = lambi battery, aur licence model se sab ARM chip bana sakte hain; ab Apple laptops bhi). x86 ne desktop/server rakha (backward compatibility, dashakon ka software, Intel/AMD ka R&amp;D).</li>
+<li><b>Lesson:</b> "best ISA" jeetta nahi; ecosystem, power budget aur compatibility jeetate hain.</li>
+</ol></div>
+<figure data-d="D10.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Beech mein dashed line dono camps ko alag karti hai. Left (CISC): VAX, 68000, x86, aur x86 se arrow neeche x86-64 (2003). Right (RISC): upar IBM 801, usse teen arrows MIPS, SPARC, ARM ki taraf; MIPS (Berkeley/Stanford lineage) se arrow RISC-V (2010) tak. Neeche ki line: dono family ab mil gayi hain (x86 andar RISC jaise µops chalata hai, 10.5 dekho).</p>
+<div class="ex"><b>Solved example (write the answer like this, 4 marks):</b> <p class="qq">Trace the history of CISC and RISC. Why did CISC come first, and why did ARM win mobile while x86 kept the desktop?</p><ol>
+<li>CISC first (1970s): memory was expensive and small, programs were hand-written in assembly and compilers were weak, so dense, powerful instructions (VAX 1977, x86 1978, 68000 1979) saved memory and programmer effort.</li>
+<li>RISC (1980s): IBM 801 showed compilers mainly use simple instructions; cheaper memory and better compilers allowed simple fixed-length instructions that pipeline well (MIPS 1984, SPARC, ARM 1985, RISC-V 2010).</li>
+<li>ARM won mobile: simple core → low power → long battery life; licensable design.</li>
+<li>x86 kept desktop: backward compatibility with decades of software, huge ecosystem and R&amp;D.</li>
+<li>Draw the family tree (D10.3a).</li></ol>
+<p class="ans">Answer: CISC first because memory was costly; RISC when compilers + pipelining mattered; ARM = power + licensing, x86 = compatibility.</p></div>
+<div class="trap"><b>Galti mat karna:</b> RISC-V 1980s ka nahi, <b>2010</b> ka hai. ARM <b>RISC</b> hai, CISC nahi. x86 1978 (8086), x86-64 2003 (AMD).</div>
+<p class="trick"><b>Trick:</b> Saal yaad rakho: <b>"77 VAX, 78 x86, 84 MIPS, 85 ARM, 2003 x86-64, 2010 RISC-V"</b>. CISC pehle kyun? "<b>Memory mehengi thi</b>" (bas yahi ek reason exam mein likhna kaafi hai, saath mein compilers kamzor).</p>
+<div class="yr"><b>Ek line mein:</b> Mehengi memory ke zamane mein CISC aaya (dense code), sasti memory + smart compilers + pipelining ke zamane mein RISC aaya; ARM ne power se mobile jeeta, x86 ne compatibility se desktop rakha.</div>
+</div>
+
+<div class="topic"><h3>10.4 Compiler implications aur code density</h3>
+<div class="why"><b>Pehle socho:</b> Ek SMS mein 160 characters ki limit hai. Agar tum "tomorrow" ki jagah "tmrw" likho, to kam jagah mein zyada baat aa jaati hai, par padhne wale ko thoda dimaag lagana padta hai. CISC "tmrw" jaisa hai: <mark>kam bytes mein zyada kaam (dense code), par padhna (decode) mushkil</mark>. RISC poore spelling jaisa: zyada jagah, par padhna turant. Ye trade-off kabhi khatam nahi hota, sirf jagah badalta hai.</div>
+<div class="def"><b>Definition:</b> <b>Code density</b> is the amount of work a program does per byte of instruction memory. CISC has higher code density (smaller programs, less instruction-cache pressure), while RISC's fixed-length, uniform instructions are easier to decode and pipeline. Performance is given by the <b>iron law</b>: CPU time = Instruction count × CPI × Clock period.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>I-cache (instruction cache)</dt><dd>CPU ke paas chhoti fast memory jisme instructions rakhe jaate hain. Program chhota ho to zyada instructions isme fit hote hain.</dd>
+<dt>Instruction count (IC)</dt><dd>Program chalne mein kul kitne instructions execute hue. Jaise 2 million.</dd>
+<dt>CPI (cycles per instruction)</dt><dd>Ek instruction ko average kitne clock cycles lage. CPI = 1.5 matlab average 1.5 cycle.</dd>
+<dt>Clock period (T)</dt><dd>Ek cycle ka time = 1 / frequency. 1 GHz → 1 ns; 2 GHz → 0.5 ns.</dd>
+<dt>ARM Thumb / RISC-V "C"</dt><dd>RISC ke 16-bit chhote instructions (compressed). Inse RISC ki code density CISC ke paas aa jaati hai.</dd>
+<dt>Register allocation</dt><dd>Compiler decide karta hai kaunsa variable kaunse register mein rahe. RISC mein bahut zaroori kyunki maths sirf registers pe hota hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>CISC ka fayda (density):</b> kam aur chhote instructions → program kam bytes → fetch kam bytes → I-cache mein zyada fit. Memory kam ho (embedded) to bada fayda.</li>
+<li><b>RISC ka nuksaan:</b> har instruction 4 bytes, chahe kaam chhota ho. Fix: ARM Thumb aur RISC-V C (16-bit instructions).</li>
+<li><b>RISC ka fayda (pipelining), 4 reasons:</b> (a) fixed length = fetch aasaan (agla hamesha PC + 4); (b) uniform format = decode ek stage mein; (c) har instruction ek simple step = flow smooth; (d) load/store = sirf 2 instructions memory chhoote, hazards pakadna aasaan.</li>
+<li><b>Compiler pe asar:</b> RISC compiler ko registers achhe se baantne padte hain aur zyada simple instructions ko sahi order mein lagana padta hai (load ka wait chhupane ke liye reorder bhi kar sakta hai). CISC compiler rich instructions use kar sakta hai, par asal mein instruction set ka bada hissa use hi nahi hota.</li>
+<li><b>Iron law se faisla:</b> CISC IC (instruction count) kam karta hai; RISC CPI aur clock period kam karta hai. Teeno ka product hi asli time hai.</li>
+</ol></div>
+<div class="fx"><b>Formula:</b> <b>CPU time = IC × CPI × T</b> &nbsp;=&nbsp; IC × CPI / f<br><small>IC = instruction count, CPI = average cycles per instruction, T = clock period = 1/f (f = clock frequency). 1 GHz → T = 1 ns; 2 GHz → T = 0.5 ns.</small></div>
+<table><tr><th>CISC strengths</th><th>RISC strengths</th></tr>
+<tr><td>denser code</td><td>simple, fast, cheap decoder</td></tr>
+<tr><td>fewer instructions per task</td><td>easy, efficient pipelining</td></tr>
+<tr><td>less instruction-fetch bandwidth</td><td>higher clock speeds possible</td></tr>
+<tr><td>rich, expressive operations</td><td>simpler to design and verify</td></tr></table>
+<div class="ex"><b>Solved example 1 (easy):</b> <p class="qq">A program runs 2 million instructions with CPI 1.5 on a 1 GHz clock. Find the CPU time in ms.</p><ol>
+<li>IC = 2 million = 2 × 10⁶.</li>
+<li>T = 1 / 1 GHz = 1 ns = 1 × 10⁻⁹ s.</li>
+<li>CPU time = 2 × 10⁶ × 1.5 × 1 ns = 3 × 10⁶ ns.</li>
+<li>3 × 10⁶ ns = 3 × 10⁶ × 10⁻⁹ s = 3 × 10⁻³ s = 3 ms.</li></ol>
+<p class="ans">Answer: 3 ms.</p></div>
+<div class="ex"><b>Solved example 2 (exam-level comparison):</b> <p class="qq">A program on a CISC machine executes 1.0 million instructions at CPI 2.0. Compiled for a RISC machine it executes 1.4 million instructions at CPI 1.1. Both run at 2 GHz. Which is faster?</p><ol>
+<li>T = 1 / 2 GHz = 0.5 ns.</li>
+<li>CISC: 1.0 × 10⁶ × 2.0 = 2.0 × 10⁶ cycles. × 0.5 ns = 1.0 × 10⁶ ns = 1.0 ms.</li>
+<li>RISC: 1.4 × 10⁶ × 1.1 = 1.54 × 10⁶ cycles. × 0.5 ns = 0.77 × 10⁶ ns = 0.77 ms.</li>
+<li>Compare: 0.77 ms &lt; 1.0 ms, to RISC tez hai.</li>
+<li>Speed-up = 1.0 / 0.77 ≈ 1.30.</li></ol>
+<p class="ans">Answer: RISC is faster (0.77 ms vs 1.0 ms, about 1.3×) even though it runs 40% more instructions.</p></div>
+<div class="ex"><b>Solved example 3 (class homework):</b> <p class="qq">Count the instructions for a straight-line 3-element vector add C[i] = A[i] + B[i] in CISC and RISC style.</p><ol>
+<li>CISC (x86) har element: <code>mov eax,[A+4i]</code> ; <code>add eax,[B+4i]</code> ; <code>mov [C+4i],eax</code> = 3 instructions.</li>
+<li>3 elements × 3 = 9 instructions.</li>
+<li>RISC har element: <code>lw</code> ; <code>lw</code> ; <code>add</code> ; <code>sw</code> = 4 instructions.</li>
+<li>3 elements × 4 = 12 instructions.</li></ol>
+<p class="ans">Answer: CISC 9, RISC 12 (RISC has more instructions, but each is simple and pipelines at about one per cycle).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "RISC hamesha tez hai" galat; time IC × CPI × T pe depend karta hai. (2) GHz ko ns mein badalte waqt: 2 GHz → 0.5 ns, 2 ns nahi. (3) Answer ms mein maanga ho to ns ko 10⁶ se divide karo.</div>
+<p class="trick"><b>Trick:</b> "<b>CISC count ghatata hai, RISC cycle ghatata hai.</b>" Pipelining ke 4 reasons: "<b>F-U-O-L</b>" = Fixed length, Uniform decode, One cycle, Load/store.</p>
+<div class="yr"><b>Ek line mein:</b> CISC ka hathiyaar code density, RISC ka hathiyaar pipelining; asli speed = IC × CPI × T.</div>
+</div>
+
+<div class="topic"><h3>10.5 Modern reality: x86 ke andar micro-ops</h3>
+<div class="why"><b>Pehle socho:</b> Ek restaurant ka waiter (front) customer se bada order leta hai: "ek thali". Kitchen (back) mein woh order chhote kaamon mein toota jaata hai: "roti banao", "dal garam karo", "plate lagao", aur kai cooks ek saath assembly line pe kaam karte hain. Customer ko lagta hai ek order diya, par andar simple kaam chal rahe hain. <mark>x86 bahar se CISC hai (purane software ke liye), andar se RISC jaisa</mark>.</div>
+<div class="def"><b>Definition:</b> <b>Micro-operations (µops)</b> are simple, RISC-like internal operations into which the front-end decoder of a modern x86 processor splits each complex CISC instruction. The back end then pipelines, renames and reorders these µops like a RISC machine. µops are internal and not visible to the programmer.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>µop (micro-op)</dt><dd>"µ" = micro = chhota. Ek chhota simple kaam: sirf load, ya sirf add, ya sirf store.</dd>
+<dt>Front end</dt><dd>CPU ka woh hissa jo instructions fetch aur decode karta hai (yahan CISC → µops todna hota hai).</dd>
+<dt>Back end (core)</dt><dd>Woh hissa jo asli kaam (ALU, memory) karta hai; ye µops ko RISC ki tarah chalata hai.</dd>
+<dt>Out-of-order execution</dt><dd>Jo µop ready hai woh pehle chal jaye, chahe program mein baad mein likha ho (result phir bhi sahi order mein).</dd>
+<dt>Register renaming</dt><dd>Andar chhupe extra registers use karke false clashes hatana. (Exam mein sirf naam kaafi.)</dd>
+<dt>tmp</dt><dd>CPU ka andar ka temporary register jo programmer ko nahi dikhta.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (worked example: <code>add [mem], eax</code>):</b><ol>
+<li>Instruction ka matlab: "memory address mem pe jo number hai, usme eax jodo, aur result wapas usi memory address pe likho".</li>
+<li>Isme teen alag kaam chhupe hain: memory se padhna, jodna, memory mein likhna.</li>
+<li><b>µop 1 (load):</b> <code>tmp ← Mem[mem]</code>. Maan lo Mem[mem] = 10, to tmp = 10.</li>
+<li><b>µop 2 (add):</b> <code>tmp ← tmp + eax</code>. Maan lo eax = 5, to tmp = 15. (Sirf registers, RISC jaisa.)</li>
+<li><b>µop 3 (store):</b> <code>Mem[mem] ← tmp</code>. Ab memory mein 15.</li>
+<li>Dekho: ye bilkul RISC ka <code>lw</code>, <code>add</code>, <code>sw</code> hai. Decoder ne CISC instruction ko RISC jaise 3 µops mein tod diya.</li>
+<li>Back end in µops ko pipeline mein, out-of-order, register renaming ke saath chalata hai, jaise ek RISC core.</li>
+<li><b>Kyun?</b> Binary compatibility bani rahe (purane x86 programs chalein) aur saath mein RISC wali pipelining, out-of-order execution aur high clock bhi mile.</li>
+</ol></div>
+<pre>x86 instruction (CISC, programmer ko dikhta hai):
+    add  [mem], eax        ; Mem[mem] = Mem[mem] + eax
+
+Decoder ke baad 3 micro-ops (andar, chhupe hue):
+    uop1: load   tmp  &lt;- Mem[mem]     ; jaise MIPS lw
+    uop2: add    tmp  &lt;- tmp + eax    ; jaise MIPS add
+    uop3: store  Mem[mem] &lt;- tmp     ; jaise MIPS sw
+
+Values ke saath: Mem[mem] = 10, eax = 5
+    uop1: tmp = 10
+    uop2: tmp = 10 + 5 = 15
+    uop3: Mem[mem] = 15</pre>
+<figure data-d="D10.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left se right chalo. Pehla dabba: CISC instruction <code>add [mem], eax</code>. Woh DECODER (splitter) mein jaata hai. Decoder se teen arrows teen chhote dabbon (µop load, µop add, µop store) mein. Teeno µops ek "RISC-like core" mein jaate hain. Neeche ki line: front end tod-ta hai, back end RISC ki tarah chalata hai.</p>
+<div class="ex"><b>Solved example (write the answer like this, 5 marks):</b> <p class="qq">Explain with a diagram how a modern x86 processor executes CISC instructions using micro-operations. Why is it said that CISC and RISC have merged?</p><ol>
+<li>Draw D10.5a: x86 instruction → decoder → µops (load, add, store) → RISC-like core.</li>
+<li>The front-end decoder splits each complex x86 instruction into simple RISC-like µops, e.g. <code>add [mem], eax</code> → load, add, store.</li>
+<li>The back end pipelines, renames and reorders µops like a RISC core.</li>
+<li>Reason: keeps binary compatibility with decades of x86 software while gaining RISC-style pipelining and high clock rates.</li>
+<li>Merged: CISC became RISC inside; RISC (ARM, RISC-V) added hundreds of instructions, SIMD/vector and 16-bit compressed instructions (a CISC-style density idea). Microarchitecture now matters more than the label.</li></ol>
+<p class="ans">Answer: "CISC outside, RISC inside"; both camps borrowed from each other, so the boundary has blurred.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) µops programmer ko nahi dikhte; tum assembly mein µop nahi likh sakte. (2) "CISC obsolete hai" galat: x86 aaj bhi desktop/server pe raaj karta hai. (3) Class example mein <code>add [mem], eax</code> = <b>3</b> µops (load, add, store).</div>
+<p class="trick"><b>Trick:</b> "<b>Bahar CISC ka kurta, andar RISC ka body.</b>" Teen µops = "<b>Utha, Jod, Rakh</b>" (load, add, store).</p>
+<div class="yr"><b>Ek line mein:</b> Modern x86 ka decoder har CISC instruction ko RISC jaise µops mein todta hai (add [mem], eax → load, add, store), isliye aaj CISC aur RISC ki deewar dhundhli ho gayi hai.</div>
+</div>
+
+<div class="topic"><h3>10.6 Trends: RISC-V open ISA aur AI accelerators</h3>
+<div class="why"><b>Pehle socho:</b> ARM ka design use karne ke liye paise (licence fee) dene padte hain. Socho ek "open recipe" ho jise koi bhi free mein use kare aur apni zaroorat ke hisaab se masale (extensions) jode: ye <b>RISC-V</b> hai. Doosra trend: agar tumhe sirf ek hi kaam baar-baar karna hai (jaise AI mein matrix multiply), to general-purpose CPU ki jagah usi kaam ke liye special chip banao. Jaise roti ke liye alag roti-maker, sab kuch karne wale mixer ki jagah.</div>
+<div class="def"><b>Definition:</b> <b>RISC-V</b> is an open, royalty-free, modular RISC ISA created at UC Berkeley in 2010: a small base integer ISA plus optional standard extensions (M, A, F, D, C, V). A <b>domain-specific ISA</b> is an instruction set designed for one class of workload (e.g. graphics or neural networks), trading generality for much higher efficiency, e.g. NVIDIA PTX for GPUs and Google TPU (matrix multiply).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Open / royalty-free</dt><dd>Specification sabke liye free; RISC-V chip banane ke liye kisi ko fees nahi deni.</dd>
+<dt>Modular</dt><dd>Chhota base (RV32I) + jo chahiye woh extension jodo. M = multiply/divide, A = atomic, F = float, D = double, C = compressed 16-bit, V = vector.</dd>
+<dt>Accelerator</dt><dd>Ek kaam ke liye bani special chip jo us kaam mein CPU se kai guna tez aur kam power wali hoti hai.</dd>
+<dt>GPU / PTX</dt><dd>GPU mein hazaaron simple cores jo ek saath (parallel) kaam karte hain. PTX NVIDIA ka GPU ISA hai.</dd>
+<dt>TPU</dt><dd>Google ki Tensor Processing Unit; iska ISA <b>matrix multiplication</b> ke around bana hai, jo neural networks ka main kaam hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>RISC-V open hai:</b> koi bhi company ya college bina fees RISC-V chip bana sakta hai.</li>
+<li><b>RISC-V modular hai:</b> microcontroller ko sirf base chahiye (RV32I); laptop chip base + M + A + F + D + C le sakta hai (jaise RV32IMAFDC).</li>
+<li><b>Adoption:</b> teaching se shuru, ab microcontrollers, data-centre aur AI chips tak. (2021 mein MIPS company bhi RISC-V pe aa gayi.)</li>
+<li><b>Domain-specific ISA:</b> workload fixed hai (jaise sirf matrix multiply) → generality hata do → wahi transistors us ek kaam pe lagao → bahut zyada efficiency.</li>
+<li><b>Examples:</b> GPU (NVIDIA PTX, hazaaron simple cores, massive parallelism); Google TPU (matrix multiply ISA).</li>
+<li><b>Direction:</b> multicore + GPU + AI accelerators: architecture ka future specialisation hai (Module 6).</li>
+</ol></div>
+<div class="ex"><b>Solved example (write the answer like this, 4 marks):</b> <p class="qq">Write short notes on (a) RISC-V and (b) domain-specific ISAs for AI.</p><ol>
+<li>(a) RISC-V: open and royalty-free ISA from UC Berkeley (2010); modular: base RV32I (about 40 instructions) plus extensions M, A, F, D, C, V; clean RISC (fixed 32-bit, load/store, 32 registers); used from teaching to microcontrollers to data-centre/AI chips.</li>
+<li>(b) Domain-specific ISAs: designed for one workload; NVIDIA PTX for GPUs (thousands of simple parallel cores); Google TPU centred on matrix multiply (core of neural networks).</li>
+<li>Reason for (b): a fixed workload lets designers remove general-purpose features and gain large efficiency.</li></ol>
+<p class="ans">Answer: RISC-V = open + modular + Berkeley 2010; DSAs = specialise for efficiency (PTX, TPU).</p></div>
+<div class="trap"><b>Galti mat karna:</b> RISC-V kisi ek company ki property nahi hai (open hai). Har RISC-V chip mein float nahi hota; float sirf F/D extension ke saath. TPU general-purpose CPU nahi hai.</div>
+<p class="trick"><b>Trick:</b> RISC-V extension ka letter = uske English naam ka pehla akshar: <b>M</b>ultiply, <b>A</b>tomic, <b>F</b>loat, <b>D</b>ouble, <b>C</b>ompressed, <b>V</b>ector. Naam padho, ISA samjho: RV32IMAFD = base + M + A + F + D.</p>
+<div class="yr"><b>Ek line mein:</b> RISC-V = free, open, modular RISC (Berkeley 2010); AI ke liye special ISAs (PTX, TPU) generality chhod ke efficiency jeet-te hain.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>MCQ: "defining property of RISC" / "hallmarks"</td><td>1. Fixed length + load/store = RISC. 2. Variable length, memory operands, microcode = CISC. 3. Option mein jo RISC hallmark ho woh chuno.</td></tr>
+<tr><td>MCQ: x86 instruction length</td><td>Variable, 1 to 15 bytes. (RISC: fixed 32 bits = 4 bytes.)</td></tr>
+<tr><td>Compare CISC vs RISC (5 marks)</td><td>1. Dono ki definition. 2. Table: instructions count, length, memory access, decoder, CPI, pipelining, complexity location (har row pe ek "why"). 3. Examples. 4. C = A + B; D = 2C code dono styles (5 vs 6 instructions). 5. Conclusion: complexity hardware ↔ compiler.</td></tr>
+<tr><td>Same task in CISC vs RISC code / count instructions</td><td>1. CISC: memory operand allowed (<code>add eax,[B]</code>). 2. RISC: har memory value ke liye <code>lw</code>, kaam registers pe, result ke liye <code>sw</code>. 3. Count karo (vector add 3 elements: 9 vs 12).</td></tr>
+<tr><td>Iron law numerical (CPU time)</td><td>1. T = 1/f (2 GHz → 0.5 ns). 2. Time = IC × CPI × T. 3. Units: ns → ms (÷ 10⁶). 4. Comparison mein dono ka time nikaal ke chhota wala tez.</td></tr>
+<tr><td>History / why CISC first / ARM vs x86</td><td>1. CISC first: memory mehengi, assembly haath se, compilers kamzor. 2. RISC: IBM 801, compilers + pipelining. 3. Dates: VAX 77, x86 78, MIPS 84, ARM 85, x86-64 2003, RISC-V 2010. 4. ARM = low power + licensing; x86 = compatibility. 5. Family tree draw karo.</td></tr>
+<tr><td>Code density vs pipelining (5 marks)</td><td>1. Density = CISC ka fayda (chhote programs, I-cache). 2. Thumb / RISC-V C se RISC gap bharta hai. 3. Pipelining ke 4 reasons (Fixed, Uniform, One cycle, Load/store). 4. Strength table. 5. Iron law line.</td></tr>
+<tr><td>Micro-ops (x86)</td><td>1. Diagram D10.5a. 2. <code>add [mem], eax</code> → load, add, store (3 µops). 3. Why: compatibility + RISC-style pipelining/out-of-order. 4. "Merged" points.</td></tr>
+<tr><td>RISC-V / domain-specific ISA short notes</td><td>RISC-V: open, royalty-free, modular (M A F D C V), Berkeley 2010. DSA: PTX (GPU), TPU (matrix multiply), specialisation = efficiency.</td></tr></table></div>
+</section>

@@ -1,0 +1,21 @@
+<section class="sheet">
+<h2>Last-hour cheat sheet</h2>
+<div class="cs">
+<p><b>Gates</b><br>XOR = A'B + AB' (differ) · XNOR = A'B' + AB (equal) · NAND/NOR universal</p>
+<p><b>Laws</b><br>A + AB = A · A(A + B) = A · A + A'B = A + B · AB + AB' = A<br>De Morgan: (AB)' = A' + B', (A + B)' = A'B'</p>
+<p><b>Canonical / K-map</b><br>SOP: 1 → X, 0 → X' · POS: 0 → X, 1 → X'<br>Gray 00 01 11 10 · group 2ᵏ removes k variables · corners wrap</p>
+<p><b>Universal gate counts</b><br>NAND: NOT 1, AND 2, OR 3, XOR 4 · NOR: NOT 1, OR 2, AND 3<br>SOP → NAND-NAND · POS → NOR-NOR</p>
+<p><b>MUX / decoder</b><br>2:1 Y = S'I0 + SI1 · n selects → 2ⁿ inputs · decoder Dk = mk</p>
+<p><b>Adders</b><br>HA: S = A⊕B, C = AB · FA: S = A⊕B⊕Cin, Cout = AB + Cin(A⊕B)<br>CLA: G = AB, P = A⊕B, C(i+1) = Gi + PiCi · ALU: add 0010, sub 0110</p>
+<p><b>Numbers</b><br>2's range −2ⁿ⁻¹ … 2ⁿ⁻¹ − 1 · −x = invert + 1 · MSB weight −2ⁿ⁻¹<br>A − B = A + B' + 1 · V = C3 ⊕ C4 · CF = C4 · sign-extend = copy MSB</p>
+<p><b>Latches / FFs</b><br>NOR SR: 11 forbidden · NAND SR: 00 forbidden · Q⁺ = S + R'Q<br>D latch: transparent when EN = 1 · D FF: Q⁺ = D at the edge<br>JK: Q⁺ = JQ' + K'Q · T: Q⁺ = T⊕Q · T = Q⊕Q⁺</p>
+<p><b>Timing</b><br>T_c ≥ t_pcq + t_pd + t_setup · f = 1/T_c · hold: t_ccq + t_cd ≥ t_hold<br>ring oscillator T = 2·N·t_pd · 1/ns = 1 GHz</p>
+<p><b>Counters / registers</b><br>FFs = ⌈log₂ N⌉ · ripple delay n·t_pd · bit k = f/2^(k+1)<br>T0 = 1, T1 = Q0, T2 = Q0Q1 · load enable Q⁺ = LD + L'Q<br>ring n, Johnson 2n, LFSR 2ⁿ − 1 · SIPO = UART RX, PISO = UART TX</p>
+<p><b>Register file / FSM</b><br>32 × 32, 2 read + 1 write · address bits = log₂(regs)<br>read = MUX (combinational), write = decoder + WE (clocked)<br>Moore: output in circle; Mealy: on arrow · 1011: Mealy 4 states, Moore 5</p>
+<p><b>Memory</b><br>SRAM 6T, no refresh, cache · DRAM 1T1C, refresh 64 ms, destructive read<br>refresh interval = 64 ms ÷ rows (8192 → 7.8 µs) · AMAT = hit + miss rate × penalty</p>
+<p><b>Architecture</b><br>VN: one bus (bottleneck, Backus 1977) · Harvard: two buses · modern: split L1<br>bandwidth = bits/cycle × f ÷ 8 · RISC = fixed length + load/store · CPU time = IC × CPI × T</p>
+<p><b>MIPS</b><br>R 6-5-5-5-5-6 · I 6-5-5-16 · J 6-26 · $zero 0, $v 2-3, $a 4-7, $t 8-15, $s 16-23, $sp 29, $ra 31<br>EA = rs + signext(imm) · branch = PC + 4 + imm×4 · jump = PC+4[31:28] ‖ addr ‖ 00<br>add 0x20, sub 0x22, slt 0x2A, lw 0x23, sw 0x2B, beq 4, addi 8, j 2<br>div: LO = quotient, HI = remainder · A[i] = base + 4i · jal: $ra = PC + 4</p>
+<p><b>Datapath</b><br>R: RegDst 1, ALUSrc 0, MemtoReg 0, RegWrite 1, ALUOp 10<br>lw: 0, 1, 1, 1, MemRead 1, ALUOp 00 · sw: X, 1, X, 0, MemWrite 1, 00<br>beq: X, 0, X, 0, Branch 1, ALUOp 01 · PCSrc = Branch · Zero · lw = critical path</p>
+<p><b>Pipeline</b><br>IF ID EX MEM WB · cycles = k + n − 1 · speedup → k · clock = slowest stage<br>stalls: 2 (no forwarding) / 0 (forwarding) / 1 (load-use)</p>
+</div>
+</section>

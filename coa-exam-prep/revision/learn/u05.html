@@ -1,0 +1,299 @@
+<section>
+<h2>Unit 5 · Latches, Flip-Flops &amp; Timing</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 3 aur 4 ke circuits (adder, MUX, decoder) kuch yaad nahi rakhte: input hata do, output gaya. Par computer ko yaad rakhna padta hai: agla instruction kahan hai (PC), register mein kya hai. Ye unit dikhata hai ki <b>feedback</b> (output ko wapas input mein dena) se memory kaise banti hai: SR latch → D latch → D flip-flop. Phir <b>clock</b> aata hai jo sabko ek saath, sahi time pe update karata hai, aur timing rules (setup, hold) jo batate hain clock kitna fast chal sakta hai. Unit 6 in flip-flops ko jodkar registers aur counters banayega.</div>
+
+<div class="topic"><h3>5.1 Combinational vs sequential circuits</h3>
+<div class="why"><b>Pehle socho:</b> Calculator mein 2 + 3 dabao, hamesha 5 aata hai: answer sirf <i>abhi</i> ke input pe depend karta hai. Ab TV remote ka "channel +" button socho: dabane pe channel 5 aayega ya 8, ye isse depend karta hai ki <i>pehle</i> kaunsa channel tha. TV ko pichhla channel <b>yaad</b> hai. Pehla type <b>combinational</b> hai (koi yaaddasht nahi), doosra <b>sequential</b> (yaaddasht hai). Yaaddasht aati hai <mark>feedback loop</mark> se: output ko ghuma ke wapas input mein do, to circuit apni value khud ko baar baar "bolta" rehta hai.</div>
+<div class="def"><b>Definition:</b> A <b>combinational circuit</b> is one whose outputs depend only on its present inputs. A <b>sequential circuit</b> is one whose outputs depend on the present inputs and on the past history of inputs (its stored <b>state</b>); it contains memory elements formed by feedback.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>state</dt><dd>Circuit ne jo yaad rakha hai, wo value. Counter ka state = abhi ka count (jaise 5).</dd>
+<dt>feedback loop</dt><dd>Output wire ko ghuma ke apne hi input mein jodna. Isse circuit apni value hold kar sakta hai.</dd>
+<dt>bistable</dt><dd>"Do stable haalat". Do inverters ka loop: ya to Q = 1 ya Q = 0, aur jo bhi ho usi mein tika rehta hai. 1 bit ki sabse simple memory.</dd>
+<dt>clock</dt><dd>Ek signal jo baar baar 0-1-0-1 hota rehta hai (square wave). Sequential circuit ko batata hai "<i>ab</i> update karo".</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Combinational: inputs → gates → output. Koi wire wapas nahi jaata. Example: adder, MUX, decoder, encoder.</li>
+<li>Sequential: combinational logic + memory. Memory ka output wapas logic ke input mein aata hai (feedback). Example: latch, flip-flop, register, counter, FSM.</li>
+<li><b>Bistable trace (do inverters, ek doosre mein):</b> maan lo Q = 1. Neeche wala inverter Q ko ulta karke Q' = 0 deta hai. Upar wala inverter Q' = 0 ko ulta karke 1 deta hai, jo Q hi hai. Loop poora, Q = 1 tika rehta hai.</li>
+<li>Ab maan lo Q = 0: Q' = 1, upar wala inverter 1 ko ulta karke 0 → Q = 0 phir tika. To <mark>do stable states hain: (Q, Q') = (1, 0) ya (0, 1)</mark>.</li>
+<li>Problem: is loop mein koi input hi nahi, to value badal nahi sakte. Agle topic mein inverters ki jagah NOR gates lagake S aur R inputs denge (SR latch).</li>
+</ol>
+<table class="tt"><tr><th>Combinational</th><th>Sequential</th></tr>
+<tr><td>Output = f(inputs now)</td><td>Output = f(inputs, past state)</td></tr>
+<tr><td>No memory, no feedback</td><td>Memory through a feedback loop</td></tr>
+<tr><td>Same inputs → always same output</td><td>Same inputs can give different outputs</td></tr>
+<tr><td>Adder, MUX, decoder</td><td>Latch, flip-flop, register, counter, FSM</td></tr>
+<tr><td>No clock needed</td><td>Clock decides when state updates (synchronous)</td></tr></table></div>
+<figure data-d="D5.1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein logic box: inputs andar, output bahar, bas. Right mein wahi box, par output ka ek wire ghoom ke wapas input mein jaata hai. Wahi ghoomta wire memory hai.</p>
+<figure data-d="D5.1b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Do inverters ulti dishaon mein. Upar wale ka output (Q) neeche wale ka input hai; neeche wale ka output (Q') upar wale ka input. Trace Q = 1 → Q' = 0 → Q = 1, tika hua.</p>
+<div class="ex"><b>Solved example (4 marks, "write the answer like this"):</b> <p class="qq">Distinguish between combinational and sequential circuits with block diagrams and two examples of each.</p><ol>
+<li>Draw D5.1a: left block "combinational logic" (inputs → outputs); right block "combinational logic + memory" with the feedback wire and a clock into the memory.</li>
+<li>Write: "A combinational circuit's output depends only on its present inputs; it has no memory and no feedback. Examples: full adder, 4:1 multiplexer."</li>
+<li>Write: "A sequential circuit's output depends on present inputs and on its stored state; memory is created by feedback and is usually updated by a clock edge. Examples: binary counter, register."</li>
+<li>Add the comparison table above (3 to 4 rows).</li></ol>
+<p class="ans">Answer: definitions + D5.1a + table + examples (adder, MUX / counter, register).</p></div>
+<div class="trap"><b>Galti mat karna:</b> "Bahut saare gates hain to sequential" galat hai. 64-bit adder mein hazaron gates hain par feedback nahi, isliye combinational. Counter ko gates se akele nahi bana sakte; use state chahiye. Aur combinational ka delay zero nahi hota, bas memory nahi hoti.</div>
+<p class="trick"><b>Trick:</b> "<b>Calculator = combinational, TV remote = sequential.</b>" Sawaal pucho: "kya isko pichhla value pata hona chahiye?" Haan → sequential.</p>
+<div class="yr"><b>Ek line mein:</b> Combinational = sirf abhi ke inputs; sequential = inputs + yaad kiya hua state, aur yaad feedback loop se aati hai.</div>
+</div>
+
+<div class="topic"><h3>5.2 SR latch: structure and forbidden state</h3>
+<div class="why"><b>Pehle socho:</b> Ek light ke do button: <b>S (Set)</b> dabao → light ON, <b>R (Reset)</b> dabao → light OFF, kuch mat dabao → jaisi thi waisi rehti hai (yaad hai). Dono ek saath dabana bekaar sawaal hai ("ON bhi karo aur OFF bhi?"). Ye circuit do NOR gates ko cross mein jodkar banta hai, jisse feedback milta hai.</div>
+<div class="def"><b>Definition:</b> An <b>SR latch</b> is a basic memory element made of two cross-coupled NOR gates (or NAND gates) with inputs Set and Reset: S = 1 makes Q = 1, R = 1 makes Q = 0, and S = R = 0 holds the previous value. For the NOR latch, S = R = 1 is <b>forbidden</b> because it forces Q = Q' = 0 and releasing both inputs together gives an unpredictable result.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>NOR gate</dt><dd>OR ka ulta. Output 1 sirf tab jab dono inputs 0 hon. <b>Koi bhi input 1 → output 0.</b> NOR(0, 0) = 1, NOR(1, 0) = 0, NOR(1, 1) = 0.</dd>
+<dt>cross-coupled</dt><dd>Do gates jinme har ek ka output doosre ka input hai (X ki shape mein wires).</dd>
+<dt>set / reset / hold</dt><dd>Set = Q ko 1 karo. Reset = Q ko 0 karo. Hold = jo hai wahi rakho.</dd>
+<dt>Q and Q'</dt><dd>Do outputs. Normally Q' hamesha Q ka ulta hota hai (Q = 1 → Q' = 0).</dd>
+<dt>forbidden (invalid) state</dt><dd>Input combination jo use nahi karna chahiye, kyunki output galat ya unpredictable hota hai.</dd>
+<dt>race</dt><dd>Do gates ek saath badalne ki koshish karte hain; jo thoda tez hai wo jeet jaata hai. Result pehle se pata nahi.</dd>
+<dt>active-low</dt><dd>Input 0 hone pe "dabaya hua" maana jaata hai (NAND latch mein). Naam pe bar lagta hai: S', R'.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (NOR latch: gate N1 ke inputs R aur Q', output Q; gate N2 ke inputs S aur Q, output Q'):</b><ol>
+<li><b>Set (S = 1, R = 0), shuru mein Q = 0:</b> N2 ko S = 1 mila → "koi 1 → output 0" → Q' = 0. Ab N1 ko R = 0 aur Q' = 0 mile → dono 0 → Q = 1. Ab N2 ko S = 1, Q = 1 → Q' = 0 hi rehta hai. Stable: <b>Q = 1, Q' = 0</b>.</li>
+<li><b>Reset (S = 0, R = 1), shuru mein Q = 1:</b> N1 ko R = 1 → Q = 0. N2 ko S = 0, Q = 0 → Q' = 1. N1 ko R = 1 (ab bhi) → Q = 0 tika. Stable: <b>Q = 0, Q' = 1</b>.</li>
+<li><b>Hold (S = 0, R = 0), pehle Q = 1, Q' = 0:</b> N1 ko R = 0, Q' = 0 → Q = 1. N2 ko S = 0, Q = 1 → Q' = 0. Kuch nahi badla. Agar pehle Q = 0, Q' = 1 tha: N1 ko 0, 1 → Q = 0; N2 ko 0, 0 → Q' = 1. Phir bhi kuch nahi badla. <mark>S = R = 0 pe latch pichhli value yaad rakhta hai</mark>; yahi memory hai.</li>
+<li><b>Forbidden (S = 1, R = 1):</b> N1 ko R = 1 → Q = 0. N2 ko S = 1 → Q' = 0. Ab <b>Q = Q' = 0</b>. Pehli problem: Q' ko Q ka ulta hona chahiye tha, rule toot gaya; jo circuit Q' use karta hai use galat info milti hai.</li>
+<li><b>Asli khatra, dono ko ek saath 0 karna:</b> abhi Q = Q' = 0 hai. S, R dono 0 ho gaye. N1 dekhta hai (0, 0) → Q = 1 banane chalta hai. N2 bhi (0, 0) dekhta hai → Q' = 1 banane chalta hai. Agar dono same speed ke hain to dono 1 ho jaate hain, phir dono ko ek 1 dikhta hai to dono 0 ho jaate hain: 00 → 11 → 00 → 11, <b>oscillation</b>. Real chip mein ek gate thoda tez hota hai aur wo jeet jaata hai, par kaun jeetega pata nahi. Memory jo random value store kare wo bekaar hai. Isliye 11 <b>forbidden</b>.</li>
+<li><b>NAND SR latch:</b> NAND ka rule ulta: "koi bhi input 0 → output 1". Isliye inputs active-low hain (S', R'): S' = 0 → set (Q = 1); R' = 0 → reset (Q = 0); S' = R' = 1 → hold; S' = R' = 0 → forbidden (Q = Q' = 1).</li>
+<li><b>Gated SR latch:</b> S aur R ke aage do AND gates lagao jinka doosra input E (enable) hai. E = 0 → andar S = R = 0 → hold, chahe bahar kuch bhi ho. E = 1 → normal SR latch.</li>
+<li><b>Characteristic equation (derivation):</b> Q⁺ (next Q) kab 1 hai? (a) S = 1 hai (set), ya (b) R = 0 hai aur Q pehle se 1 tha (hold kiya 1). To <b>Q⁺ = S + R'Q</b>, condition S·R = 0.</li>
+</ol>
+<table class="tt"><tr><th>S</th><th>R</th><th>Q (old)</th><th>Q⁺</th><th>Action</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td rowspan="2">hold</td></tr>
+<tr><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>0</td><td>1</td><td>x</td><td>0</td><td>reset</td></tr>
+<tr><td>1</td><td>0</td><td>x</td><td>1</td><td>set</td></tr>
+<tr><td>1</td><td>1</td><td>x</td><td>Q = Q' = 0</td><td>forbidden</td></tr></table></div>
+<figure data-d="D5.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Do NOR gates upar neeche. Upar wale gate mein R aata hai aur uska output Q hai; neeche wale mein S aata hai aur output Q'. Beech mein do tirchhe wires (X shape): Q neeche wale gate mein jaata hai, Q' upar wale mein. Trace S = 1: neeche wala gate turant 0 deta hai (Q' = 0), wo upar jaake R = 0 ke saath mil ke Q = 1 banata hai.</p>
+<figure data-d="D5.2b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Same shape, NAND gates ke saath, inputs pe bar (S', R'). S' wala gate Q banata hai. Trace S' = 0: NAND ko ek 0 mila → Q = 1.</p>
+<figure data-d="D5.2c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> S aur R pehle AND gates mein jaate hain, dono AND ko E bhi milta hai. E = 0 → dono AND ka output 0 → latch hold. E = 1 → S, R seedhe latch tak.</p>
+<div class="ex"><b>Solved example 1 (sequence trace):</b> <p class="qq">A NOR SR latch starts with Q unknown. Inputs (S, R) are applied in order: (1, 0), (0, 0), (0, 1), (0, 0), (1, 1), (0, 0). Give Q and Q' after each step.</p><ol>
+<li>(1, 0): set → Q = 1, Q' = 0.</li>
+<li>(0, 0): hold → Q = 1, Q' = 0.</li>
+<li>(0, 1): reset → Q = 0, Q' = 1.</li>
+<li>(0, 0): hold → Q = 0, Q' = 1.</li>
+<li>(1, 1): forbidden → Q = 0, Q' = 0 (dono NOR ko ek 1 mila).</li>
+<li>(0, 0) dono ek saath: race → unpredictable (simulation mein oscillate ya X).</li></ol>
+<p class="ans">Answer: Q = 1, 1, 0, 0, 0, unpredictable (Q' = 0, 0, 1, 1, 0, unpredictable).</p></div>
+<div class="ex"><b>Solved example 2 (5 marks):</b> <p class="qq">Draw an SR latch using NOR gates and explain its operation with the characteristic table. Why is S = R = 1 forbidden? How does the NAND version differ?</p><ol>
+<li>Draw D5.2a and the table above.</li>
+<li>Operation: "S = 1 forces Q' = 0, so Q = (R + Q')' = (0 + 0)' = 1 (set). R = 1 forces Q = 0 (reset). With S = R = 0 each gate keeps the other in its present state through feedback, so the latch holds."</li>
+<li>Forbidden: "S = R = 1 makes both outputs 0, so Q' is no longer the complement of Q. If both inputs then return to 0 together, the two gates race and the final state depends on tiny delay differences; it is unpredictable."</li>
+<li>NAND: "Inputs are active-low: S' = 0 sets, R' = 0 resets, S' = R' = 1 holds, and S' = R' = 0 is forbidden (Q = Q' = 1)."</li>
+<li>Equation: Q⁺ = S + R'Q with SR = 0.</li></ol>
+<p class="ans">Answer: diagram + table + set/reset/hold explanation + race explanation + NAND difference.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) NOR latch mein R ko galat gate pe lagana: <b>R us gate mein jaata hai jo Q banata hai</b> (R = 1 → Q = 0). (2) NAND latch ke inputs ko active-high samajhna. (3) Sirf "11 pe output galat hai" likhna; asli problem release pe race hai, wo zaroor likho.</div>
+<p class="trick"><b>Trick:</b> "<b>NOR: 11 mana. NAND: 00 mana.</b>" NOR ka forbidden output 00, NAND ka 11 (ulta).</p>
+<div class="yr"><b>Ek line mein:</b> Do cross-coupled NOR gates: S = 1 set, R = 1 reset, 00 hold (memory), 11 forbidden kyunki Q = Q' = 0 aur release pe race; Q⁺ = S + R'Q.</div>
+</div>
+
+<div class="topic"><h3>5.3 D latch (level-triggered)</h3>
+<div class="why"><b>Pehle socho:</b> SR latch ki do pareshaniyan: do alag control wires, aur 11 ka khatra. Hal: sirf <b>ek data wire D</b> rakho, aur S = D, R = D' bana do. Ab S aur R kabhi ek saath 1 ho hi nahi sakte. Upar se ek <b>EN (enable)</b> lagao. Socho ek khidki: jab khuli hai (EN = 1) to andar wala bahar jo bhi ho raha hai sab dekhta hai; jab band hai (EN = 0) to aakhri dekhi hui tasveer yaad rehti hai.</div>
+<div class="def"><b>Definition:</b> A <b>D latch</b> is a gated latch with a data input D and an enable EN, built from an SR latch with S = D·EN and R = D'·EN. While EN = 1 it is <b>transparent</b> (Q follows D); while EN = 0 it holds the last value. It is <b>level-triggered</b>.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>D (data)</dt><dd>Wo bit jo store karna hai.</dd>
+<dt>EN (enable)</dt><dd>Khidki ka switch. 1 = khuli, 0 = band.</dd>
+<dt>transparent</dt><dd>"Aar-paar dikhna". EN = 1 pe Q = D, D badle to Q bhi turant badle.</dd>
+<dt>opaque / hold</dt><dd>EN = 0 pe Q freeze, D kuch bhi kare.</dd>
+<dt>level-triggered</dt><dd>EN ke <i>level</i> (1 rehne ke poore time) pe kaam karta hai, kisi ek instant pe nahi.</dd>
+<dt>glitch</dt><dd>Signal mein chhoti si galat jhatka (0 → 1 → 0 bahut thode time ke liye).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Andar: S = D·EN, R = D'·EN (do AND gates + ek inverter), phir SR latch.</li>
+<li><b>EN = 0:</b> S = D·0 = 0, R = D'·0 = 0 → SR latch hold. Q purana hi.</li>
+<li><b>EN = 1, D = 1:</b> S = 1, R = 0 → set → Q = 1.</li>
+<li><b>EN = 1, D = 0:</b> S = 0, R = 1 → reset → Q = 0.</li>
+<li>Kya S = R = 1 ho sakta hai? Uske liye D = 1 aur D' = 1 dono chahiye, jo impossible hai. <mark>Forbidden state construction se hi khatam</mark>.</li>
+<li>Equation: Q⁺ = EN·D + EN'·Q (EN = 1 → D, EN = 0 → Q).</li>
+<li>Kami: jab tak EN = 1 hai, D ka har badlav (glitch bhi) Q tak pahunch jaata hai. Agar do latches line mein hon aur dono ki khidki ek saath khuli ho, data ek hi baar mein dono paar kar jaata hai. Isliye CPU pipelines mein edge-triggered flip-flop use hote hain.</li>
+</ol>
+<table class="tt"><tr><th>EN</th><th>D</th><th>S</th><th>R</th><th>Q⁺</th></tr>
+<tr><td>0</td><td>x</td><td>0</td><td>0</td><td>Q (hold)</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>1</td><td>1</td><td>1</td><td>0</td><td>1</td></tr></table></div>
+<figure data-d="D5.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> D upar wale AND mein seedha jaata hai (S banta hai) aur inverter se hokar neeche wale AND mein (R banta hai). Dono AND ko EN milta hai. Trace EN = 1, D = 1: S = 1, R = 0 → Q = 1. EN = 0: dono AND 0 → hold.</p>
+<figure data-d="D5.3b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Teen rows: EN, D, Q. Hare shaded hisse wo time hain jab EN = 1 (transparent): wahan Q bilkul D ki copy hai, D ke saath upar neeche. EN = 0 wale hisse ("holding") mein Q seedhi line hai, us value pe jo D ki thi jab EN gira. Pehle window ke end mein D = 0 tha, isliye beech mein Q = 0 rehta hai, chahe D upar neeche hota rahe.</p>
+<div class="ex"><b>Solved example (waveform question):</b> <p class="qq">A D latch has Q = 0 initially. EN = 1 from t = 10 ns to 20 ns and 0 otherwise. D is 0 until 12 ns, 1 from 12 ns to 18 ns, and 0 after 18 ns. Sketch Q. What is Q after 20 ns?</p><ol>
+<li>t &lt; 10 ns: EN = 0 → hold → Q = 0.</li>
+<li>10 to 12 ns: EN = 1, D = 0 → Q = 0.</li>
+<li>12 ns: D 0 → 1, khidki khuli → Q turant 1.</li>
+<li>18 ns: D 1 → 0 → Q turant 0.</li>
+<li>20 ns: EN gira. Us waqt D = 0 → Q = 0 freeze.</li>
+<li>Uske baad D kuch bhi kare, Q = 0.</li></ol>
+<p class="ans">Answer: Q = 0 till 12 ns, 1 from 12 to 18 ns, 0 after; Q after 20 ns = 0.</p></div>
+<div class="trap"><b>Galti mat karna:</b> D latch ko "edge-triggered" mat bolo. Ye EN = 1 ke <b>poore time</b> D copy karta hai, ek instant pe sample nahi karta. Q tab ki value hold karta hai jab EN <b>gira</b>, na ki jab utha.</div>
+<p class="trick"><b>Trick:</b> "<b>Latch = khidki (level), flip-flop = camera click (edge).</b>"</p>
+<div class="yr"><b>Ek line mein:</b> D latch = SR latch with S = D·EN, R = D'·EN; EN = 1 pe transparent (Q = D), EN = 0 pe hold, aur forbidden state possible hi nahi.</div>
+</div>
+
+<div class="topic"><h3>5.4 D flip-flop (edge-triggered)</h3>
+<div class="why"><b>Pehle socho:</b> Latch ki khidki poore EN = 1 time khuli rehti hai, isliye galat jhatke bhi andar aa jaate hain. Hum chahte hain ki data sirf <b>ek instant</b> pe liya jaaye, jaise camera flash: click ke pal ki photo, baaki time kuch record nahi. Wo instant hai <b>clock edge</b>. Poore chip ke saare flip-flops ek hi clock edge pe update hote hain, to sab kuch ek taal mein chalta hai, jaise drum beat pe march karte soldiers.</div>
+<div class="def"><b>Definition:</b> A <b>D flip-flop</b> is an edge-triggered memory element that copies its D input to Q only at the active edge of the clock (usually the rising edge) and keeps Q constant at all other times. Its characteristic equation is Q(n+1) = D. It is commonly built as a <b>master-slave</b> pair of D latches enabled on opposite clock phases.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>clock (CLK)</dt><dd>Square wave: 0, 1, 0, 1 barabar time ke liye. Har cycle = ek "beat".</dd>
+<dt>period T, frequency f</dt><dd>Ek cycle ka time = T. Ek second mein kitne cycles = f = 1/T. T = 1 ns → f = 1 GHz. 3 GHz → T ≈ 0.33 ns.</dd>
+<dt>rising edge / falling edge</dt><dd>Clock ka 0 → 1 hona = rising (positive) edge. 1 → 0 = falling (negative) edge.</dd>
+<dt>edge-triggered</dt><dd>Sirf edge ke instant pe kaam karta hai. Symbol mein clock pin pe chhota triangle (▷) = edge-triggered.</dd>
+<dt>master / slave</dt><dd>Flip-flop ke andar ke do latches. Master pehle data pakadta hai, slave use output pe dikhata hai.</dd>
+<dt>ring oscillator</dt><dd>Odd number (3, 5, 7) inverters ka loop. Kabhi stable nahi hota, apne aap 0-1-0-1 karta rehta hai: clock banane ka simple tareeka.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Behaviour:</b> rising edge pe D ki jo value hai wo Q mein copy. Do edges ke beech D chahe 10 baar badle, Q nahi badalta.</li>
+<li><b>Master-slave, saral shabdon mein:</b> do darwaze wala airlock socho (ya canal lock): <mark>dono darwaze kabhi ek saath nahi khulte</mark>. Pehla darwaza (master latch) aur doosra (slave latch) ulte clock phases pe khulte hain (ek ko CLK, doosre ko CLK' milta hai).</li>
+<li><b>CLK = 0 (textbook / Harris version):</b> master khula (transparent), uska output Qm D ke peeche peeche chalta hai. Slave band, Q purana hold.</li>
+<li><b>CLK 0 → 1 (rising edge):</b> master band ho jaata hai, aur us instant D ki jo value thi wo Qm mein phas jaati hai. Usi samay slave khulta hai aur Qm ko Q pe dikha deta hai. Q badla, sirf edge pe.</li>
+<li><b>CLK = 1:</b> master band hai, to D ke naye badlav andar nahi aate. Slave khula hai par Qm fixed hai, isliye Q fixed.</li>
+<li><b>CLK 1 → 0:</b> slave band (Q hold), master phir khul jaata hai. Cycle repeat. Result: <b>Q sirf rising edge pe badalta hai</b>.</li>
+<li><b>Class slide version:</b> master CLK = 1 pe khula, slave CLK = 0 pe. Tab Q <b>falling edge</b> pe badalta hai (negative-edge FF). Class MCQ ka answer: "falling edge". Exam mein apna convention likh do.</li>
+<li><b>Cost:</b> flip-flop = 2 latches ≈ 2× gates, par timing predictable. Har register, PC, pipeline register D flip-flops ki row hai.</li>
+<li><b>Ring oscillator se clock:</b> N inverters (odd) ka loop. Signal ko poora period banane ke liye loop do baar ghoomna padta hai (ek baar 1 → 0, ek baar 0 → 1), isliye T = 2·N·t<sub>pd</sub>. Even N hota to wo bistable ban jaata (5.1), oscillate nahi karta.</li>
+<li><b>Verilog:</b> <code>always @(posedge clk) q &lt;= d;</code> (clocked block mein non-blocking <code>&lt;=</code>).</li>
+</ol></div>
+<figure data-d="D5.4c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left box master latch, right box slave latch. D master mein jaata hai, master ka Q slave ka D hai, slave ka Q final output. CLK neeche se aata hai: slave ke EN mein seedha, aur master ke EN mein inverter se hokar (master ko CLK' milta hai), isliye ek khula to doosra band. Neeche likha hai: CLK = 0 master transparent; rising edge pe slave Q update karta hai. Grey line class version (falling edge) batati hai.</p>
+<figure data-d="D5.4d"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Box mein D (input), Q aur Q' (outputs), aur clock pin pe triangle. Triangle dekho to samjho "edge-triggered flip-flop", bina triangle "latch".</p>
+<figure data-d="D5.4e"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Teen rows: CLK, D, Q. Dashed lines rising edges pe hain (time 1, 3, 5, 7, 9). Har dashed line pe D ki value padho; Q us value pe chala jaata hai aur agli dashed line tak wahi rehta hai.</p>
+<div class="ex"><b>Solved example 1 (timing trace, class slide):</b> <p class="qq">Rising clock edges at t = 1, 3, 5, 7, 9. D = 0 before t = 2, 1 from t = 2 to 4, 0 from t = 4 to 8, and 1 after t = 8. Q starts at 0. Draw Q.</p>
+<table class="tt"><tr><th>Edge at t</th><th>D at that instant</th><th>Q after edge</th><th>Kya hua</th></tr>
+<tr><td>1</td><td>0</td><td>0</td><td>D = 0 copy</td></tr>
+<tr><td>3</td><td>1</td><td>1</td><td>D t = 2 pe 1 hua tha, par Q ne edge 3 tak wait kiya</td></tr>
+<tr><td>5</td><td>0</td><td>0</td><td>D t = 4 pe 0 hua, Q edge 5 pe gira</td></tr>
+<tr><td>7</td><td>0</td><td>0</td><td>D abhi bhi 0, koi badlav nahi</td></tr>
+<tr><td>9</td><td>1</td><td>1</td><td>D t = 8 pe 1 hua, Q edge 9 pe utha</td></tr></table>
+<ol><li>Har rising edge pe vertical line kheencho.</li>
+<li>Har line pe D padho (upar table ka column 2).</li>
+<li>Q ko us value pe le jao aur agli line tak flat rakho.</li>
+<li>Dhyan do: D ke badlav (t = 2, 4, 8) Q ko turant nahi badalte; Q hamesha agle edge pe badalta hai.</li></ol>
+<p class="ans">Answer: Q = 0, 1, 0, 0, 1 after the five edges (string 01001).</p></div>
+<figure data-d="D5.4f"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Same CLK/EN aur same D, do outputs. "Q latch" har us time D ke saath hilta hai jab CLK = 1 hai (beech mein 0 → 1 → 0 sab dikhta hai). "Q FF" sirf rising edges (dashed) pe D padhta hai; pehle teen edges pe D = 0 tha isliye 0, aakhri edge pe D = 1 to Q = 1. Same input, alag output: yahi latch vs flip-flop ka farq hai.</p>
+<div class="ex"><b>Solved example 2 (NAT):</b> <p class="qq">A ring oscillator has 5 inverters, each with 20 ps delay. Find its frequency. (Mock variant: 7 inverters of 10 ps.)</p><ol>
+<li>T = 2 × N × t<sub>pd</sub> = 2 × 5 × 20 ps = 200 ps.</li>
+<li>f = 1 / 200 ps. 1 / 1 ps = 1000 GHz, isliye f = 1000 / 200 = 5 GHz.</li>
+<li>Mock: T = 2 × 7 × 10 = 140 ps → f = 1000 / 140 = 7.14 GHz.</li></ol>
+<p class="ans">Answer: 5 GHz (mock: 7.14 GHz).</p></div>
+<div class="ex"><b>Solved example 3 (5 marks, model answer):</b> <p class="qq">Explain the master-slave D flip-flop with a neat diagram, sketch Q for given CLK and D, and compare latch and flip-flop.</p><ol>
+<li>Draw D5.4c (two D latches in series, CLK to one, CLK' to the other).</li>
+<li>"The master is transparent while CLK = 0 and the slave holds. At the rising edge the master closes, capturing D, and the slave opens and passes this value to Q. While CLK = 1 the master is closed, so changes on D cannot reach Q. Hence Q changes only at the clock edge. (If the master is enabled on CLK = 1, as in the class slide, Q changes at the falling edge.)"</li>
+<li>Waveform: mark every active edge, read D there, hold that value until the next edge (D5.4e).</li>
+<li>Comparison: latch is level-triggered, transparent while enabled, passes glitches, fewer gates; flip-flop is edge-triggered, never transparent, ignores glitches between edges, about twice the gates, used for registers and pipelines.</li></ol>
+<p class="ans">Answer: diagram + operation + waveform + 4-point comparison.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Master-slave mein dono latches ek saath khulte hain" galat: kabhi nahi. (2) Edge convention mix karna: class MCQ = falling edge, textbook diagram = rising edge; dono yaad rakho, answer mein convention likho. (3) Waveform mein D ke badalte hi Q badal dena: wo latch hai, flip-flop nahi.</div>
+<p class="trick"><b>Trick:</b> "<b>Edge pe dekho, agle edge tak rakho.</b>" Waveform ke liye bas itna.</p>
+<div class="yr"><b>Ek line mein:</b> D flip-flop sirf clock edge pe Q = D karta hai (Q(n+1) = D), andar do latches ulte phases pe hain jo kabhi ek saath nahi khulte.</div>
+</div>
+
+<div class="topic"><h3>5.5 Setup time, hold time, metastability</h3>
+<div class="why"><b>Pehle socho:</b> Camera se chalti cheez ki photo lo. Shutter click hone se <b>thoda pehle</b> se aur <b>thoda baad</b> tak cheez ko hilna nahi chahiye, warna photo blur. Aur photo screen pe click ke <b>thodi der baad</b> aati hai. Flip-flop bhi yahi hai: clock edge = shutter. D ko edge se pehle kuch time (setup) aur baad kuch time (hold) stable rehna chahiye, aur Q edge ke kuch time baad (clock-to-Q) badalta hai. Agar D "hil gaya" to output blur jaisa: na 0 na 1, ise <b>metastability</b> kehte hain.</div>
+<div class="def"><b>Definition:</b> <b>Setup time</b> (t<sub>setup</sub>) is the minimum time the D input must be stable before the active clock edge; <b>hold time</b> (t<sub>hold</sub>) is the minimum time it must remain stable after the edge; <b>clock-to-Q delay</b> (t<sub>pcq</sub>) is the time from the edge until Q shows the new value. <b>Metastability</b> is a condition, caused by a setup or hold violation, in which the flip-flop output stays between 0 and 1 for an unpredictable time before settling to either value.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>setup violation</dt><dd>D edge ke bahut paas (late) badla: data der se pahuncha. Kaaran: logic path bahut slow / clock bahut fast.</dd>
+<dt>hold violation</dt><dd>D edge ke turant baad badal gaya: naya data bahut jaldi aa gaya. Kaaran: path bahut fast (short path).</dd>
+<dt>t<sub>pd</sub> (logic delay)</dt><dd>Combinational logic ka sabse lamba (worst) delay. t<sub>cd</sub> = sabse chhota delay.</dd>
+<dt>critical path</dt><dd>Do flip-flops ke beech sabse lamba (slowest) path. Yahi max clock speed decide karta hai.</dd>
+<dt>asynchronous input</dt><dd>Aisa signal jo clock se tune nahi hai (button press, doosre clock wala chip). Ye kabhi na kabhi setup/hold window mein badlega hi.</dd>
+<dt>synchronizer</dt><dd>2 ya 3 flip-flops ki line jo async signal ko apne clock ke saath "safe" banati hai.</dd>
+<dt>MTBF</dt><dd>Mean Time Between Failures: average kitne time mein ek baar failure. Synchronizer se ise hazaron saal kar dete hain.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Edge se t<sub>setup</sub> pehle se t<sub>hold</sub> baad tak ek "window" hai; is window mein D flat (stable) hona chahiye.</li>
+<li>Edge ke t<sub>pcq</sub> baad Q naya value dikhata hai.</li>
+<li><b>Max clock frequency (derivation):</b> path: FF1 → logic → FF2, dono same clock. Edge 1 pe FF1 data launch karta hai. (a) FF1 ka Q t<sub>pcq</sub> baad aata hai. (b) Logic se guzarne mein t<sub>pd</sub>. (c) FF2 pe agle edge se t<sub>setup</sub> pehle pahunchna zaroori. To ek clock period mein ye teeno fit hone chahiye: <b>T<sub>c</sub> ≥ t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub></b>, aur f<sub>max</sub> = 1 / T<sub>c</sub>.</li>
+<li><b>Hold check:</b> edge pe FF1 ka naya data sabse fast path se FF2 tak pahunche, wo FF2 ke hold time ke baad hi pahunchna chahiye: <b>t<sub>ccq</sub> + t<sub>cd</sub> ≥ t<sub>hold</sub></b>. Isme T<sub>c</sub> hai hi nahi, isliye <mark>clock slow karne se hold violation theek nahi hota</mark>; short path mein buffers (delay) daalo.</li>
+<li><b>Metastability (ball on hill):</b> do ghaatiyan (0 aur 1) aur beech mein pahaadi. Normal mein gend kisi ghaati mein. Violation pe gend pahaadi ki choti pe ruk jaati hai: kab aur kis taraf giregi, pata nahi.</li>
+<li><b>Synchronizer:</b> async signal pehle FF1 mein, FF1 ka output FF2 mein, dono receiving clock pe. FF1 metastable ho bhi jaaye, to uske paas settle hone ke liye ek poora clock period hai, uske baad hi FF2 sample karta hai. Ek period ke baad bhi metastable rehne ka chance bahut hi kam hai. Metastability <b>khatam nahi hoti</b>, sirf bahut rare ho jaati hai.</li>
+<li>Overclocking T<sub>c</sub> ko chhota karta hai → setup margin khatam → setup failures.</li>
+</ol></div>
+<figure data-d="D5.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Ek rising edge (beech mein). Edge se pehle ka shaded hissa t<sub>setup</sub>, baad ka t<sub>hold</sub>; is poore hisse mein D row flat ("D stable") hai. Q row edge ke t<sub>cq</sub> baad naya value ("new Q") dikhata hai.</p>
+<figure data-d="D5.5b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Do hare gend ghaatiyon mein = stable 0 aur stable 1. Laal gend choti pe = metastable. Teer dikhate hain ki wo kisi bhi taraf gir sakti hai, unpredictable time ke baad.</p>
+<figure data-d="D5.5c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Async input left se FF1 ke D mein. FF1 ka Q FF2 ke D mein. Dono ko same (receiving) clock. Safe output FF2 ke Q se lo, FF1 se kabhi nahi.</p>
+<div class="fx"><b>Formula:</b> <b>T<sub>c</sub> ≥ t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub></b>, f<sub>max</sub> = 1 / T<sub>c</sub> &nbsp;·&nbsp; <b>Hold: t<sub>ccq</sub> + t<sub>cd</sub> ≥ t<sub>hold</sub></b><br><small>Unit trick: f (GHz) = 1 / T (ns) = 1000 / T (ps).</small></div>
+<div class="ex"><b>Solved example 1 (class homework):</b> <p class="qq">A path has 0.28 ns delay (including clock-to-Q) and setup time is 0.05 ns. Fastest safe clock?</p><ol>
+<li>T<sub>c,min</sub> = 0.28 + 0.05 = 0.33 ns.</li>
+<li>f = 1 / 0.33 ns = 3.03 GHz (1 / ns = GHz).</li></ol>
+<p class="ans">Answer: ≈ 3.03 GHz.</p></div>
+<div class="ex"><b>Solved example 2 (mock NAT + hold check):</b> <p class="qq">(i) t<sub>pcq</sub> = 50 ps, worst logic delay 300 ps, t<sub>setup</sub> = 50 ps. Max frequency? (ii) Another path: t<sub>ccq</sub> = 30 ps, t<sub>cd</sub> = 10 ps, t<sub>hold</sub> = 50 ps. Is hold met?</p><ol>
+<li>(i) T = 50 + 300 + 50 = 400 ps.</li>
+<li>f = 1000 / 400 = 2.5 GHz.</li>
+<li>(ii) Data jaldi se jaldi pahunchta hai 30 + 10 = 40 ps mein.</li>
+<li>Hold chahiye 50 ps. 40 &lt; 50 → <b>hold violation</b>.</li>
+<li>Fix: short path mein kam se kam 10 ps ka buffer delay daalo. Clock slow karna kaam nahi karega.</li></ol>
+<p class="ans">Answer: (i) 2.5 GHz (ii) violated; add delay to the short path.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Clock slow karo, hold violation theek" galat: hold mein clock period aata hi nahi. (2) f<sub>max</sub> mein t<sub>pcq</sub> bhool jaana. (3) "Synchronizer metastability eliminate kar deta hai" galat: sirf probability ghatata hai.</div>
+<p class="trick"><b>Trick:</b> "<b>Setup = pehle, hold = baad.</b> Slow clock setup bachata hai, hold nahi."</p>
+<div class="yr"><b>Ek line mein:</b> D ko edge se t<sub>setup</sub> pehle se t<sub>hold</sub> baad tak stable rehna chahiye; T<sub>c</sub> ≥ t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub>; violation se metastability, jise 2-FF synchronizer rare banata hai.</div>
+</div>
+
+<div class="topic"><h3>5.E1 JK and T flip-flops; characteristic and excitation tables</h3>
+<div class="why"><b>Pehle socho:</b> SR flip-flop ka 11 input bekaar (forbidden) tha. Kyun na us input ko koi kaam de diya jaaye? JK flip-flop mein 11 ka matlab "<b>ulta kar do</b>" (toggle). Aur agar J aur K ko jod do to ek hi input T bachta hai: T = 1 → toggle, T = 0 → hold. Toggle karne wala flip-flop har clock pe ulta hota hai, matlab clock ki aadhi speed: counters isi se bante hain (Unit 6).</div>
+<div class="def"><b>Definition:</b> A <b>JK flip-flop</b> behaves like an SR flip-flop (J = set, K = reset) except that J = K = 1 toggles the output; its characteristic equation is Q⁺ = JQ' + K'Q. A <b>T (toggle) flip-flop</b> toggles when T = 1 and holds when T = 0; Q⁺ = T ⊕ Q. An <b>excitation table</b> lists the inputs required to produce a given transition Q → Q⁺.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>toggle</dt><dd>Ulta karna: Q = 0 → 1, Q = 1 → 0.</dd>
+<dt>characteristic table / equation</dt><dd>"Inputs diye, next Q kya hoga?" Q⁺ ka formula.</dd>
+<dt>excitation table</dt><dd>Ulta sawaal: "Q ko 0 se 1 le jaana hai, input kya do?" Counter design mein use hota hai.</dd>
+<dt>X (don't care)</dt><dd>0 ho ya 1, farq nahi padta.</dd>
+<dt>Q⁺</dt><dd>Clock edge ke baad ka Q (next state). Q(n+1) bhi likhte hain.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>JK table:</b> J K = 00 → hold (Q⁺ = Q); 01 → reset (0); 10 → set (1); 11 → toggle (Q⁺ = Q').</li>
+<li><b>JK equation derivation:</b> 8 rows (J, K, Q) likho aur Q⁺ = 1 wali rows chuno: (J K Q) = 001, 100, 101, 110. Group 1: J = 1 aur Q = 0 (rows 100, 110; K kuch bhi) → <b>JQ'</b>. Group 2: K = 0 aur Q = 1 (rows 001, 101; J kuch bhi) → <b>K'Q</b>. Chaaron rows cover ho gayi (100 aur 110 group 1 mein; 001 aur 101 group 2 mein). <b>Q⁺ = JQ' + K'Q</b>. Check J = K = 1, Q = 1: 1·0 + 0·1 = 0 (toggle) ✓.</li>
+<li><b>Andar se JK:</b> SR core ke aage AND gates: S = J·Q', R = K·Q. Q = 0 ho to sirf J kaam karta hai (set ho sakta hai), Q = 1 ho to sirf K (reset). Isliye J = K = 1 pe jo bhi Q hai uska ulta hota hai.</li>
+<li><b>T table aur equation:</b> T = 0 → Q⁺ = Q; T = 1 → Q⁺ = Q'. Rows: (T, Q) = (0, 0) → 0; (0, 1) → 1; (1, 0) → 1; (1, 1) → 0. Q⁺ = 1 jab T aur Q alag hon → <b>Q⁺ = T ⊕ Q</b> (= T'Q + TQ').</li>
+<li><b>T banana:</b> JK se: J = K = T (00 hold, 11 toggle). D se: D = T ⊕ Q (XOR gate D ke aage).</li>
+<li><b>Excitation (ulta padhna):</b> D ke liye D = Q⁺ (jo chahiye wahi do). T ke liye T = Q ⊕ Q⁺ (badalna hai to 1). JK ke liye: 0 → 1 chahiye to J = 1 (K = X, kyunki set ya toggle dono 1 denge); 1 → 0 chahiye to K = 1 (J = X).</li>
+</ol>
+<table class="tt"><tr><th>J</th><th>K</th><th>Q⁺</th><th>Action</th><th></th><th>T</th><th>Q⁺</th><th>Action</th></tr>
+<tr><td>0</td><td>0</td><td>Q</td><td>hold</td><td></td><td>0</td><td>Q</td><td>hold</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>reset</td><td></td><td>1</td><td>Q'</td><td>toggle</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>set</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>1</td><td>1</td><td>Q'</td><td>toggle</td><td></td><td></td><td></td><td></td></tr></table>
+<table class="tt"><tr><th>Q → Q⁺</th><th>D</th><th>T</th><th>J K</th><th>S R</th></tr>
+<tr><td>0 → 0</td><td>0</td><td>0</td><td>0 X</td><td>0 X</td></tr>
+<tr><td>0 → 1</td><td>1</td><td>1</td><td>1 X</td><td>1 0</td></tr>
+<tr><td>1 → 0</td><td>0</td><td>1</td><td>X 1</td><td>0 1</td></tr>
+<tr><td>1 → 1</td><td>1</td><td>0</td><td>X 0</td><td>X 0</td></tr></table></div>
+<figure data-d="D5.E1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> J ek AND mein Q' ke saath jaata hai (S banta hai), K doosre AND mein Q ke saath (R banta hai). Outputs se feedback wires wapas AND gates tak aate hain. Trace Q = 1, J = K = 1: S = 1·0 = 0, R = 1·1 = 1 → reset → Q = 0 (toggle hua).</p>
+<figure data-d="D5.E1b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left: JK box jiske J aur K ek hi wire T se jude hain. Right: D box ke aage XOR gate jiske inputs T aur Q hain. Dono mein T = 1 → toggle, T = 0 → hold.</p>
+<div class="fx"><b>Formula:</b> SR: Q⁺ = S + R'Q (SR = 0) · D: Q⁺ = D · JK: Q⁺ = JQ' + K'Q · T: Q⁺ = T ⊕ Q<br><small>Excitation: D = Q⁺, T = Q ⊕ Q⁺. Uses: D for registers and pipelines, T for counters and dividers, JK general purpose; real chips and FPGAs use D flip-flops almost always.</small></div>
+<div class="ex"><b>Solved example (5 marks):</b> <p class="qq">Write the characteristic equations of SR, D, JK and T flip-flops and their excitation tables. Show how to convert a JK flip-flop into a T flip-flop.</p><ol>
+<li>List the four equations in the formula box above.</li>
+<li>Draw the excitation table (Q → Q⁺ vs D, T, JK, SR) above.</li>
+<li>JK → T: required behaviour T = 0 hold, T = 1 toggle. JK hold = 00, JK toggle = 11. So connect J = K = T.</li>
+<li>Check with equation: Q⁺ = TQ' + T'Q = T ⊕ Q ✓.</li></ol>
+<p class="ans">Answer: as above; JK → T by tying J and K together (D → T: D = T ⊕ Q).</p></div>
+<div class="trap"><b>Galti mat karna:</b> JK 11 ko forbidden mat likho (wo SR ka hai); JK mein 11 = toggle. Aur T excitation mein 1 → 1 ke liye T = 0 (koi badlav nahi), 1 nahi.</div>
+<p class="trick"><b>Trick:</b> JK: "<b>00 so jao, 01 zero, 10 one, 11 ulat do.</b>" T: "<b>T = 1 = toggle.</b>"</p>
+<div class="yr"><b>Ek line mein:</b> JK = SR jisme 11 toggle hai (Q⁺ = JQ' + K'Q); T = 1 pe toggle (Q⁺ = T ⊕ Q); excitation table batati hai transition ke liye kaunsa input chahiye.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Combinational vs sequential (identify / distinguish)</td><td>1. Pucho: pichhla value chahiye? Haan → sequential. 2. Definitions + D5.1a + table + 2 examples each.</td></tr>
+<tr><td>SR latch output for given S, R (NOR / NAND)</td><td>1. NOR: 10 set, 01 reset, 00 hold, 11 forbidden (Q = Q' = 0). 2. NAND: active-low, 11 hold, 00 forbidden (Q = Q' = 1). 3. Sequence: har step pe pichhla Q yaad rakho.</td></tr>
+<tr><td>Why is S = R = 1 forbidden?</td><td>1. Q = Q' = 0, complement rule tootta hai. 2. Dono ek saath 0 → race → unpredictable / oscillation.</td></tr>
+<tr><td>D latch waveform</td><td>1. EN = 1 ke hisse shade karo. 2. Andar Q = D (copy). 3. EN girne pe jo D tha wahi Q hold.</td></tr>
+<tr><td>D flip-flop waveform</td><td>1. Har active edge pe line. 2. Wahan D padho. 3. Agli line tak wahi Q. 4. Beech ke D badlav ignore.</td></tr>
+<tr><td>Master-slave explanation (which edge?)</td><td>1. Do latches, ulte clock phases, kabhi ek saath nahi khulte. 2. Master CLK = 0 pe khula → rising edge FF; class version master CLK = 1 → falling edge. 3. Diagram D5.4c.</td></tr>
+<tr><td>Latch vs flip-flop comparison</td><td>Level vs edge; transparent vs never; glitches pass vs ignored; ~1× vs ~2× gates; latch for SRAM / time borrowing, FF for registers and pipelines.</td></tr>
+<tr><td>f<sub>max</sub> numerical</td><td>1. T = t<sub>pcq</sub> + t<sub>pd</sub> + t<sub>setup</sub>. 2. f = 1000 / T(ps) GHz ya 1 / T(ns) GHz.</td></tr>
+<tr><td>Hold violation check / fix</td><td>1. t<sub>ccq</sub> + t<sub>cd</sub> ≥ t<sub>hold</sub>? 2. Nahi → short path mein buffer delay; clock slow karna kaam nahi karta.</td></tr>
+<tr><td>Ring oscillator frequency</td><td>1. T = 2 × N × t<sub>pd</sub>. 2. f = 1 / T. 3. N odd hona chahiye.</td></tr>
+<tr><td>Metastability / synchronizer theory</td><td>1. Definition (violation → beech mein atka output, unpredictable time). 2. Ball on hill. 3. 2-FF synchronizer: FF1 ko ek period settle karne ko milta hai. 4. Eliminate nahi, sirf rare.</td></tr>
+<tr><td>JK / T tables, equations, conversion</td><td>1. Tables ratt lo. 2. Q⁺ = 1 wali rows se group karke equation. 3. JK → T: J = K = T; D → T: D = T ⊕ Q. 4. Excitation: D = Q⁺, T = Q ⊕ Q⁺.</td></tr>
+</table></div>
+</section>

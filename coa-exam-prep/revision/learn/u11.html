@@ -1,0 +1,379 @@
+<section>
+<h2>Unit 11 · MIPS Registers &amp; Instruction Formats</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 10 mein humne kaha "RISC = fixed 32-bit, load/store". Ab ek asli RISC, <b>MIPS</b>, ko andar se dekhte hain: CPU ke paas 32 registers hain (har ek ka kaam software ne tay kiya hai), aur har instruction 32 bits ka hai jo teen "formats" (R, I, J) mein se ek mein bata hota hai. Is unit ke baad tum koi bhi MIPS instruction ko binary/hex mein badal paoge aur hex ko wapas assembly mein. Unit 12 mein inhi instructions se C program likhenge, aur Unit 13 mein dekhenge ki hardware in fields ko kaise use karta hai.</div>
+
+<div class="topic"><h3>11.1 Why MIPS for teaching</h3>
+<div class="why"><b>Pehle socho:</b> Gaadi chalana seekhna ho to log pehle simple manual car pe seekhte hain, Formula-1 pe nahi. Ek baar clutch-gear samajh gaye to koi bhi gaadi chala loge. MIPS computer architecture ki "simple manual car" hai: <mark>sirf 3 formats, har instruction 32 bits</mark>, poora ek hafte mein seekh sakte ho, aur yahi soch RISC-V aur ARM mein seedhi kaam aati hai.</div>
+<div class="def"><b>Definition:</b> <b>MIPS</b> (Microprocessor without Interlocked Pipeline Stages) is a classic RISC ISA from Stanford (John Hennessy, 1984) with 32 general-purpose 32-bit registers, fixed 32-bit instructions in three formats (R, I, J) and a load/store memory model. It is used for teaching because it is clean, small and well supported by simulators and textbooks.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Format</dt><dd>32 bits ko alag-alag hisson (fields) mein baantne ka tareeka. MIPS mein sirf 3: R, I, J.</dd>
+<dt>MARS / SPIM</dt><dd>Computer pe chalne wale MIPS simulators. Code likho, ek-ek line chalao (single-step), har register ki value dekho. Lab mein MARS 4.5.</dd>
+<dt>Patterson &amp; Hennessy (P&amp;H)</dt><dd>Course ki textbook "Computer Organization and Design"; iska datapath aur pipeline MIPS pe bana hai (Units 13 to 15).</dd>
+</dl></div>
+<div class="how"><b>Kyun MIPS (4 reasons, exam mein yahi likho):</b><ol>
+<li><b>Clean, fixed-width design:</b> har instruction 32 bits, sirf 3 formats → poora ISA chhota, seekhna aasaan.</li>
+<li><b>Tooling:</b> MARS simulator mein step-by-step chala ke har register dekh sakte ho.</li>
+<li><b>Textbook:</b> P&amp;H ka datapath aur pipeline MIPS pe bana hai.</li>
+<li><b>Transferable:</b> registers + formats wali soch RISC-V aur ARM mein waise hi chalti hai; sirf syntax badalta hai.</li>
+<li><b>Real history:</b> Stanford 1984; SGI workstations, PlayStation 1 (R3000A), Nintendo 64 (VR4300), PS2 (R5900) mein chala.</li>
+</ol></div>
+<div class="ex"><b>Solved example (direct):</b> <p class="qq">How many bytes long is every MIPS instruction, and how many instruction formats does MIPS have?</p><ol>
+<li>Har instruction 32 bits.</li>
+<li>1 byte = 8 bits, to 32 / 8 = 4 bytes. Isliye agla instruction PC + 4 pe.</li>
+<li>Formats: R, I, J = 3.</li></ol>
+<p class="ans">Answer: 4 bytes; 3 formats (R, I, J).</p></div>
+<div class="trap"><b>Galti mat karna:</b> MIPS ke 3 formats hain, RISC-V ke 6 (R, I, S, B, U, J). Dono ko mix mat karna.</div>
+<div class="yr"><b>Ek line mein:</b> MIPS = simple, fixed 32-bit, 3-format RISC jo seekhne mein aasaan aur RISC-V/ARM tak transfer hota hai.</div>
+</div>
+
+<div class="topic"><h3>11.2 MIPS register set aur conventions</h3>
+<div class="why"><b>Pehle socho:</b> Hostel ke ek room mein 32 lockers hain. Hardware ke liye sab lockers ek jaise hain, par hostel walon ne rule bana diya: locker 4 se 7 mein "doston ke liye saamaan" (arguments), locker 2-3 mein "wapas milne wala jawab" (return value), locker 29 mein "stack ka pata", locker 31 mein "wapas kahan aana hai" ka parchi. Agar sab ye rule maanein to kisi ka bhi likha function kisi ke bhi function ko call kar sakta hai. <mark>Hardware ko farak nahi padta, ye rules software ka agreement (convention) hain</mark>.</div>
+<div class="def"><b>Definition:</b> MIPS has <b>32 general-purpose registers</b> of 32 bits each ($0 to $31). The hardware treats them alike (except $zero, which is always 0), but the <b>register convention</b> gives each a software role. <b>Caller-saved</b> registers ($t, $a, $v) may be changed by a called function, so the caller must save them if it needs their values. <b>Callee-saved</b> registers ($s, $sp, $fp, $ra, $gp) must be restored by the called function before it returns. PC, HI and LO are separate special registers.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Register</dt><dd>CPU ke andar ek chhoti, bahut tez 32-bit memory. Sab maths registers pe hota hai.</dd>
+<dt>Caller</dt><dd>Jo function doosre ko call karta hai (jaise <code>main</code>).</dd>
+<dt>Callee</dt><dd>Jo function call hota hai (jaise <code>sum</code>).</dd>
+<dt>Caller-saved</dt><dd>"Bulaane wala khud bachaye". Callee isko bina bataye badal sakta hai. Caller ko value chahiye to call se pehle stack pe rakh le.</dd>
+<dt>Callee-saved</dt><dd>"Bulaya gaya bachaye". Callee use kare to pehle purani value save kare aur return se pehle wapas daal de. Caller ke liye value "safe" hai.</dd>
+<dt>Stack</dt><dd>Memory ka ek hissa jahan functions temporary cheezein rakhte hain (Unit 12). $sp uska top batata hai.</dd>
+<dt>PC (program counter)</dt><dd>Agle instruction ka address. Ye 32 registers mein se nahi hai; khud PC + 4 hota hai ya branch/jump se badalta hai.</dd>
+<dt>HI, LO</dt><dd>Do special registers jahan <code>mult</code> aur <code>div</code> apna result rakhte hain. <code>mfhi</code>/<code>mflo</code> se padhte hain.</dd>
+</dl></div>
+<div class="how"><b>Har register ka naam, number, kaam aur KYUN:</b><ol>
+<li><b>$zero ($0): hamesha 0.</b> Isme likho to bhi 0 hi rahega (write ignore). Kyun: 0 itna common hai (copy karna, compare karna, clear karna) ki ek register ko permanently 0 bana diya. Jaise <code>move $t0, $t1</code> asal mein <code>addu $t0, $zero, $t1</code> hai (0 + $t1).</li>
+<li><b>$at ($1): assembler temporary.</b> Kyun: pseudo-instructions (jaise <code>blt</code>, <code>la</code>, bada <code>li</code>) ko assembler 2 asli instructions mein todta hai aur beech ka result $at mein rakhta hai. Tum ise mat chhuo.</li>
+<li><b>$v0, $v1 ($2, $3): "values" = return values.</b> Function apna jawab $v0 mein deta hai (64-bit jawab ho to $v1 bhi). Syscall ka code bhi $v0 mein daalte hain.</li>
+<li><b>$a0 to $a3 ($4 to $7): "arguments".</b> Function ko pehle 4 inputs inme dete hain; zyada hon to stack pe. Kyun registers mein: memory se tez.</li>
+<li><b>$t0 to $t7 ($8 to $15), $t8, $t9 ($24, $25): "temporaries", caller-saved.</b> Chhote-mote hisaab ke liye. Callee inhe bina puchhe badal sakta hai, isliye inko save karne ki zimmedari caller ki. Kyun aisa rule: chhota function bina stack ke jaldi kaam kar le.</li>
+<li><b>$s0 to $s7 ($16 to $23): "saved", callee-saved.</b> Lambi zindagi wale variables (jaise loop ka sum jo function call ke baad bhi chahiye). Callee inhe use kare to pehle stack pe save, return se pehle restore.</li>
+<li><b>$k0, $k1 ($26, $27): kernel.</b> OS ke interrupt handler ke liye reserved; user program inhe use na kare.</li>
+<li><b>$gp ($28): global pointer.</b> Global/static data area ke beech mein point karta hai, taaki global variable ek hi <code>lw</code> (offset ke saath) se mil jaaye.</li>
+<li><b>$sp ($29): stack pointer.</b> Stack ke top (aakhri pushed word) ka address. Stack neeche ki taraf badhta hai.</li>
+<li><b>$fp ($30): frame pointer.</b> Current function ke stack frame ki shuruaat pe fixed rehta hai, jabki $sp function ke beech badal sakta hai. Locals ko fixed offset se dhoondhne mein madad.</li>
+<li><b>$ra ($31): return address.</b> <code>jal</code> isme PC + 4 likhta hai; <code>jr $ra</code> se wapas aate hain.</li>
+</ol></div>
+<figure data-d="D11.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaar columns: naam, number, use, saved by. Pehle number column dekho aur ranges yaad karo: 0, 1, 2-3, 4-7, 8-15, 16-23, 24-25, 26-27, 28, 29, 30, 31. Phir "saved by" column: $t aur $a/$v ke saamne "caller", $s ke saamne "CALLEE" (highlighted). Example: $sp ki row = 29, stack pointer, callee.</p>
+<div class="ex"><b>Caller vs callee, values ke saath:</b> <p class="qq">main has a running total 50 in $s0 and a temporary 7 in $t0. It calls f. Inside, f uses both $s0 and $t0. What does main see after f returns?</p><ol>
+<li>$t0 caller-saved hai → f use badal sakta hai (maan lo 99 kar diya) bina wapas kiye.</li>
+<li>Agar main ko 7 baad mein chahiye tha, to main ko call se pehle 7 stack pe save karna chahiye tha.</li>
+<li>$s0 callee-saved hai → f ne shuru mein 50 stack pe rakha (<code>sw $s0, 0($sp)</code>), apna kaam kiya, aur <code>jr $ra</code> se pehle 50 wapas load kiya (<code>lw $s0, 0($sp)</code>).</li>
+<li>Isliye main ko $s0 = 50 milta hai (guaranteed), $t0 kuch bhi ho sakta hai.</li></ol>
+<p class="ans">Answer: $s0 = 50 (preserved by f); $t0 is not guaranteed (main must save it itself if needed).</p></div>
+<figure data-d="D11.2b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left box CPU: PC, HI·LO, 32 registers aur ALU. Right box memory (2³² bytes, har byte ka apna address). Memory upar se neeche: stack (0x7FFFFFFC se neeche badhta hai), free, heap (upar badhta hai), .data (0x10010000), .text (0x00400000, code). Beech ke arrows: data ke liye sirf lw/sw, aur instruction ke liye fetch. Yahi load/store model hai.</p>
+<div class="ex"><b>Solved example (exam MCQ / match):</b> <p class="qq">Match: $zero, $a0, $t0, $sp, $ra with numbers. After <code>addi $zero, $zero, 5</code>, what is in $zero?</p><ol>
+<li>$zero = 0, $a0 = 4 ($a0-$a3 = 4-7 ka pehla), $t0 = 8 ($t0-$t7 = 8-15 ka pehla), $sp = 29, $ra = 31.</li>
+<li>$zero mein likhna ignore hota hai → value 0 hi rahegi.</li></ol>
+<p class="ans">Answer: 0, 4, 8, 29, 31; $zero still contains 0.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) $t aur $s ke roles ulte mat karna: <b>$s callee-saved</b>. (2) PC ko 32 registers mein mat gin-na. (3) $t8, $t9 = 24, 25 (16-23 nahi, wahan $s hain). (4) Return value $v0 mein, $a0 mein nahi.</div>
+<p class="trick"><b>Trick:</b> "<b>t = temporary, don't trust it; s = saved, it survives.</b>" Numbers ke liye ginti: <b>0 zero, 1 at, 2 v, 4 a, 8 t, 16 s, 24 t, 26 k, 28 gp, 29 sp, 30 fp, 31 ra</b> (2, 4, 8, 16 = doubling!).</p>
+<div class="yr"><b>Ek line mein:</b> 32 registers, roles convention se: $zero = 0, $v = jawab, $a = arguments, $t = kachcha kaam (caller bachaye), $s = pakka kaam (callee bachaye), $sp stack, $ra wapsi ka pata.</div>
+</div>
+
+<div class="topic"><h3>11.3 R-format (register to register)</h3>
+<div class="why"><b>Pehle socho:</b> Ek form socho jisme fixed boxes hain: "kaam ka type", "pehla number kahan se", "doosra kahan se", "jawab kahan rakhna". Har form same size ka hai, boxes hamesha same jagah. Clerk (CPU) bina soche har box seedha padh leta hai. <code>add $t0, $s1, $s2</code> jaise instruction mein teeno cheezein registers hain, isliye iska form "<b>R</b>egister format" hai.</div>
+<div class="def"><b>Definition:</b> The <b>R-format</b> is used for instructions whose operands are all registers (add, sub, and, or, slt, shifts, jr). Its 32 bits are divided as <b>opcode (6) | rs (5) | rt (5) | rd (5) | shamt (5) | funct (6)</b>. The opcode is 0 for all R-type instructions; the funct field selects the operation; rs and rt are the source registers and rd is the destination.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Field</dt><dd>32 bits ka ek hissa jiska ek kaam hai.</dd>
+<dt>opcode (6 bits, bits 31-26)</dt><dd>"Operation code": instruction ka type. 6 bits → 2⁶ = 64 possible. R-type ke liye hamesha 000000.</dd>
+<dt>rs (5 bits, 25-21)</dt><dd>"Register source": pehla input register ka <i>number</i>. 5 bits kyun? 32 registers = 2⁵, to 0 se 31 tak 5 bits mein.</dd>
+<dt>rt (5 bits, 20-16)</dt><dd>"Register target": doosra input register (R-type mein).</dd>
+<dt>rd (5 bits, 15-11)</dt><dd>"Register destination": jahan result likhna hai.</dd>
+<dt>shamt (5 bits, 10-6)</dt><dd>"Shift amount": sirf sll/srl/sra mein; kitni position shift. Baaki sab mein 00000. 5 bits kyun: 32-bit number ko 0 se 31 tak shift karna kaafi.</dd>
+<dt>funct (6 bits, 5-0)</dt><dd>"Function": opcode 0 hai, to asli operation yahi batata hai. add = 100000 (0x20), sub = 100010 (0x22).</dd>
+<dt>Hex</dt><dd>Base 16. 4 bits = 1 hex digit (0000 = 0, 1010 = A, 1111 = F). 32 bits = 8 hex digits.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (32 bits kyun aur kaise bante hain):</b><ol>
+<li>3 registers × 5 bits = 15 bits. opcode 6 + funct 6 = 12 bits. shamt 5 bits. Total 15 + 12 + 5 = 32. Poora word bhar gaya.</li>
+<li>Kyun fixed 32: har instruction 4 bytes → PC + 4 se agla instruction, aur fields hamesha same jagah → decoder simple (Unit 10).</li>
+<li><b>Assembly order ≠ binary order:</b> assembly mein likhte hain <code>add rd, rs, rt</code> (destination pehle), par binary mein order <b>rs, rt, rd</b>.</li>
+<li><b>Encoding recipe:</b> (a) register naam → number; (b) rs, rt, rd mein sahi jagah rakho; (c) har field binary mein, sahi width (5 bits ke liye aage 0 lagao); (d) 32 bits ko 4-4 ke group mein todo; (e) har group → hex digit.</li>
+<li><b>Shifts:</b> <code>sll rd, rt, shamt</code>: source <b>rt</b> mein jata hai, rs = 00000, shamt = shift amount.</li>
+</ol>
+<table class="tt"><tr><th>Instr</th><th>funct (bin)</th><th>hex</th><th>Instr</th><th>funct (bin)</th><th>hex</th></tr>
+<tr><td>add</td><td>100000</td><td>0x20</td><td>slt</td><td>101010</td><td>0x2A</td></tr>
+<tr><td>addu</td><td>100001</td><td>0x21</td><td>sll</td><td>000000</td><td>0x00</td></tr>
+<tr><td>sub</td><td>100010</td><td>0x22</td><td>srl</td><td>000010</td><td>0x02</td></tr>
+<tr><td>and</td><td>100100</td><td>0x24</td><td>sra</td><td>000011</td><td>0x03</td></tr>
+<tr><td>or</td><td>100101</td><td>0x25</td><td>jr</td><td>001000</td><td>0x08</td></tr>
+<tr><td>xor</td><td>100110</td><td>0x26</td><td>mult / div</td><td>011000 / 011010</td><td>0x18 / 0x1A</td></tr>
+<tr><td>nor</td><td>100111</td><td>0x27</td><td>mfhi / mflo</td><td>010000 / 010010</td><td>0x10 / 0x12</td></tr></table></div>
+<figure data-d="D11.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Ek 32-bit patti, chhe dabbe: 6 | 5 | 5 | 5 | 5 | 6. Har dabbe mein naam, binary value aur neeche note. Class example <code>add $t1, $t2, $t3</code>: opcode 000000, rs 01010 ($t2 = 10), rt 01011 ($t3 = 11), rd 01001 ($t1 = 9, DEST), shamt 00000, funct 100000 (add). Total = 0x014B4820.</p>
+<div class="ex"><b>Solved example 1 (full encoding walkthrough):</b> <p class="qq">Encode <code>add $t0, $s1, $s2</code> in binary and hex.</p><ol>
+<li>Format: add = R-type → opcode = 000000, funct = 100000 (0x20).</li>
+<li>Assembly <code>add rd, rs, rt</code> se: rd = $t0, rs = $s1, rt = $s2.</li>
+<li>Numbers: $t0 = 8 ($t0-$t7 = 8-15 ka pehla). $s1 = 17 ($s0 = 16, to $s1 = 17). $s2 = 18.</li>
+<li>5-bit binary: 17 = 16 + 1 → <b>10001</b>. 18 = 16 + 2 → <b>10010</b>. 8 → <b>01000</b>.</li>
+<li>shamt = 0 → 00000 (add shift nahi karta).</li>
+<li>Binary order mein rakho (rs, rt, rd):
+<table class="tt"><tr><th>opcode</th><th>rs ($s1)</th><th>rt ($s2)</th><th>rd ($t0)</th><th>shamt</th><th>funct</th></tr><tr><td>000000</td><td>10001</td><td>10010</td><td>01000</td><td>00000</td><td>100000</td></tr><tr><td>6 bits</td><td>5</td><td>5</td><td>5</td><td>5</td><td>6</td></tr></table></li>
+<li>Jodo: 00000010001100100100000000100000 (count: 6 + 5 + 5 + 5 + 5 + 6 = 32 bits ✓).</li>
+<li>4-4 ke group: 0000 | 0010 | 0011 | 0010 | 0100 | 0000 | 0010 | 0000.</li>
+<li>Hex digits: 0000 = 0, 0010 = 2, 0011 = 3, 0010 = 2, 0100 = 4, 0000 = 0, 0010 = 2, 0000 = 0.</li>
+<li>Check (ulta): 0x02324020 ko wapas 6-5-5-5-5-6 mein todo → 0, 17, 18, 8, 0, 0x20 → add $t0, $s1, $s2 ✓.</li></ol>
+<p class="ans">Answer: 000000 10001 10010 01000 00000 100000 = 0x02324020.</p></div>
+<div class="ex"><b>Solved example 2 (decode hex → assembly, class homework):</b> <p class="qq">Decode 0x012A4020.</p><ol>
+<li>Har hex digit ko 4 bits mein: 0 = 0000, 1 = 0001, 2 = 0010, A = 1010, 4 = 0100, 0 = 0000, 2 = 0010, 0 = 0000.</li>
+<li>Poora: 0000 0001 0010 1010 0100 0000 0010 0000.</li>
+<li>Pehle 6 bits (opcode) = 000000 → R-type. To ab 6-5-5-5-5-6 mein todo: 000000 | 01001 | 01010 | 01000 | 00000 | 100000.</li>
+<li>funct = 100000 = 0x20 → add.</li>
+<li>rs = 01001 = 9 = $t1; rt = 01010 = 10 = $t2; rd = 01000 = 8 = $t0; shamt = 0.</li>
+<li>Assembly mein rd pehle: add rd, rs, rt.</li></ol>
+<p class="ans">Answer: add $t0, $t1, $t2.</p></div>
+<div class="ex"><b>Solved example 3 (shift):</b> <p class="qq">Encode <code>sll $t0, $t1, 2</code>.</p><ol>
+<li>R-type, funct sll = 000000, opcode 000000.</li>
+<li>Shift mein source <b>rt</b> = $t1 = 9 = 01001; rs = 00000 (use nahi hota); rd = $t0 = 8 = 01000; shamt = 2 = 00010.</li>
+<li>000000 00000 01001 01000 00010 000000 → 0000 0000 0000 1001 0100 0000 1000 0000.</li></ol>
+<p class="ans">Answer: 0x00094080.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Binary mein rd ko pehle mat likhna; order <b>rs, rt, rd</b>. (2) R-type ka opcode hamesha 0; operation <b>funct</b> se. (3) 5-bit field mein aage ke 0 mat bhoolna (8 = 01000, sirf 1000 nahi). (4) Shift mein source rs mein nahi, rt mein.</div>
+<p class="trick"><b>Trick:</b> R-format widths: "<b>6-5-5-5-5-6</b>" (dono kinaare 6, beech mein chaar 5). Field order: "<b>O</b>ld <b>R</b>ats <b>T</b>ake <b>D</b>inner <b>S</b>ome <b>F</b>ood" = opcode, rs, rt, rd, shamt, funct.</p>
+<div class="yr"><b>Ek line mein:</b> R = op 6 | rs 5 | rt 5 | rd 5 | shamt 5 | funct 6; opcode 0, funct operation batata hai, rd destination hai par binary mein teesre number pe aata hai.</div>
+</div>
+
+<div class="topic"><h3>11.4 I-format (immediate, loads, stores, branches)</h3>
+<div class="why"><b>Pehle socho:</b> Kabhi-kabhi instruction ko register nahi, ek <b>seedha number</b> chahiye: "$sp mein se 8 ghatao", "address $sp + 16 se load karo", "agar barabar hain to 5 instructions aage jao". Ye number instruction ke andar hi likha hota hai (immediate = "turant, instruction ke saath hi"). Teen registers ki jagah do registers + ek 16-bit number: yahi <b>I</b>mmediate format hai.</div>
+<div class="def"><b>Definition:</b> The <b>I-format</b> is used for instructions with a 16-bit constant: arithmetic/logic immediates (addi, andi, ori, slti, lui), loads and stores (lw, sw) and conditional branches (beq, bne). Its fields are <b>opcode (6) | rs (5) | rt (5) | immediate (16)</b>. For addi and lw, rt is the <b>destination</b>; for sw, rt is the data to store; for beq/bne, rs and rt are compared and the immediate is a word offset from PC + 4.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Immediate</dt><dd>Instruction ke andar likha number (constant). <code>addi $t0, $t0, 5</code> mein 5.</dd>
+<dt>Two's complement (recap Unit 4)</dt><dd>Negative number likhne ka tareeka: positive ke bits ulto (invert) aur 1 jodo. 16 bits mein range −32768 se +32767.</dd>
+<dt>Sign extension</dt><dd>16-bit number ko 32-bit banana uska sign bit (bit 15) upar copy karke. 0xFFFB (−5) → 0xFFFFFFFB (phir bhi −5). 0x0005 → 0x00000005.</dd>
+<dt>Zero extension</dt><dd>Upar ke 16 bits mein hamesha 0 bharna. Sirf andi, ori, xori karte hain.</dd>
+<dt>Base + offset</dt><dd><code>lw $t1, 16($sp)</code>: address = $sp (base register) + 16 (offset). Jaise "gali ka number + ghar number".</dd>
+<dt>Branch offset</dt><dd>beq/bne mein immediate = kitne <i>instructions</i> (words) aage/peeche jaana hai, <b>PC + 4 se</b> gin ke.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Fields: opcode 6 + rs 5 + rt 5 + immediate 16 = 32 bits.</li>
+<li><b>addi rt, rs, imm:</b> rt ← rs + signext(imm). Yahan <b>rt destination</b> hai (R-type ki tarah rd nahi, kyunki rd ki jagah immediate ne le li).</li>
+<li><b>lw rt, offset(rs):</b> rt ← Memory[rs + signext(offset)]. rs = base, rt = destination.</li>
+<li><b>sw rt, offset(rs):</b> Memory[rs + signext(offset)] ← rt. Yahan rt <b>source</b> (data) hai.</li>
+<li><b>beq rs, rt, label:</b> agar rs == rt to PC ← PC + 4 + signext(imm) × 4, warna PC ← PC + 4.</li>
+<li><b>Sign vs zero extend:</b> addi, lw, sw, beq, bne, slti sign-extend; andi, ori, xori zero-extend; <code>lui rt, imm</code> imm ko upar ke 16 bits mein daalta hai.</li>
+</ol>
+<table class="tt"><tr><th>Instr</th><th>opcode (bin)</th><th>hex</th><th>Instr</th><th>opcode (bin)</th><th>hex</th></tr>
+<tr><td>addi</td><td>001000</td><td>0x08</td><td>beq</td><td>000100</td><td>0x04</td></tr>
+<tr><td>addiu</td><td>001001</td><td>0x09</td><td>bne</td><td>000101</td><td>0x05</td></tr>
+<tr><td>slti</td><td>001010</td><td>0x0A</td><td>lw</td><td>100011</td><td>0x23</td></tr>
+<tr><td>andi / ori</td><td>001100 / 001101</td><td>0x0C / 0x0D</td><td>sw</td><td>101011</td><td>0x2B</td></tr>
+<tr><td>lui</td><td>001111</td><td>0x0F</td><td>lb / sb</td><td>100000 / 101000</td><td>0x20 / 0x28</td></tr></table></div>
+<figure data-d="D11.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> 32-bit patti chaar dabbon mein: 6 | 5 | 5 | 16. <code>lw $t0, 4($t1)</code>: opcode 100011 (lw = 0x23), rs 01001 ($t1, base), rt 01000 ($t0, DEST), immediate 0000 0000 0000 0100 (4). Address = $t1 + 4; wahan ka word $t0 mein. Total 0x8D280004.</p>
+<div class="fx"><b>Formula:</b> Effective address = <b>rs + signext(imm)</b><br>Branch target = <b>(PC + 4) + signext(imm) × 4</b> &nbsp;⇔&nbsp; <b>imm = (target − (PC + 4)) / 4</b><br><small>PC = address of the branch itself; PC + 4 = next instruction; × 4 because the offset counts words (4 bytes each).</small></div>
+<div class="ex"><b>Solved example 1 (load, class homework):</b> <p class="qq">Encode <code>lw $t1, 16($sp)</code>.</p><ol>
+<li>lw = I-type, opcode 0x23 = 100011.</li>
+<li><code>lw rt, offset(rs)</code>: rt = $t1 = 9 = 01001; rs = $sp = 29 = 11101 (16 + 8 + 4 + 1 = 29); imm = 16.</li>
+<li>16 in 16 bits = 0000 0000 0001 0000.</li>
+<li>Rakho: 100011 | 11101 | 01001 | 0000000000010000.</li>
+<li>4-4 group: 1000 1111 1010 1001 0000 0000 0001 0000 → 8 F A 9 0 0 1 0.</li></ol>
+<p class="ans">Answer: 0x8FA90010.</p></div>
+<div class="ex"><b>Solved example 2 (negative immediate, two's complement):</b> <p class="qq">Encode <code>addi $t0, $s1, -5</code>.</p><ol>
+<li>addi opcode = 0x08 = 001000.</li>
+<li>rs = $s1 = 17 = 10001 (source); rt = $t0 = 8 = 01000 (destination).</li>
+<li>−5 ko 16-bit two's complement mein: +5 = 0000 0000 0000 0101.</li>
+<li>Invert (0 ↔ 1): 1111 1111 1111 1010.</li>
+<li>+1: 1111 1111 1111 1010 + 1 = 1111 1111 1111 1011 = 0xFFFB.</li>
+<li>Check: 0xFFFB = 65531; 65531 − 65536 = −5 ✓.</li>
+<li>Rakho: 001000 | 10001 | 01000 | 1111111111111011.</li>
+<li>4-4 group: 0010 0010 0010 1000 1111 1111 1111 1011 → 2 2 2 8 F F F B.</li></ol>
+<p class="ans">Answer: 0x2228FFFB. (Isi tarah addi $sp, $sp, −8 = 0x23BDFFF8, kyunki −8 = 0xFFF8.)</p></div>
+<div class="ex"><b>Solved example 3 (branch, easy, forward):</b> <p class="qq"><code>beq $t0, $t1, Done</code> is at address 0x00400008 and Done is at 0x00400020. Find the immediate and encode it.</p><ol>
+<li>PC + 4 = 0x00400008 + 4 = 0x0040000C.</li>
+<li>Doori (bytes) = target − (PC + 4) = 0x00400020 − 0x0040000C = 0x14 = 20 bytes (0x20 = 32, 0x0C = 12, 32 − 12 = 20).</li>
+<li>Words = 20 / 4 = 5. Isliye imm = 5 = 0000 0000 0000 0101.</li>
+<li>beq opcode 000100; rs = $t0 = 01000; rt = $t1 = 01001.</li>
+<li>000100 01000 01001 0000000000000101 → 0001 0001 0000 1001 0000 0000 0000 0101.</li>
+<li>Check: 0x0040000C + 5 × 4 = 0x0040000C + 0x14 = 0x00400020 ✓.</li></ol>
+<p class="ans">Answer: imm = 5; word = 0x11090005.</p></div>
+<div class="ex"><b>Solved example 4 (branch, exam-level, backward loop):</b> <p class="qq">A loop ends with <code>bne $t0, $zero, Loop</code> at address 0x00400100; Loop is at 0x004000F0. Find the 16-bit immediate (decimal and hex) and the machine word.</p><ol>
+<li>PC + 4 = 0x00400100 + 4 = 0x00400104.</li>
+<li>target − (PC + 4) = 0x004000F0 − 0x00400104. Sirf last digits: 0xF0 = 240, 0x104 = 260. 240 − 260 = −20 bytes.</li>
+<li>Words = −20 / 4 = <b>−5</b> (negative = peeche jaana).</li>
+<li>−5 in 16 bits = 0xFFFB (example 2 jaisa: 0000 0000 0000 0101 → invert 1111 1111 1111 1010 → +1 → 1111 1111 1111 1011).</li>
+<li>bne opcode = 000101; rs = $t0 = 01000; rt = $zero = 00000.</li>
+<li>000101 01000 00000 1111111111111011 → 0001 0101 0000 0000 1111 1111 1111 1011.</li>
+<li>Check: 0x00400104 + (−5 × 4) = 0x00400104 − 0x14 = 0x004000F0 ✓.</li></ol>
+<p class="ans">Answer: imm = −5 = 0xFFFB; word = 0x1500FFFB.</p></div>
+<div class="ex"><b>Solved example 5 (decode, hex → assembly):</b> <p class="qq">Decode (a) 0x8D280004 (Lab 11) and (b) 0x2108FFFC (addi).</p><ol>
+<li>(a) 8 D 2 8 0 0 0 4 → 1000 1101 0010 1000 0000 0000 0000 0100.</li>
+<li>Pehle 6 bits = 100011 = 0x23 = lw → I-type, to 6-5-5-16 mein todo: 100011 | 01001 | 01000 | 0000000000000100.</li>
+<li>rs = 01001 = 9 = $t1 (base); rt = 01000 = 8 = $t0 (dest); imm = 4. Likho lw rt, imm(rs) → <b>lw $t0, 4($t1)</b>.</li>
+<li>(b) 2 1 0 8 F F F C → 0010 0001 0000 1000 1111 1111 1111 1100 → 001000 | 01000 | 01000 | 1111111111111100.</li>
+<li>Opcode 001000 = addi; rs = $t0; rt = $t0; imm = 0xFFFC.</li>
+<li>0xFFFC ka bit 15 = 1 → negative. Invert: 0000 0000 0000 0011, +1 = 0000 0000 0000 0100 = 4 → imm = −4.</li></ol>
+<p class="ans">Answer: (a) lw $t0, 4($t1); (b) addi $t0, $t0, −4.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) lw mein rt <b>destination</b> hai, source nahi. (2) 0xFFFB ko 65531 mat padhna; sign-extend karke −5. (3) Branch offset PC se nahi, <b>PC + 4</b> se; aur bytes nahi, <b>words</b> (÷ 4). (4) andi/ori/xori zero-extend karte hain, sign-extend nahi.</div>
+<p class="trick"><b>Trick:</b> I-format = "<b>6-5-5-16</b>". Branch: "<b>agle se gino, chaar se bhaago</b>" = (target − (PC + 4)) ÷ 4.</p>
+<div class="yr"><b>Ek line mein:</b> I = op 6 | rs 5 | rt 5 | imm 16; addi/lw mein rt destination, address = rs + signext(imm), branch imm = (target − (PC + 4)) / 4.</div>
+</div>
+
+<div class="topic"><h3>11.5 J-format (jumps)</h3>
+<div class="why"><b>Pehle socho:</b> Branch sirf ±32768 instructions tak ja sakta hai (16-bit offset). Door kisi function pe jaana ho to? Jump instruction ko register ki zaroorat nahi, bas ek bada address chahiye. To opcode ke baad bache <b>saare 26 bits</b> address ko de do. Aur kyunki har instruction ka address 4 ka multiple hai (last 2 bits hamesha 00), un 2 bits ko likhne ki zaroorat hi nahi: 26 bits asal mein 28 bits ka kaam karte hain.</div>
+<div class="def"><b>Definition:</b> The <b>J-format</b> is used for the unconditional jumps <b>j</b> (opcode 2) and <b>jal</b> (opcode 3). Its fields are <b>opcode (6) | address (26)</b>. The 32-bit target is formed pseudo-directly: <b>target = PC+4[31:28] ‖ address ‖ 00</b>, so a jump can reach any instruction in the current 256 MB region. jal also stores PC + 4 in $ra.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>address field (26 bits)</dt><dd>Target ka <b>word number</b> (byte address ÷ 4), bina upar ke 4 bits ke.</dd>
+<dt>‖ (concatenate)</dt><dd>Bits ko saath mein chipkana. 0000 ‖ 11 = 000011.</dd>
+<dt>Pseudo-direct</dt><dd>"Lagbhag seedha" address: 28 bits instruction se, upar ke 4 bits current PC + 4 se.</dd>
+<dt>256 MB region</dt><dd>28 bits = 2²⁸ bytes = 256 MB. Jump sirf usi 256 MB block ke andar ja sakta hai jisme PC + 4 hai.</dd>
+<dt>jr</dt><dd>Jump register: register mein rakhe address pe jao. Ye R-type hai (funct 0x08), J-type nahi.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (encode aur target banana):</b><ol>
+<li>Opcode: j = 000010, jal = 000011.</li>
+<li>Encode: address field = target ÷ 4 (= target &gt;&gt; 2), sirf neeche ke 26 bits rakho.</li>
+<li>Decode (CPU kya karta hai): 26-bit field ko 2 baar left shift (× 4) → 28 bits.</li>
+<li>Upar ke 4 bits PC + 4 se lo (bits 31-28).</li>
+<li>Target = PC+4[31:28] ‖ address ‖ 00 (4 + 26 + 2 = 32 bits).</li>
+<li><b>jal</b> pehle $ra ← PC + 4 likhta hai (wapas aane ka pata), phir jump.</li>
+<li>256 MB se door jaana ho to address register mein load karke <code>jr</code> use karo.</li>
+</ol></div>
+<figure data-d="D11.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar 6 | 26 patti: opcode (j = 2, jal = 3) aur 26-bit address. Neeche target banane ki patti: left mein PC+4 ke upar ke 4 bits, beech mein instruction ke 26 bits, right mein "00" (× 4). Example line: j 0x00400018 → field = 0x100006 → word 0x08100006.</p>
+<div class="ex"><b>Solved example 1 (encode j):</b> <p class="qq">Encode <code>j 0x00400018</code> and verify the target.</p><ol>
+<li>Target binary: 0x00400018 = 0000 0000 0100 0000 0000 0000 0001 1000.</li>
+<li>÷ 4 (do bits right shift): 0x00400018 &gt;&gt; 2 = 0x00100006. (Decimal: 4194328 / 4 = 1048582 = 0x100006.)</li>
+<li>26 bits mein: 00 0001 0000 0000 0000 0000 0110.</li>
+<li>Opcode j = 000010. Jodo: 000010 | 00000100000000000000000110.</li>
+<li>4-4 group: 0000 1000 0001 0000 0000 0000 0000 0110 → 0 8 1 0 0 0 0 6.</li>
+<li>Verify: PC+4 upar ke 4 bits = 0000 (code 0x004xxxxx mein hai). 0x100006 × 4 = 0x0400018 (28 bits). Aage 0000 chipkao → 0x00400018 ✓.</li></ol>
+<p class="ans">Answer: 0x08100006.</p></div>
+<div class="ex"><b>Solved example 2 (jal):</b> <p class="qq">Encode <code>jal 0x00400030</code>. If this jal is at address 0x00400020, what goes into $ra?</p><ol>
+<li>0x00400030 &gt;&gt; 2 = 0x0010000C (0x30 / 4 = 0x0C, 0x400000 / 4 = 0x100000).</li>
+<li>Opcode jal = 000011. 000011 | 00 0001 0000 0000 0000 0000 1100.</li>
+<li>4-4 group: 0000 1100 0001 0000 0000 0000 0000 1100 = 0x0C10000C.</li>
+<li>$ra = PC + 4 = 0x00400020 + 4 = 0x00400024.</li></ol>
+<p class="ans">Answer: 0x0C10000C; $ra = 0x00400024 (= 4194340 decimal).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Field mein poora address mat likhna; pehle ÷ 4. (2) j kisi bhi 32-bit address pe nahi ja sakta, sirf current 256 MB block mein. (3) jr J-format nahi, R-format hai. (4) Class ki "MIPS Encoding Reference" sheet j ko PC-relative dikhati hai (teaching variant); exam mein lecture wala rule (PC+4[31:28] ‖ addr ‖ 00) likho.</div>
+<p class="trick"><b>Trick:</b> J = "<b>6 + 26</b>". Encode: "<b>÷ 4, upar ke 4 phenko</b>". Decode: "<b>× 4, upar PC ke 4 chipkao</b>".</p>
+<div class="yr"><b>Ek line mein:</b> J = op 6 | address 26; target = PC+4[31:28] ‖ address ‖ 00 (256 MB region); j = 2, jal = 3 (jal $ra mein PC + 4 bhi rakhta hai).</div>
+</div>
+
+<div class="topic"><h3>11.6 RISC-V ka modular ISA</h3>
+<div class="why"><b>Pehle socho:</b> Pizza order karte waqt base (dough + sauce) fixed hai, toppings tum chunte ho: cheese, olives, paneer. Chhote bachche ke liye sirf base, party ke liye sab toppings. RISC-V aisa hi hai: <mark>chhota base ISA (RV32I) + jo extension chahiye woh jodo</mark>. Aur MIPS jaisi hi RISC DNA: 32 registers, zero register, fixed 32-bit, load/store.</div>
+<div class="def"><b>Definition:</b> <b>RISC-V</b> is an open, royalty-free RISC ISA organised as a small mandatory <b>base integer ISA</b> (RV32I: about 40 instructions, registers x0 to x31 with x0 = 0) plus optional standard <b>extensions</b>: M (multiply/divide), A (atomic), F (single float), D (double float), C (compressed 16-bit), V (vector). It uses six basic formats: R, I, S, B, U, J.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>Base ISA (RV32I)</dt><dd>Har RISC-V chip mein zaroori minimum: integer add/sub, logic, load/store, branch, jump. "32" = 32-bit registers, "I" = integer.</dd>
+<dt>Extension</dt><dd>Optional instruction groups. Naam mein letter jodte hain: RV32IMAFD = base + M + A + F + D.</dd>
+<dt>Atomic</dt><dd>Ek operation jo beech mein toot nahi sakta; multicore mein do cores ek hi variable ko ek saath na bigaadein.</dd>
+<dt>S, B, U formats</dt><dd>S = store, B = branch, U = upper immediate (lui jaisa). MIPS mein ye sab I-format mein the.</dd>
+<dt>x0</dt><dd>RISC-V ka $zero: hamesha 0.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Base RV32I chuno (about 40 instructions): har chip mein.</li>
+<li>Zaroorat ke hisaab se letters jodo: microcontroller = RV32IMC; laptop-class = RV64IMAFDC + V.</li>
+<li>Formats 6 hain (MIPS ke 3 ki jagah) kyunki store, branch aur upper-immediate ko alag format diye gaye taaki <b>register fields hamesha same bit positions</b> pe rahein (rd hamesha bits 11-7, rs1 bits 19-15, rs2 bits 24-20). Isse hardware register file ko instruction poora decode hone se pehle hi padh sakta hai.</li>
+<li>Field order bhi alag: RISC-V R-type = funct7 (7) | rs2 (5) | rs1 (5) | funct3 (3) | rd (5) | opcode (7). Opcode neeche (bits 6-0) aur 7 bits ka; MIPS mein opcode upar (31-26) aur 6 bits.</li>
+<li>Immediate: RISC-V I-type mein 12 bits; MIPS I-type mein 16 bits.</li>
+</ol></div>
+<figure data-d="D11.6a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Beech mein bada gola RV32I (base, about 40 instructions). Chaaron taraf chhe chhote gole: M (multiply/divide), A (atomic), F (single float), D (double float), C (compressed 16-bit), V (vector). Har gola base se line se juda hai: "pick your letters, get your ISA". Neeche: RV32IMAFD = base + M + A + F + D.</p>
+<table><tr><th>Point</th><th>MIPS32</th><th>RISC-V (RV32)</th></tr>
+<tr><td>Registers</td><td>32 ($0 to $31)</td><td>32 (x0 to x31)</td></tr>
+<tr><td>Zero register</td><td>$zero ($0)</td><td>x0</td></tr>
+<tr><td>Instruction width</td><td>fixed 32-bit</td><td>32-bit (+16-bit with C)</td></tr>
+<tr><td>Formats</td><td>3: R, I, J</td><td>6: R, I, S, B, U, J</td></tr>
+<tr><td>Opcode field</td><td>6 bits, bits 31-26</td><td>7 bits, bits 6-0</td></tr>
+<tr><td>Immediate in I-type</td><td>16 bits</td><td>12 bits</td></tr>
+<tr><td>ISA model</td><td>one fixed set</td><td>modular base + extensions</td></tr>
+<tr><td>Licensing</td><td>proprietary (MIPS company)</td><td>open, royalty-free</td></tr></table>
+<div class="ex"><b>Solved example (write the answer like this, 4 marks):</b> <p class="qq">Explain RISC-V's modular ISA and compare it with MIPS32 (five points).</p><ol>
+<li>Modular: mandatory base RV32I (about 40 integer instructions, x0 to x31, x0 = 0) plus optional extensions M, A, F, D, C, V; a chip implements only what it needs, e.g. RV32IMAFD.</li>
+<li>Draw D11.6a.</li>
+<li>Comparison: both 32 registers with a hardwired zero; both fixed 32-bit load/store RISC; MIPS has 3 formats, RISC-V 6 (R, I, S, B, U, J) with register fields in fixed positions; RISC-V adds 16-bit compressed instructions (C); MIPS proprietary, RISC-V open and royalty-free.</li></ol>
+<p class="ans">Answer: base + extensions model, and the five-row comparison table.</p></div>
+<div class="trap"><b>Galti mat karna:</b> RISC-V ke 3 formats nahi, <b>6</b>. Har RISC-V chip floating point nahi karti (sirf F/D ke saath). RISC-V proprietary nahi hai.</div>
+<div class="yr"><b>Ek line mein:</b> RISC-V = MIPS jaisa RISC, par open aur modular: base RV32I + M A F D C V, aur 6 formats jisme register fields hamesha same jagah.</div>
+</div>
+
+<div class="topic"><h3>11.E1 Extra (Lab 11): MIPS assembly toolkit</h3>
+<div class="why"><b>Pehle socho:</b> Instructions to aa gaye, par asli program chalane ke liye aur cheezein chahiye: data kahan rakhein (directives), screen pe kaise print karein (syscall), aur kuch shortcuts (pseudo-instructions) jo assembler khud asli instructions mein badal de. Ye lab ka "toolkit" hai. <mark>syscall hi bahar ki duniya (keyboard, screen) ki khidki hai</mark>.</div>
+<div class="def"><b>Definition:</b> An <b>assembler directive</b> (.data, .text, .word, .asciiz, .space, .globl) tells the assembler how to lay out the program and data; it is not executed. A <b>pseudo-instruction</b> (li, la, move, blt, bge, nop) is a convenience instruction that the assembler expands into one or more real instructions, using $at if needed. A <b>syscall</b> requests an operating-system service selected by the code in $v0, with arguments in $a0 and $a1.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>.data / .text</dt><dd>.data ke neeche variables (0x10010000 se), .text ke neeche code (0x00400000 se).</dd>
+<dt>.word / .asciiz / .space n</dt><dd>.word 10 = ek 4-byte number. .asciiz "Hi" = string + end mein 0 byte. .space 400 = 400 bytes khaali jagah (100 words).</dd>
+<dt>.globl main</dt><dd>main label ko bahar (simulator) ko dikhana, taaki program wahan se shuru ho.</dd>
+<dt>la vs lw</dt><dd><code>la $t0, x</code> = x ka <b>address</b> lao. <code>lw $t1, x</code> = x ki <b>value</b> lao.</dd>
+<dt>HI / LO</dt><dd>mult ka 64-bit result: upar ke 32 bits HI mein, neeche ke LO mein. div: <b>LO = quotient (bhaagfal), HI = remainder (shesh)</b>.</dd>
+<dt>sll / srl / sra</dt><dd>Shift left logical (× 2ⁿ), shift right logical (left se 0 bharo), shift right arithmetic (left se sign bit copy karo, negative number negative hi rahe).</dd>
+<dt>Alignment</dt><dd>lw/sw ka address 4 ka multiple hona chahiye (0, 4, 8). 2 pe lw = error.</dd>
+<dt>Endianness</dt><dd>4-byte word ke bytes memory mein kis order mein. Big-endian: bada (most significant) byte pehle. Little-endian: chhota byte pehle.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (syscall ka 3-step pattern):</b><ol>
+<li><code>li $v0, code</code>: kaunsi service chahiye.</li>
+<li>Argument set karo: <code>$a0</code> mein number (print int) ya string ka address (print string).</li>
+<li><code>syscall</code> likho. Read int ke baad answer $v0 mein aata hai, turant <code>move</code> karke kahin aur rakh lo (agla syscall $v0 badal dega).</li>
+</ol>
+<table><tr><th>$v0</th><th>Service</th><th>Argument</th><th>Result</th></tr>
+<tr><td>1</td><td>print integer</td><td>$a0 = value</td><td>none</td></tr>
+<tr><td>4</td><td>print string</td><td>$a0 = address of string</td><td>none</td></tr>
+<tr><td>5</td><td>read integer</td><td>none</td><td>$v0 = value read</td></tr>
+<tr><td>8</td><td>read string</td><td>$a0 = buffer, $a1 = length</td><td>none</td></tr>
+<tr><td>9</td><td>allocate memory (sbrk)</td><td>$a0 = bytes</td><td>$v0 = address</td></tr>
+<tr><td>10</td><td>exit</td><td>none</td><td>none</td></tr>
+<tr><td>11</td><td>print character</td><td>$a0 = ASCII code</td><td>none</td></tr></table>
+<table><tr><th>Pseudo-instruction</th><th>Real instruction(s) it becomes</th></tr>
+<tr><td>li $t0, 7</td><td>addiu $t0, $zero, 7 (= 0x24080007)</td></tr>
+<tr><td>li $t0, 0x12345678</td><td>lui $t0, 0x1234 ; ori $t0, $t0, 0x5678</td></tr>
+<tr><td>la $t0, label</td><td>lui $at, upper half ; ori $t0, $at, lower half</td></tr>
+<tr><td>move $t0, $t1</td><td>addu $t0, $zero, $t1</td></tr>
+<tr><td>blt $a, $b, L</td><td>slt $at, $a, $b ; bne $at, $zero, L</td></tr>
+<tr><td>bge $a, $b, L</td><td>slt $at, $a, $b ; beq $at, $zero, L</td></tr>
+<tr><td>bgt $a, $b, L</td><td>slt $at, $b, $a ; bne $at, $zero, L</td></tr>
+<tr><td>ble $a, $b, L</td><td>slt $at, $b, $a ; beq $at, $zero, L</td></tr>
+<tr><td>b L</td><td>beq $zero, $zero, L</td></tr>
+<tr><td>nop</td><td>sll $zero, $zero, 0 (word 0x00000000)</td></tr></table></div>
+<pre># Lab 11 Program A: do number jodo aur print karo
+.data
+msg:    .asciiz "Sum = "      # string, end mein 0 byte
+.text
+.globl main
+main:
+    li   $t0, 7               # a = 7  (pseudo: addiu $t0,$zero,7)
+    li   $t1, 5               # b = 5
+    add  $t2, $t0, $t1        # sum = a + b = 12
+    li   $v0, 4               # service 4 = print string
+    la   $a0, msg             # $a0 = msg ka ADDRESS
+    syscall                   # screen: "Sum = "
+    li   $v0, 1               # service 1 = print integer
+    move $a0, $t2             # $a0 = 12 (VALUE)
+    syscall                   # screen: "12"
+    li   $v0, 10              # service 10 = exit
+    syscall                   # program khatam</pre>
+<p>Output: <code>Sum = 12</code>. (add ki jagah sub → 2; mult + mflo → 35.)</p>
+<div class="ex"><b>Solved example 1 (HI/LO, Lab question):</b> <p class="qq">After <code>div $t0, $t1</code> with $t0 = 17 and $t1 = 5, which instruction gets the remainder, and what are HI and LO? What about −17 ÷ 5?</p><ol>
+<li>17 ÷ 5: 5 × 3 = 15, 17 − 15 = 2. Quotient 3, remainder 2.</li>
+<li>Rule: LO = quotient = 3, HI = remainder = 2.</li>
+<li>Remainder chahiye → <code>mfhi</code> (HI se nikaalo).</li>
+<li>−17 ÷ 5: MIPS zero ki taraf kaatta hai → quotient = −3; remainder = −17 − (−3 × 5) = −17 + 15 = −2.</li></ol>
+<p class="ans">Answer: mfhi; LO = 3, HI = 2. For −17 ÷ 5: LO = −3, HI = −2.</p></div>
+<div class="ex"><b>Solved example 2 (shifts, logic, mult):</b> <p class="qq">(a) $t0 = −16. Find sll, srl, sra by 2. (b) 0xCA AND/OR/XOR 0x0F. (c) 100000 × 100000: HI and LO?</p><ol>
+<li>(a) −16 = 0xFFFFFFF0. sll 2 → × 4 = −64. srl 2 → left se 0 aate hain → 0x3FFFFFFC = 1073741820 (bada positive). sra 2 → sign bit (1) copy → −16 / 4 = −4.</li>
+<li>(b) 0xCA = 1100 1010, 0x0F = 0000 1111. AND = 0000 1010 = 0x0A. OR = 1100 1111 = 0xCF. XOR = 1100 0101 = 0xC5. NOR = NOT(OR) → low byte 0011 0000 = 0x30 (32 bits mein 0xFFFFFF30).</li>
+<li>(c) 100000 × 100000 = 10¹⁰ = 0x2540BE400 (34 bits, 32 mein fit nahi). Upar wala hissa HI = 0x2 = 2; neeche ke 32 bits LO = 0x540BE400 = 1410065408.</li></ol>
+<p class="ans">Answer: (a) −64, 1073741820, −4; (b) 0x0A, 0xCF, 0xC5; (c) HI = 2, LO = 1410065408.</p></div>
+<figure data-d="D11.E1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Word 0x12345678 address B pe. Upar ki row big-endian: B+0 = 12, B+1 = 34, B+2 = 56, B+3 = 78 (bada byte pehle). Neeche little-endian: B+0 = 78, B+1 = 56, B+2 = 34, B+3 = 12 (chhota byte pehle). <code>lb $t1, 0($t0)</code> big pe 0x12, little pe 0x78 deta hai. Neeche alignment rule: lw/sw ko 4 ka multiple address chahiye.</p>
+<div class="ex"><b>Solved example 3 (bug hunt, Lab 11):</b> <p class="qq">x is .word 42. A student writes <code>la $a0, x</code> then print-integer and gets a large number like 268500992. Why? Fix it.</p><ol>
+<li><code>la</code> x ka <b>address</b> deta hai (0x10010000 = 268500992), value nahi.</li>
+<li>Value 42 chahiye → <code>lw $a0, x</code>.</li>
+<li>Saath mein <code>li $v0, 1</code> zaroor ho, warna syscall ko pata nahi kaunsi service.</li></ol>
+<p class="ans">Answer: replace la with lw $a0, x (la = address, lw = value).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) syscall se pehle <code>li $v0, n</code> bhoolna. (2) Doosra integer padhne se pehle pehla $v0 se copy na karna. (3) div ke baad mflo/mfhi ulta: <b>mflo = quotient, mfhi = remainder</b>. (4) <code>lw $t1, 2($t0)</code> = unaligned (2 multiple of 4 nahi). (5) Encoding question mein blt jaise pseudo ko asli instruction maan lena.</div>
+<p class="trick"><b>Trick:</b> syscall codes: "<b>1 print int, 4 print string, 5 read int, 10 exit</b>" = "<b>1-4 likho, 5 padho, 10 pe bye</b>". div: "<b>LO = Lena (quotient), HI = Hisaab baaki (remainder)</b>".</p>
+<div class="yr"><b>Ek line mein:</b> Directives layout batate hain, pseudo-instructions assembler ke shortcuts hain, syscall = li $v0 → $a0 → syscall; div mein LO quotient, HI remainder; la address, lw value.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Register number / match register to number</td><td>Ranges: 0 zero, 1 at, 2-3 v, 4-7 a, 8-15 t0-t7, 16-23 s, 24-25 t8-t9, 26-27 k, 28 gp, 29 sp, 30 fp, 31 ra. Naam ke number ko range ke start se jodo ($s3 = 16 + 3 = 19).</td></tr>
+<tr><td>Caller-saved vs callee-saved (MCQ / 5 marks)</td><td>1. $t (and $a, $v) caller-saved: callee badal sakta hai. 2. $s (and $sp, $ra) callee-saved: callee restore kare. 3. Example: main ka sum $s0 mein safe; $t0 main khud save kare. 4. Register table draw karo.</td></tr>
+<tr><td>Encode R-type to hex</td><td>1. Register numbers. 2. Order rs, rt, rd (assembly ka pehla = rd). 3. opcode 000000, shamt 0 (shift ke alawa), funct table se. 4. 6-5-5-5-5-6 binary. 5. 4-4 group → hex. 6. Ulta decode karke check.</td></tr>
+<tr><td>Encode I-type (addi / lw / sw)</td><td>1. opcode table se. 2. rs = source/base, rt = destination (addi, lw) ya data (sw). 3. imm 16-bit; negative ho to invert + 1. 4. 6-5-5-16 → hex.</td></tr>
+<tr><td>Branch offset (beq/bne immediate)</td><td>1. PC + 4 nikaalo. 2. target − (PC + 4) bytes mein. 3. ÷ 4 = words. 4. Negative ho to 16-bit two's complement. 5. Check: PC + 4 + imm × 4 = target.</td></tr>
+<tr><td>J-type encode / jump target</td><td>1. target ÷ 4 (&gt;&gt; 2). 2. Neeche ke 26 bits. 3. opcode j = 000010, jal = 000011. 4. Hex. Target banana: PC+4[31:28] ‖ addr ‖ 00; reach = 256 MB.</td></tr>
+<tr><td>Decode hex → assembly</td><td>1. Hex → 32 bits. 2. Pehle 6 bits = opcode: 0 → R (funct dekho), 2/3 → J, baaki I. 3. Format ke hisaab se fields todo. 4. Numbers → register naam. 5. Assembly order mein likho (R: rd, rs, rt; lw: rt, imm(rs)). 6. imm ka bit 15 = 1 to negative.</td></tr>
+<tr><td>Sign-extended immediate value (e.g. 0xFFFC)</td><td>1. Bit 15 = 1 → negative. 2. Invert + 1 → magnitude. 3. Minus lagao (0xFFFC → −4, 0xFFFB → −5).</td></tr>
+<tr><td>Match instruction to format</td><td>R: add, sub, and, or, slt, sll, jr. I: addi, lw, sw, beq, bne, andi, lui. J: j, jal.</td></tr>
+<tr><td>Field widths / why 32 bits</td><td>R 6-5-5-5-5-6, I 6-5-5-16, J 6-26. 5-bit register fields kyunki 32 = 2⁵ registers. Fixed 32 → PC + 4, simple decode.</td></tr>
+<tr><td>RISC-V vs MIPS</td><td>Base RV32I + M A F D C V; 6 formats; open/royalty-free; dono 32 registers + zero register; comparison table.</td></tr>
+<tr><td>Lab: syscall / pseudo / HI-LO / la vs lw / endianness</td><td>Syscall table (1, 4, 5, 10, 11); pseudo expansion table; div: LO quotient, HI remainder; la address vs lw value; 0x12345678 little-endian B+0 = 78.</td></tr></table></div>
+</section>
