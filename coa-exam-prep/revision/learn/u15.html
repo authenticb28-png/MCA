@@ -1,0 +1,320 @@
+<section>
+<h2>Unit 15 · Pipeline Hazards</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 14 mein pipeline ideal tha: har cycle ek naya instruction, koi rukawat nahi. Asli programs mein instructions ek doosre pe depend karte hain (add ka result sub use karta hai), hardware share hota hai, aur branch ke baad pata nahi agla instruction kaunsa. In situations ko <b>hazards</b> kehte hain. Is unit mein: hazards ke types, <b>stall</b> (rukna), <b>forwarding</b> (result jaldi pahunchana), <b>load-use</b> ka 1 stall, <b>compiler scheduling</b> (order badalna), branch handling, aur CPI = 1 + stalls wala formula. Saari cycle tables site ke pipeline tool (PIPE.schedule) ke convention se bani hain: register file pehle aadhe cycle mein likhta hai, doosre aadhe mein padhta hai; instruction aur data memory alag. (Class slides nahi thi; content Patterson &amp; Hennessy se.)</div>
+
+<!-- ======================= 15.1a ======================= -->
+<div class="topic"><h3>15.1a Hazard Taxonomy and the Structural Hazard</h3>
+<div class="why"><b>Pehle socho:</b> Flat mein 4 log, <b>ek hi bathroom</b>. Subah 8 baje do log ek saath ready: ek ko rukna padega. Ye hardware (resource) ki kami hai = <b>structural hazard</b>. Agar tumhe dost ki notes chahiye jo usne abhi likhi hi nahi = <b>data hazard</b>. Agar pata hi nahi aaj college jaana hai ya nahi jab tak notice na aaye = <b>control hazard</b>. Teeno mein result ek hi: <mark>kaam apne time pe shuru nahi ho sakta</mark>.</div>
+<div class="def"><b>Definition:</b> A <b>hazard</b> is a situation in which the next instruction cannot execute in its planned clock cycle. A <b>structural hazard</b> occurs when two instructions need the same hardware resource in the same cycle; a <b>data hazard</b> occurs when an instruction needs an operand that an earlier instruction has not yet produced; a <b>control hazard</b> occurs when the address of the next instruction depends on a branch that has not yet been resolved.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>resource</dt><dd>Koi hardware hissa: memory, ALU, register file port.</dd>
+<dt>stall (bubble)</dt><dd>Instruction ko ek cycle rok dena; us cycle pipeline ka woh stage khaali (nop) chalta hai. Table mein "stall" likhte hain.</dd>
+<dt>unified vs split memory</dt><dd>Unified = instructions aur data ek hi memory mein (von Neumann). Split = alag instruction memory / cache aur data memory / cache (Harvard style, Unit 9). MIPS pipeline split use karta hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b>
+<table><tr><th>Hazard</th><th>Wajah</th><th>Example</th><th>Fix</th></tr>
+<tr><td><b>Structural</b></td><td>do instructions, ek resource, ek cycle</td><td>single memory for IF and MEM</td><td>resource duplicate karo (split I / D memory), register file write / read halves, ya stall</td></tr>
+<tr><td><b>Data</b></td><td>operand abhi bana nahi</td><td>add $s0 → sub uses $s0</td><td>forwarding, stall (load-use), compiler scheduling</td></tr>
+<tr><td><b>Control</b></td><td>agla PC branch pe depend</td><td>beq</td><td>stall, branch in ID, predict not-taken / dynamic prediction, delayed branch</td></tr></table>
+<p><b>Structural hazard ka example (agar memory ek hi ho):</b></p><ol>
+<li>lw CC1 mein IF, CC4 mein MEM (data memory padhni hai).</li>
+<li>Chautha instruction (or) CC4 mein IF karna chahta hai (instruction memory padhni hai).</li>
+<li>Ek hi memory hai → CC4 mein dono ko chahiye → <b>conflict</b> (yellow cells).</li>
+<li>Bina fix ke: or ka IF ek cycle rukega (stall), sab kuch ek cycle late.</li>
+<li>MIPS ka fix: <mark>instruction aur data ke liye alag memory</mark> (split L1-I / L1-D cache). Phir CC4 mein lw data memory use karta hai, or instruction memory: koi jhagda nahi.</li>
+</ol>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t0, 0($t1)</code></td><td>IF</td><td>ID</td><td>EX</td><td style="background:rgba(255,224,60,.6)"><b>MEM</b></td><td>WB</td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $t2, $t3, $t4</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sub $t5, $t6, $t7</code></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>or $s0, $s1, $s2</code></td><td></td><td></td><td></td><td style="background:rgba(255,224,60,.6)"><b>IF</b></td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p>Register file pe bhi WB (likhna) aur ID (padhna) ek hi cycle mein ho sakte hain; isliye register file pehle aadhe cycle mein likhta hai aur doosre aadhe mein padhta hai, aur usme 2 read ports + 1 write port hain.</p></div>
+<figure data-d="D15.1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> 4 instructions ki pipeline diagram, CC1 to CC8. CC4 wala column box kiya hua hai: usme lw ka MEM aur or ka IF dono hain, dono ko memory chahiye. Neeche label "both need the memory". Baaki columns mein koi do instructions ek hi resource nahi maang rahe.</p>
+<div class="ex"><b>Solved example (write the answer like this, 5 marks):</b> <p class="qq">Classify pipeline hazards with one example and one solution each. Show a structural hazard on a pipeline diagram.</p><ol>
+<li><b>Structural:</b> two instructions need the same resource in one cycle. Example: with one memory, lw's MEM and the 4th instruction's IF both occur in CC4. Solution: separate instruction and data memories.</li>
+<li><b>Data:</b> an instruction needs a result not yet written. Example: add $s0, $t0, $t1 ; sub $t2, $s0, $t3. Solution: forwarding (stall for load-use).</li>
+<li><b>Control:</b> next PC unknown until a branch resolves. Example: beq. Solution: predict not-taken / delayed branch / stall.</li>
+<li>Draw the 4-instruction table above and box CC4.</li></ol>
+<p class="ans">Answer: structural = resource, data = operand, control = branch; diagram with the CC4 conflict.</p></div>
+<div class="trap"><b>Galti mat karna:</b> Resource conflict ko data hazard mat bolo. Aur ye mat likho ki MIPS 5-stage pipeline mein IF–MEM structural hazard hota hai: split memories ki wajah se nahi hota (sirf "agar ek memory ho to" wala example hai).</div>
+<div class="yr"><b>Ek line mein:</b> Hazard = instruction apne cycle mein nahi chal sakta; structural (resource), data (operand), control (branch); single memory ka IF–MEM conflict split I / D memory se hat jaata hai.</div>
+</div>
+
+<!-- ======================= 15.1b ======================= -->
+<div class="topic"><h3>15.1b Control Hazards: Branch Handling and CPI with Stalls</h3>
+<div class="why"><b>Pehle socho:</b> Highway pe aage do raaste (fork) hain, aur board tab dikhega jab tum fork ke paas pahunchoge. Teen options: (1) <b>ruk jao</b> jab tak board na dikhe (stall); (2) <b>andaza lagao</b> ki seedha jaana hai aur chalte raho; galat nikla to wapas aao (predict not-taken + flush); (3) fork se pehle ek aisa kaam kar lo jo dono raaston mein karna hi hai, jaise petrol bharwana (delayed branch). CPU ko beq ke baad agla instruction <mark>turant fetch karna hai</mark>, lekin beq ka faisla baad ke stage mein hota hai.</div>
+<div class="def"><b>Definition:</b> A <b>control hazard</b> (branch hazard) arises because the pipeline must fetch the next instruction before the branch outcome is known. The <b>branch penalty</b> is the number of cycles lost. It is handled by <b>stalling</b> until the branch resolves, <b>predicting not-taken</b> (fetch sequentially and flush the wrong instructions if the branch is taken), <b>dynamic prediction</b>, or the <b>delayed branch</b> (the instruction after the branch, in the delay slot, is always executed).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>branch resolved</dt><dd>Pata chal gaya ki branch lega ya nahi (taken / not taken) aur target kya hai.</dd>
+<dt>taken / not taken</dt><dd>Taken = registers barabar, PC = target. Not taken = PC + 4 pe hi chalo.</dd>
+<dt>flush</dt><dd>Galti se fetch kiye instruction ko pipeline se nikaal dena (usko nop bana dena), taaki woh kuch likhe nahi.</dd>
+<dt>branch penalty</dt><dd>Branch ki wajah se kitne cycles barbaad hue. Branch ID mein decide ho to 1; MEM mein decide ho to 3.</dd>
+<dt>delay slot</dt><dd>Branch ke turant baad wali jagah. Delayed branch mein ye instruction hamesha chalta hai, branch le ya na le.</dd>
+<dt>dynamic prediction</dt><dd>Hardware pichhli baar ka result yaad rakhta hai (1-bit ya 2-bit counter, branch target buffer) aur usi hisaab se guess karta hai. Loops mein bahut sahi guess karta hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Branch kab decide hota hai:</b> basic P&amp;H pipeline mein compare EX mein aur PC update MEM mein → beq ke peeche 3 instructions galat raaste ke fetch ho chuke hote hain (penalty 3). Compare aur target adder ko <b>ID</b> mein le aao → penalty sirf <b>1</b> cycle.</li>
+<li><b>Option 1, stall:</b> beq ke baad ek cycle kuch fetch mat karo; ID mein faisla hote hi sahi instruction fetch karo. Har branch pe 1 cycle jaata hai.</li>
+<li><b>Option 2, predict not-taken:</b> maan lo branch nahi lega, PC + 4 wala fetch karte raho. Not taken → 0 loss. Taken → galat instruction flush, target fetch → 1 cycle loss (branch in ID).</li>
+<li><b>Option 3, delayed branch (MIPS):</b> branch ke baad wala instruction hamesha chalta hai. Compiler waha koi aisa instruction rakhta hai jo dono case mein chahiye (branch se pehle wala independent instruction). Kuch na mile to nop.</li>
+<li><b>Option 4, dynamic prediction:</b> history ke basis pe taken / not-taken guess, galat guess pe flush.</li>
+</ol>
+<p><b>Stall (branch decided in ID):</b> agla instruction CC2 ki jagah CC3 mein fetch hota hai.</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>beq $t1, $t2, L</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>next (PC + 4 or L)</code></td><td></td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p><b>Predict not-taken, branch NOT taken:</b> koi loss nahi.</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>beq $t1, $t2, L (not taken)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add (PC + 4, correct)</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p><b>Predict not-taken, branch TAKEN:</b> add (galat) flush, target CC3 mein fetch: 1 cycle loss.</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>beq $t1, $t2, L (taken)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add (PC + 4, wrong)</code></td><td></td><td>IF</td><td style="background:rgba(255,190,180,.55)"><b>flush</b></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>L: target</code></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p><b>Basic pipeline (branch decided in MEM), taken:</b> 3 galat instructions flush, penalty 3.</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th><th>CC9</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>beq $t1, $t2, L (taken)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>wrong 1</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td style="background:rgba(255,190,180,.55)"><b>flush</b></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>wrong 2</code></td><td></td><td></td><td>IF</td><td>ID</td><td style="background:rgba(255,190,180,.55)"><b>flush</b></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>wrong 3</code></td><td></td><td></td><td></td><td>IF</td><td style="background:rgba(255,190,180,.55)"><b>flush</b></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>L: target</code></td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p><b>Delayed branch ka example:</b></p>
+<pre>Before:                     After (delay slot filled):
+add $s1, $s2, $s3           beq $t1, $t2, L
+beq $t1, $t2, L             add $s1, $s2, $s3   # delay slot, always runs</pre>
+<p>add ko branch ke baad le jaana safe hai kyunki add $t1 / $t2 ko nahi badalta, aur add dono raaston mein waise bhi chalna tha. Ab us slot mein waste nahi.</p></div>
+<div class="fx"><b>Formula (CPI with stalls):</b> CPI = 1 + (stall cycles per instruction)<br>Branch stalls per instruction = (fraction of branches) × (fraction that pays the penalty) × (penalty cycles)<br>Time = N × CPI × t<sub>cycle</sub> · speedup over non-pipelined (balanced k stages) = k / CPI<br><small>Always stall: har branch penalty deta hai. Predict not-taken: sirf taken branches penalty dete hain.</small></div>
+<div class="ex"><b>Solved example 1 (easy):</b> <p class="qq">20 % of instructions are branches. The pipeline always stalls 1 cycle on a branch. Find the CPI.</p><ol>
+<li>Stalls per instruction = 0.20 × 1 = 0.20.</li>
+<li>CPI = 1 + 0.20 = 1.20.</li></ol>
+<p class="ans">Answer: CPI = 1.20.</p></div>
+<div class="ex"><b>Solved example 2 (exam-level):</b> <p class="qq">20 % of instructions are branches and 60 % of branches are taken. The clock is 200 ps. Compare the CPI and the time for 10<sup>6</sup> instructions for: (a) predict not-taken with branch in ID (penalty 1), (b) predict not-taken with branch in MEM (penalty 3).</p><ol>
+<li>Taken branches per instruction = 0.20 × 0.60 = 0.12.</li>
+<li>(a) Stalls = 0.12 × 1 = 0.12 → CPI = 1.12.</li>
+<li>(a) Time = 10<sup>6</sup> × 1.12 × 200 ps = 224 × 10<sup>6</sup> ps = 224 µs.</li>
+<li>(b) Stalls = 0.12 × 3 = 0.36 → CPI = 1.36.</li>
+<li>(b) Time = 10<sup>6</sup> × 1.36 × 200 ps = 272 × 10<sup>6</sup> ps = 272 µs.</li>
+<li>Comparison: branch ko ID mein decide karne se 272 → 224 µs; 272 / 224 = 1.21 guna tez.</li></ol>
+<p class="ans">Answer: (a) CPI 1.12, 224 µs; (b) CPI 1.36, 272 µs.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Predict not-taken mein not-taken branches pe bhi penalty jod dena: unka loss 0 hai. (2) Branch hazard ko data hazard bolna. (3) Delayed branch mein slot ka instruction "sirf taken pe" chalta hai sochna: woh hamesha chalta hai.</div>
+<p class="trick"><b>Trick:</b> <b>"Ruko, Andaza, Pehle-kaam"</b> = stall, predict not-taken, delayed branch. Penalty: ID mein faisla = 1, MEM mein = 3.</p>
+<div class="yr"><b>Ek line mein:</b> Branch ka faisla der se hota hai; stall (har branch 1 cycle), predict not-taken (sirf taken pe 1), delayed branch (slot hamesha chalta); CPI = 1 + branch% × penalty wala% × penalty.</div>
+</div>
+
+<!-- ======================= 15.2 ======================= -->
+<div class="topic"><h3>15.2 RAW, WAR, WAW: Why Only RAW Matters In-Order</h3>
+<div class="why"><b>Pehle socho:</b> Whiteboard pe ek number likha hai. (1) Tumhe woh number <b>padhna</b> hai jo dost abhi <b>likhne</b> wala hai: tumhe intezaar karna hoga (RAW). (2) Tum pehle padhoge, phir dost mitaake naya likhega: agar dost jaldi kar de to tum galat padhoge (WAR). (3) Dono likhenge: aakhir mein jo baad wala hai uska number rehna chahiye (WAW). Hamare 5-stage pipeline mein sab <mark>ek line mein, ek hi order mein</mark> chalte hain, isliye sirf pehla wala (RAW) problem karta hai.</div>
+<div class="def"><b>Definition:</b> <b>RAW (read after write, true dependence):</b> a later instruction reads a register that an earlier one writes. <b>WAR (write after read, anti-dependence):</b> a later instruction writes a register that an earlier one reads. <b>WAW (write after write, output dependence):</b> two instructions write the same register. In the in-order 5-stage MIPS pipeline only RAW causes hazards.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>dependence</dt><dd>Do instructions ka ek hi register se rishta, jisse unka order badalna risky hai.</dd>
+<dt>in-order</dt><dd>Instructions program ke order mein hi stages se guzarte hain; koi aage nahi nikalta.</dd>
+<dt>register renaming</dt><dd>Out-of-order CPUs mein WAR / WAW hataane ki technique: alag physical register de do, naam ka takraav khatam.</dd>
+</dl></div>
+<div class="how"><b>Kaise pehchaanein (I1 pehle, I2 baad mein):</b><ol>
+<li><b>RAW:</b> <code>I1: add $s0, $t0, $t1</code> ; <code>I2: sub $t2, $s0, $t3</code>. I2 padhta hai $s0, jo I1 likhta hai.</li>
+<li><b>WAR:</b> <code>I1: sub $t2, $s0, $t3</code> ; <code>I2: add $s0, $t4, $t5</code>. I2 likhta hai $s0, jo I1 padhta hai.</li>
+<li><b>WAW:</b> <code>I1: add $s0, $t0, $t1</code> ; <code>I2: sub $s0, $t2, $t3</code>. Dono $s0 likhte hain.</li>
+<li><b>Sirf RAW kyun:</b> har instruction registers <b>ID (stage 2)</b> mein padhta hai aur <b>WB (stage 5)</b> mein likhta hai, aur order same rehta hai. Baad wala instruction kabhi pehle wale se pehle WB tak nahi pahunch sakta → WAW nahi. Baad wale ka WB (stage 5) pehle wale ke ID (stage 2) ke baad hi aata hai → WAR nahi.</li>
+<li>WAR / WAW sirf out-of-order ya alag-alag length ke pipelines mein problem hain; wahan register renaming fix hai.</li>
+</ol></div>
+<div class="ex"><b>Solved example (MCQ type):</b> <p class="qq">Classify: (a) add $s0, $t0, $t1 ; sub $t2, $s0, $t3. (b) lw $t0, 0($s1) ; addi $s1, $s1, 4 (dependence on $s1).</p><ol>
+<li>(a) I1 likhta $s0, I2 padhta $s0 → read after write → <b>RAW</b>.</li>
+<li>(b) I1 (lw) $s1 <i>padhta</i> hai (base address), I2 (addi) $s1 <i>likhta</i> hai → write after read → <b>WAR</b>. In-order pipeline mein ye koi hazard nahi.</li></ol>
+<p class="ans">Answer: (a) RAW, (b) WAR (harmless in the 5-stage in-order pipeline).</p></div>
+<div class="trap"><b>Galti mat karna:</b> Naam "kya pehle hua" ke order mein hai: RAW = pehle write (I1), phir read (I2). add $s0 → sub uses $s0 ko WAR mat bolo.</div>
+<div class="yr"><b>Ek line mein:</b> RAW = true dependence, sirf yahi 5-stage in-order MIPS mein hazard; WAR / WAW nahi hote kyunki sab ID mein padhte, WB mein likhte, same order mein.</div>
+</div>
+
+<!-- ======================= 15.3 ======================= -->
+<div class="topic"><h3>15.3 The Naive Fix: Stalls (Bubbles)</h3>
+<div class="why"><b>Pehle socho:</b> Tiffin dabba line mein ek dabbawala ko doosre ka label chahiye jo abhi chhapa nahi. Seedha tareeka: <b>woh ruk jaaye</b>, aur uske peeche wale bhi (line hai, koi overtake nahi karta). Line mein jo khaali jagah banti hai, use <mark>bubble</mark> kehte hain. Kaam sahi hota hai, par time barbaad hota hai.</div>
+<div class="def"><b>Definition:</b> A <b>stall</b> (pipeline bubble) is a cycle in which an instruction is held in its stage, together with all instructions behind it, until its operand is available; the empty slot that travels down the pipeline behaves like a <b>nop</b>. Without forwarding, a dependent instruction must wait until the producer has written the register file in WB.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>nop</dt><dd>"No operation": aisa instruction jo kuch nahi karta. Bubble = hardware ka banaya nop.</dd>
+<dt>distance</dt><dd>Producer aur consumer ke beech kitne instructions ka gap. Turant agla = distance 1.</dd>
+<dt>hazard detection unit</dt><dd>ID stage mein ek circuit jo dependence pakad ke stall karta hai.</dd>
+<dt>interlock</dt><dd>Hardware khud rokna (stall). Early MIPS ("Microprocessor without Interlocked Pipeline Stages") ye kaam compiler pe chhodta tha: compiler nop daalta tha.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (no forwarding):</b><ol>
+<li>add $s0 apna result CC5 (WB) mein register file mein likhta hai, pehle aadhe cycle mein.</li>
+<li>sub ko $s0 ID mein padhna hai. Normally sub ka ID CC3 mein hota. Wahan $s0 purana hai → galat.</li>
+<li>sub ko tab tak ID mein rok do jab tak padhai CC5 ke doosre aadhe mein na ho (wahan nayi value mil jaayegi).</li>
+<li>CC3 → CC5 = 2 cycles extra → <b>2 stalls</b>. sub ka EX CC4 ki jagah CC6 mein.</li>
+<li>Peeche wala and bhi ruka (IF mein), sab 2 cycle late. Total 7 ki jagah 9 cycles.</li>
+<li>Rule: distance 1 → 2 stalls; distance 2 → 1 stall; distance 3 ya zyada → 0 stalls.</li>
+<li><b>Hardware stall kaise karta hai:</b> (a) PC aur IF/ID register ko update nahi hone deta (wahi instructions dobara fetch / decode); (b) ID/EX mein jaane wale saare control signals 0 kar deta hai → EX, MEM, WB mein kuch nahi likha jaata = bubble.</li>
+</ol>
+<p><b>add → sub (distance 1), no forwarding: 9 cycles, 2 stalls</b></p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th><th>CC9</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $s0, $t0, $t1</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sub $t2, $s0, $t3</code></td><td></td><td>IF</td><td>ID</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>and $t4, $t5, $t6</code></td><td></td><td></td><td>IF</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p><small>Table padhna: sub ki row mein "ID stall stall" = sub teen cycles ID mein hi ruka hai, aur aakhri (CC5) mein sahi $s0 padhta hai. and IF mein ruka hai. (D15.3a figure stalls ko ID se pehle dikhata hai; count same hai, 2.)</small></p>
+<p><b>add → (independent or) → sub (distance 2), no forwarding: 8 cycles, 1 stall</b></p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $s0, $t0, $t1</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>or $t7, $t5, $t6</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sub $t2, $s0, $t3</code></td><td></td><td></td><td>IF</td><td>ID</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>EX</td><td>MEM</td><td>WB</td></tr></table></div>
+<figure data-d="D15.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> add normal staircase mein (CC1 to CC5). sub CC2 mein fetch hota hai, phir do "stall" boxes (CC3, CC4), aur ID CC5 mein: bilkul add ke WB wale column mein (same cycle likho aur padho). and bhi do cycle right khisak gaya. Last WB CC9 mein = 9 cycles.</p>
+<div class="fx"><b>Formula:</b> CPI = 1 + (stall cycles per instruction) · Total cycles = (k + n − 1) + total stalls</div>
+<div class="ex"><b>Solved example 1 (easy):</b> <p class="qq">No forwarding. add $s0, $t0, $t1 ; sub $t2, $s0, $t3 ; and $t4, $t5, $t6. How many stalls and total cycles?</p><ol>
+<li>sub ko $s0 chahiye, distance 1 → 2 stalls.</li>
+<li>and independent hai, lekin sub ke peeche hai, to woh bhi 2 late (koi extra stall nahi).</li>
+<li>Ideal = 5 + (3 − 1) = 7. Total = 7 + 2 = 9.</li></ol>
+<p class="ans">Answer: 2 stalls, 9 cycles.</p></div>
+<div class="ex"><b>Solved example 2 (CPI, exam-level):</b> <p class="qq">No forwarding. In a program 30 % of instructions use the result of the immediately previous instruction and another 10 % use the result of the instruction two before. Find the CPI and the execution time of 10<sup>6</sup> instructions at 200 ps.</p><ol>
+<li>Distance 1 → 2 stalls: 0.30 × 2 = 0.60 stall cycles per instruction.</li>
+<li>Distance 2 → 1 stall: 0.10 × 1 = 0.10.</li>
+<li>CPI = 1 + 0.60 + 0.10 = 1.70.</li>
+<li>Time = 10<sup>6</sup> × 1.70 × 200 ps = 340 × 10<sup>6</sup> ps = 340 µs (ideal CPI 1 hota to 200 µs).</li></ol>
+<p class="ans">Answer: CPI = 1.70, time = 340 µs. Isliye forwarding chahiye (15.4).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) 3 stalls ginna: register file ka "pehle likho, phir padho" bhool gaye. (2) Sirf dependent instruction ko rokna aur peeche walon ko aage nikal jaane dena: in-order pipeline mein sab ke sab rukte hain.</div>
+<p class="trick"><b>Trick:</b> Bina forwarding: <b>distance 1 → 2, distance 2 → 1, distance 3 → 0</b> (stalls + distance = 3).</p>
+<div class="yr"><b>Ek line mein:</b> Stall = dependent instruction (aur peeche wale) rok do jab tak value register file mein na aaye; no forwarding mein back-to-back dependence = 2 bubbles; CPI = 1 + stalls per instruction.</div>
+</div>
+
+<!-- ======================= 15.4 ======================= -->
+<div class="topic"><h3>15.4 Forwarding (Bypassing)</h3>
+<div class="why"><b>Pehle socho:</b> Dost ne exam ka answer nikaal liya hai, lekin abhi register (notebook) mein likh raha hai. Tumhe notebook ka intezaar kyun karna? Woh <b>seedha bol de</b>, kaam ho gaya. CPU mein add ka result EX stage ke end mein ban jaata hai (CC3), WB (CC5) tak rukne ki zaroorat nahi. Pipeline register (EX/MEM ya MEM/WB) se <mark>seedha ALU ke input pe</mark> bhej do. Isse kehte hain forwarding.</div>
+<div class="def"><b>Definition:</b> <b>Forwarding</b> (bypassing) is a technique in which a result is sent directly from a pipeline register (EX/MEM or MEM/WB) to the ALU input of a later instruction, instead of waiting for it to be written into the register file. A <b>forwarding unit</b> compares register numbers and drives multiplexers (ForwardA, ForwardB) in front of the ALU.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>EX/MEM → EX</dt><dd>Producer abhi MEM stage mein hai (ek instruction aage). Uska ALU result EX/MEM register mein pada hai → consumer ke EX mein bhejo.</dd>
+<dt>MEM/WB → EX</dt><dd>Producer WB stage mein hai (do instructions aage). Result MEM/WB register mein → consumer ke EX mein bhejo.</dd>
+<dt>ForwardA / ForwardB</dt><dd>ALU ke do inputs (A = rs wala, B = rt wala) ke aage 3-input MUX ka select. 00 = register file, 10 = EX/MEM, 01 = MEM/WB.</dd>
+<dt>ID/EX.Rs</dt><dd>"ID/EX register mein jo instruction hai uska rs number." Dot ke pehle register ka naam, baad mein field.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Har cycle forwarding unit EX wale instruction ke source register numbers (ID/EX.Rs, ID/EX.Rt) ko aage wale instructions ke destination (EX/MEM.Rd, MEM/WB.Rd) se compare karta hai.</li>
+<li><b>Match EX/MEM ke saath</b> (aur woh instruction sach mein register likhta ho, aur Rd ≠ $zero): ForwardA = 10 → ALU ko EX/MEM wala result.</li>
+<li><b>Match MEM/WB ke saath</b> (aur EX/MEM ke saath match nahi): ForwardA = 01 → MEM/WB wala result.</li>
+<li>Koi match nahi: ForwardA = 00 → register file wali value.</li>
+<li>Rt ke liye bilkul same rules ForwardB pe.</li>
+<li>Distance 3 ya zyada: register file khud handle karta hai (pehle aadhe mein likha, doosre mein padha).</li>
+</ol>
+<pre>EX hazard:  if (EX/MEM.RegWrite and EX/MEM.Rd != 0
+               and EX/MEM.Rd == ID/EX.Rs)                ForwardA = 10
+MEM hazard: if (MEM/WB.RegWrite and MEM/WB.Rd != 0
+               and not (EX hazard for Rs)
+               and MEM/WB.Rd == ID/EX.Rs)                ForwardA = 01
+(same two conditions with Rt give ForwardB)</pre>
+<p><b>Har condition ka WHY:</b> <b>RegWrite</b> check: sw / beq register nahi likhte, unka "Rd" bekaar hai. <b>Rd ≠ 0</b>: $zero hamesha 0 rehna chahiye, usko likhne ki koshish forward nahi karni. <b>"not EX hazard"</b>: agar dono mein match ho to <mark>sabse naya</mark> (EX/MEM) result jeetna chahiye.</p>
+<p><b>P&amp;H chain with forwarding: 9 cycles, 0 stalls</b> ($1 = 10, $3 = 4 maan lo, to sub ka result $2 = 6)</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th><th>CC9</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>sub $2, $1, $3</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>and $12, $2, $5</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>or $13, $6, $2</code></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $14, $2, $2</code></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sw $15, 100($2)</code></td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<ol>
+<li>CC3: sub EX mein 10 − 4 = 6 banata hai. Edge pe 6 → EX/MEM.</li>
+<li>CC4: and EX mein. EX/MEM.Rd = $2 = ID/EX.Rs ($2) → <b>ForwardA = 10</b>, and ko 6 milta hai.</li>
+<li>CC5: or EX mein. or $13, $6, $2 mein $2 = rt. Ab sub MEM/WB mein → <b>ForwardB = 01</b>. (EX/MEM mein ab and hai, uska Rd = $12, match nahi.)</li>
+<li>CC5: add $14, $2, $2 ID mein register file padhta hai. Usi cycle sub WB pehle aadhe mein $2 = 6 likh deta hai → sahi value, forwarding nahi chahiye.</li>
+<li>CC6: sw $15, 100($2) ID mein: $2 already register file mein.</li>
+<li>Bina forwarding yahi chain 11 cycles leti (and aur or dono ruke): 2 cycles bache.</li></ol>
+<p><b>Priority example:</b> <code>add $1, $1, $2</code> ; <code>add $1, $1, $3</code> ; <code>add $1, $1, $4</code>. Teesre add ke EX (CC5) mein $1 do jagah hai: MEM/WB mein (pehle add ka, purana) aur EX/MEM mein (doosre add ka, naya). Rule "not EX hazard" ki wajah se <b>EX/MEM</b> (ForwardA = 10) chuna jaata hai: sahi, kyunki program order mein sabse naya value wahi hai.</p></div>
+<figure data-d="D15.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar wali pipeline diagram mein orange arrows forwarding hain: sub ke EX ke <b>end</b> se and ke EX ke <b>start</b> tak (EX/MEM → EX), aur sub ke MEM ke end se or ke EX tak (MEM/WB → EX). Arrows hamesha aage (right / neeche) jaate hain, peeche time mein kabhi nahi. Neeche wala hardware: ID/EX se RD1, RD2 do 3-input MUX (A, B) mein, unke inputs 00 (register file), 10 (EX/MEM se orange wire), 01 (MEM/WB se wire). Neeche "Forwarding unit" box ID/EX.Rs / Rt ko EX/MEM.Rd aur MEM/WB.Rd se compare karke MUX selects (dashed) deta hai.</p>
+<div class="ex"><b>Solved example 1 (MCQ type):</b> <p class="qq">and $12, $2, $5 directly follows sub $2, $1, $3. Where does and's first ALU operand come from, and what is ForwardA? How many stalls with forwarding?</p><ol>
+<li>Distance 1: jab and EX mein hai, sub MEM mein hai, uska result EX/MEM register mein.</li>
+<li>$2 and ka rs hai → ALU input A → ForwardA = 10.</li>
+<li>Result time pe mil gaya → 0 stalls.</li></ol>
+<p class="ans">Answer: from the EX/MEM pipeline register, ForwardA = 10, 0 stalls.</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this, 5 marks):</b> <p class="qq">Explain forwarding with the forwarding hardware and write the EX-hazard and MEM-hazard conditions.</p><ol>
+<li>An ALU result is ready at the end of EX, two cycles before WB. Forwarding sends it from the EX/MEM or MEM/WB pipeline register directly to the ALU inputs of later instructions.</li>
+<li>Hardware: two 3-input MUXes in front of the ALU (ForwardA, ForwardB; 00 register file, 10 EX/MEM, 01 MEM/WB) and a forwarding unit that compares ID/EX.Rs and ID/EX.Rt with EX/MEM.Rd and MEM/WB.Rd.</li>
+<li>EX hazard: EX/MEM.RegWrite and EX/MEM.Rd ≠ 0 and EX/MEM.Rd = ID/EX.Rs → ForwardA = 10.</li>
+<li>MEM hazard: MEM/WB.RegWrite and MEM/WB.Rd ≠ 0 and not EX hazard and MEM/WB.Rd = ID/EX.Rs → ForwardA = 01. (Same for Rt / ForwardB.)</li>
+<li>Draw the sub-and-or-add-sw diagram with the two arrows.</li></ol>
+<p class="ans">Answer: as above; ALU-to-ALU dependences need 0 stalls with forwarding.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Forwarding arrow ko peeche ki taraf (pichhle cycle mein) draw karna: data future se past mein nahi ja sakta. (2) Rd ≠ 0 check bhoolna. (3) Dono match hon to MEM/WB se forward karna: naya EX/MEM jeetta hai.</div>
+<p class="trick"><b>Trick:</b> <b>"1 aage → EX/MEM (10), 2 aage → MEM/WB (01), 3 aage → register file (00)."</b></p>
+<div class="yr"><b>Ek line mein:</b> Result ko register file ka intezaar kiye bina EX/MEM ya MEM/WB se seedha ALU tak bhejo; ALU → ALU dependence mein 0 stall.</div>
+</div>
+
+<!-- ======================= 15.5 ======================= -->
+<div class="topic"><h3>15.5 The Load-Use Hazard: Forwarding + One Stall</h3>
+<div class="why"><b>Pehle socho:</b> add ka result EX ke end mein ban jaata hai, isliye agla instruction usse turant le sakta hai. Lekin <b>lw</b> ka data memory se aata hai, yaani <mark>MEM stage ke end</mark> mein, ek cycle aur baad. Agla instruction use apne EX ki shuruaat mein chahta hai, jo bilkul usi cycle mein hai jisme lw abhi memory padh raha hai. Data abhi bana hi nahi; forwarding time mein peeche nahi bhej sakta. Isliye ek cycle rukna hi padega.</div>
+<div class="def"><b>Definition:</b> A <b>load-use hazard</b> occurs when an instruction uses the register loaded by the immediately preceding lw. Because the loaded data is available only at the end of the MEM stage, one stall cycle is required even with forwarding; after the stall the value is forwarded from MEM/WB to EX.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>load-use</dt><dd>lw ke turant baad wala instruction usi register ko use kare. <code>lw $2, 20($1)</code> ; <code>and $4, $2, $5</code>.</dd>
+<dt>MemRead (ID/EX.MemRead)</dt><dd>ID/EX mein baitha instruction load hai, iski pehchaan.</dd>
+<dt>IF/ID.Rs, IF/ID.Rt</dt><dd>ID stage wale (agle) instruction ke source registers.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>lw $2, 20($1): CC3 EX mein address = $1 + 20 (jaise $1 = 100 → 120). CC4 MEM mein Mem[120] padha, data CC4 ke <b>end</b> mein ready.</li>
+<li>and $4, $2, $5 normally CC4 mein EX karta: use CC4 ki <b>shuruaat</b> mein $2 chahiye. Data abhi nahi → impossible.</li>
+<li>Hazard detection unit (ID mein, CC3): ID/EX.MemRead = 1 aur ID/EX.Rt ($2) = IF/ID.Rs ($2) → stall.</li>
+<li>Stall: PC aur IF/ID hold, ID/EX mein bubble (control 0). and ka EX CC5 mein chala jaata hai.</li>
+<li>CC5 mein lw MEM/WB mein hai → ForwardA = 01 → and ko $2 mil jaata hai.</li>
+<li>Bina forwarding yahi 2 stalls hote (WB tak wait). lw aur use ke beech ek independent instruction ho to 0 stall.</li>
+</ol>
+<pre>if (ID/EX.MemRead and
+    (ID/EX.Rt == IF/ID.Rs or ID/EX.Rt == IF/ID.Rt))
+    stall the pipeline (hold PC and IF/ID, insert a bubble in ID/EX)</pre>
+<p><b>lw → add (with forwarding): 7 cycles, 1 stall</b></p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t0, 0($t1)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $t2, $t0, $t3</code></td><td></td><td>IF</td><td>ID</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p><b>P&amp;H example (with forwarding): 9 cycles, 1 stall</b></p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th><th>CC9</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $2, 20($1)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>and $4, $2, $5</code></td><td></td><td>IF</td><td>ID</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>or $8, $2, $6</code></td><td></td><td></td><td>IF</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $9, $4, $2</code></td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p><small>and ID mein ek extra cycle ruka (stall), or IF mein. CC5: and ko $2 MEM/WB se; or CC5 mein ID karta hai aur register file se $2 padh leta hai (lw ne usi cycle likha); add $9 ko $4 MEM/WB se (and se), $2 register file se.</small></p>
+<p><b>Ek independent instruction beech mein: 7 cycles, 0 stalls</b> (MEM/WB → EX forwarding)</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t0, 0($t1)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>or $t7, $t5, $t6</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $t2, $t0, $t3</code></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table></div>
+<figure data-d="D15.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> lw normal (CC1 to CC5). and ki row mein ID ke baad ek stall box (CC4), phir EX CC5 mein. Orange arrow lw ke MEM ke end (CC4) se and ke EX ki shuruaat (CC5) tak: MEM/WB → EX forwarding. Dhyan do arrow time mein aage jaata hai; stall na hota to arrow seedha upar-neeche (same cycle) hota, jo impossible hai.</p>
+<div class="fx"><b>Formula:</b> Load-use stalls per instruction = (fraction of loads) × (fraction of loads followed immediately by a use) × 1<br>CPI = 1 + load-use stalls + branch stalls</div>
+<div class="ex"><b>Solved example 1 (easy):</b> <p class="qq">With forwarding: lw $t0, 0($t1) ; add $t2, $t0, $t3. Stalls and total cycles? Without forwarding?</p><ol>
+<li>Load ke turant baad use → 1 stall (forwarding ke saath).</li>
+<li>Ideal = 5 + (2 − 1) = 6. Total = 6 + 1 = 7.</li>
+<li>Without forwarding: add ko WB tak rukna → 2 stalls → 6 + 2 = 8.</li></ol>
+<p class="ans">Answer: with forwarding 1 stall, 7 cycles; without 2 stalls, 8 cycles.</p></div>
+<div class="ex"><b>Solved example 2 (CPI, exam-level):</b> <p class="qq">A pipeline has full forwarding. 25 % of instructions are loads and 40 % of loads are immediately followed by an instruction that uses the loaded value. 15 % of instructions are branches, each costing 1 stall cycle. Find the CPI and the speedup over an unpipelined machine (balanced 5 stages).</p><ol>
+<li>Load-use stalls = 0.25 × 0.40 × 1 = 0.10.</li>
+<li>Branch stalls = 0.15 × 1 = 0.15.</li>
+<li>ALU → ALU dependences: forwarding se 0.</li>
+<li>CPI = 1 + 0.10 + 0.15 = 1.25.</li>
+<li>Unpipelined: har instruction 5 stage-times. Pipelined: 1.25 stage-times per instruction. Speedup = 5 / 1.25 = 4.</li></ol>
+<p class="ans">Answer: CPI = 1.25, speedup = 4.</p></div>
+<div class="ex"><b>Solved example 3 (write the answer like this):</b> <p class="qq">Why can't forwarding alone resolve a load-use hazard?</p><ol>
+<li>The loaded value is produced only at the end of the MEM stage.</li>
+<li>The next instruction needs it at the beginning of its EX stage, which is the same cycle as the load's MEM.</li>
+<li>Forwarding can only send a value forward in time, not backward, so the dependent instruction must be stalled one cycle; then the value is forwarded MEM/WB → EX.</li>
+<li>Detection: ID/EX.MemRead and (ID/EX.Rt = IF/ID.Rs or ID/EX.Rt = IF/ID.Rt).</li></ol>
+<p class="ans">Answer: data ready after MEM, needed at EX of the next instruction in the same cycle → 1 stall + MEM/WB forwarding.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Forwarding se load-use stall bhi khatam" likhna: 1 stall bachta hai. (2) Forwarding arrow lw ke EX se draw karna: EX mein sirf address bana hai, data MEM ke end mein. (3) lw ke baad independent instruction ho to bhi stall lagana: tab 0 stall.</div>
+<div class="yr"><b>Ek line mein:</b> Load ka data MEM ke end mein aata hai, agle instruction ko EX ki shuruaat mein chahiye, isliye forwarding ke saath bhi 1 stall, phir MEM/WB → EX.</div>
+</div>
+
+<!-- ======================= 15.6 ======================= -->
+<div class="topic"><h3>15.6 Compiler Scheduling (reordering to remove load-use stalls)</h3>
+<div class="why"><b>Pehle socho:</b> Maggi banate waqt paani ubalne ka intezaar karte ho (stall). Smart tareeka: <b>usi waqt pyaaz kaat lo</b>, jo baad mein chahiye hi tha. Kaam ka order badla, result wahi, time bacha. Compiler bhi yahi karta hai: lw ke baad ka khaali slot kisi aise instruction se bhar deta hai jo <mark>us load pe depend nahi karta</mark>.</div>
+<div class="def"><b>Definition:</b> <b>Compiler (instruction) scheduling</b> is the reordering of independent instructions by the compiler so that a load is not immediately followed by an instruction that uses its result, removing load-use stalls without changing the program's result. All RAW, WAR and WAW dependences (through registers and memory) must be preserved.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>independent instruction</dt><dd>Jo na load ka register padhta hai, na koi aisa register likhta hai jo beech ke instructions use karte hain.</dd>
+<dt>legal reordering</dt><dd>Order badalne ke baad bhi har register aur memory location mein wahi final value aaye.</dd>
+<dt>load delay slot</dt><dd>lw ke turant baad ki jagah; yahan independent instruction rakho.</dd>
+</dl></div>
+<div class="how"><b>Kaise karein (steps):</b><ol>
+<li>Har lw dhundo jiske turant baad wala instruction uska register use karta hai (load-use pair).</li>
+<li>Aage ya peeche se ek <b>independent</b> instruction dhundo (aksar doosra lw).</li>
+<li>Check karo: use upar khiskaane se koi RAW / WAR / WAW nahi tootna chahiye (jo register woh likhta hai, beech mein koi padh / likh nahi raha; jo woh padhta hai, beech mein koi likh nahi raha; store ke upar load tabhi jab address alag ho).</li>
+<li>Use load-use pair ke beech rakh do.</li>
+<li>Cycles dobara gino: 5 + (n − 1) + bache hue stalls.</li>
+</ol>
+<p><b>Easy example (with forwarding).</b> Original: <code>lw $t0, 0($s1)</code> ; <code>add $t1, $t0, $s2</code> ; <code>sw $t1, 4($s1)</code> ; <code>lw $t3, 8($s1)</code>. lw → add load-use = 1 stall → 5 + 3 + 1 = 9 cycles. lw $t3 kisi pe depend nahi karta aur koi usse pehle $t3 use nahi karta → upar khiskao:</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t0, 0($s1)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t3, 8($s1)</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $t1, $t0, $s2</code></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sw $t1, 4($s1)</code></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p>Ab add aur lw $t0 ke beech lw $t3 hai: add ko $t0 MEM/WB se, sw ko $t1 EX/MEM se. 0 stalls, 8 cycles (9 se 8).</p>
+<p><b>P&amp;H example:</b> C code <code>a = b + e; c = b + f;</code> with b, e, f, a, c at offsets 0, 4, 8, 12, 16 from $t0.</p>
+<pre>Original (2 load-use stalls)     Scheduled (0 stalls)
+lw  $t1, 0($t0)                  lw  $t1, 0($t0)
+lw  $t2, 4($t0)                  lw  $t2, 4($t0)
+add $t3, $t1, $t2   # stall      lw  $t4, 8($t0)     # moved up
+sw  $t3, 12($t0)                 add $t3, $t1, $t2
+lw  $t4, 8($t0)                  sw  $t3, 12($t0)
+add $t5, $t1, $t4   # stall      add $t5, $t1, $t4
+sw  $t5, 16($t0)                 sw  $t5, 16($t0)</pre>
+<p><b>Original: 13 cycles</b> (5 + 6 = 11 ideal + 2 stalls)</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th><th>CC9</th><th>CC10</th><th>CC11</th><th>CC12</th><th>CC13</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t1, 0($t0)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t2, 4($t0)</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $t3, $t1, $t2</code></td><td></td><td></td><td>IF</td><td>ID</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sw $t3, 12($t0)</code></td><td></td><td></td><td></td><td>IF</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t4, 8($t0)</code></td><td></td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $t5, $t1, $t4</code></td><td></td><td></td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sw $t5, 16($t0)</code></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>IF</td><td style="background:rgba(255,190,180,.55)"><b>stall</b></td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p><b>Scheduled: 11 cycles</b> (0 stalls)</p>
+<table class="tt" style="font-size:10pt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th><th>CC9</th><th>CC10</th><th>CC11</th></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t1, 0($t0)</code></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t2, 4($t0)</code></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>lw $t4, 8($t0)</code></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $t3, $t1, $t2</code></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sw $t3, 12($t0)</code></td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>add $t5, $t1, $t4</code></td><td></td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr><tr><td style="text-align:left;white-space:nowrap"><code>sw $t5, 16($t0)</code></td><td></td><td></td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p>Kyun legal: lw $t4 sirf $t0 padhta hai (koi nahi badalta) aur $t4 likhta hai (beech mein koi $t4 use nahi karta); woh Mem[$t0 + 8] padhta hai, aur jis sw ($t3 → 12($t0)) ke upar gaya woh alag address likhta hai. Isme ek extra register ($t4 alag rakhna) laga: RISC mein 32 registers hone ka ek fayda.</p></div>
+<div class="ex"><b>Solved example (MCQ type):</b> <p class="qq">lw $t1, 0($t0) ; add $t2, $t1, $t3 ; sub $t4, $t5, $t6. Which reordering is ILLEGAL: (a) move sub between lw and add, (b) move sub before lw, (c) move add before lw?</p><ol>
+<li>(a) sub $t1 / $t2 se koi lena-dena nahi → legal, aur load-use stall bhi hat jaata hai (best choice).</li>
+<li>(b) sub kisi pe depend nahi → legal (lekin stall nahi hatega).</li>
+<li>(c) add ko $t1 chahiye jo lw laata hai (RAW). add pehle chala to purana $t1 use karega → <b>illegal</b>.</li></ol>
+<p class="ans">Answer: (c) is illegal; (a) is the useful legal move (removes the stall).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Load ko us store ke upar le jaana jo <i>usi</i> address pe likhta hai (memory RAW tootega). (2) Do instructions jo same register likhte hain unka order badalna (WAW). (3) Scheduled version mein bhi stall ginna jab beech mein ek independent instruction aa gaya ho.</div>
+<p class="trick"><b>Trick:</b> <b>"lw ke baad gap bharo, dependence mat todo."</b> Sabse aasaan filler: agla lw upar khiskao.</p>
+<div class="yr"><b>Ek line mein:</b> Compiler independent instructions (aksar loads) ko upar khiska ke load-use slot bharta hai; P&amp;H example 13 → 11 cycles; har dependence bachani zaroori.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Classify a situation as structural / data / control</td><td>Resource ka jhagda → structural. Value ready nahi → data. Next PC branch pe depend → control.</td></tr>
+<tr><td>RAW / WAR / WAW identify</td><td>I1 likhe, I2 padhe → RAW. I1 padhe, I2 likhe → WAR. Dono likhein → WAW. 5-stage in-order mein sirf RAW hazard.</td></tr>
+<tr><td>Stalls without forwarding</td><td>Distance d (1 = turant agla): stalls = 3 − d (minimum 0). Total = 5 + (n − 1) + stalls. Table: dependent instruction ID mein ruka, peeche wala IF mein.</td></tr>
+<tr><td>Stalls with forwarding</td><td>ALU → ALU: 0. lw → turant use: 1. lw, ek instruction, use: 0.</td></tr>
+<tr><td>Draw cycle table with stalls / forwarding</td><td>1. Staircase banao. 2. Har dependence pe dekho value kab ready (ALU: EX end, lw: MEM end) aur kab chahiye (EX start). 3. Gap ho to stall cells daalo, peeche wale sab shift. 4. Forwarding arrow ready-cycle ke end se use-cycle ki start tak (aage hi).</td></tr>
+<tr><td>Where is the value forwarded from / ForwardA value</td><td>Producer 1 aage → EX/MEM (10); 2 aage → MEM/WB (01); 3 aage → register file (00). Rs → ForwardA, Rt → ForwardB.</td></tr>
+<tr><td>Write forwarding conditions / load-use detection condition</td><td>EX: EX/MEM.RegWrite, Rd ≠ 0, EX/MEM.Rd = ID/EX.Rs → 10. MEM: same with MEM/WB and "not EX hazard" → 01. Load-use: ID/EX.MemRead and ID/EX.Rt = IF/ID.Rs or IF/ID.Rt → stall.</td></tr>
+<tr><td>Why load-use needs a stall</td><td>Data MEM ke end mein, chahiye agle ke EX start pe (same cycle); time mein peeche nahi bhej sakte → 1 stall + MEM/WB → EX.</td></tr>
+<tr><td>Reorder code to remove stalls; cycles before / after</td><td>Load-use pair dhundo → independent instruction (doosra lw) beech mein rakho → dependences check → cycles = 5 + n − 1 + stalls (P&amp;H: 13 → 11).</td></tr>
+<tr><td>Branch handling (stall, predict not-taken, delayed branch)</td><td>Stall: har branch penalty. Predict not-taken: sirf taken pe flush (ID mein faisla → 1, MEM → 3). Delayed: slot ka instruction hamesha chalta, compiler useful instruction rakhta.</td></tr>
+<tr><td>CPI with stalls numerical</td><td>CPI = 1 + Σ (fraction × stall cycles). Branch: branch% × taken% × penalty. Load-use: load% × use-next% × 1. Time = N × CPI × t<sub>cycle</sub>; speedup = k / CPI.</td></tr>
+</table></div>
+</section>

@@ -1,0 +1,322 @@
+<section>
+<h2>Unit 6 · Registers, Counters &amp; Shift Registers</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 5 mein ek D flip-flop = 1 bit ki memory bani. Ab inhe jodte hain. <b>Ek line mein rakho, ek clock do</b> → register (poora word, jaise PC). <b>Thodi logic jodo jo next value banaye</b> → counter (0, 1, 2, 3 ginta hai; timers, PC). <b>Ek ka Q agle ke D mein do</b> → shift register (bits ek ek karke khisakte hain; serial ↔ parallel, UART). Unit 7 in registers se register file aur FSM banayega, aur Unit 13 ka datapath inhi pe chalta hai.</div>
+
+<div class="topic"><h3>6.1 Scaling from flip-flops to registers</h3>
+<div class="why"><b>Pehle socho:</b> Ek flip-flop sirf 1 bit yaad rakhta hai. Par CPU ko poora number yaad rakhna hai, jaise 32-bit address. To 32 flip-flops ek line mein lagao aur <mark>sabko ek hi clock do</mark>, taaki saare bits ek hi instant pe ek saath save hon. Jaise ek board pe 8 switches jinhe ek hi haath ek saath dabata hai.</div>
+<div class="def"><b>Definition:</b> A <b>register</b> is a group of n flip-flops sharing a common clock that stores an n-bit word; all n bits are captured simultaneously at the active clock edge.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>word</dt><dd>Bits ka group jo ek unit ki tarah use hota hai: 8, 16, 32 ya 64 bits.</dd>
+<dt>common clock</dt><dd>Ek hi CLK wire jo har flip-flop ke clock pin tak jaati hai.</dd>
+<dt>PC / IR</dt><dd>Program Counter (agle instruction ka address), Instruction Register (abhi fetch hua instruction). Dono registers hain.</dd>
+<dt>pipeline register</dt><dd>Pipeline ke do stages ke beech ka register (Unit 14), jaise IF/ID.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>n-bit register = n D flip-flops, ek bit ke liye ek.</li>
+<li>Har flip-flop ka apna D input (D0, D1, D2, D3) aur apna Q output (Q0 se Q3).</li>
+<li>Clock sab ka common. Rising edge pe: Q3Q2Q1Q0 ← D3D2D1D0, ek saath.</li>
+<li>Example: D = 1010 aur edge aaya → Q = 1010. Agle edge pe D = 0110 → Q = 0110.</li>
+<li>Problem: ye plain register <b>har</b> edge pe naya D le leta hai, value hold nahi kar sakta. Isliye real registers mein <b>load enable</b> aur <b>reset</b> chahiye (6.2).</li>
+<li>Cost linear hai: 32-bit register = 32 flip-flops. Isliye registers kam hote hain aur badi memory SRAM/DRAM se banti hai (Unit 8).</li>
+</ol></div>
+<figure data-d="D6.1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaar D-FF boxes ek line mein. Har box ka D upar/left se, Q right se bahar. Neeche ek horizontal CLK line jo har box ke clock pin ko chhooti hai. Ek hi CLK line = ek hi instant pe sab load.</p>
+<div class="ex"><b>Solved example (4 marks, model answer):</b> <p class="qq">What is a register? Draw a 4-bit register using D flip-flops and name four registers found in a CPU. How many flip-flops does a 32-bit register need?</p><ol>
+<li>Definition: "A register is a group of n D flip-flops sharing one clock that stores an n-bit word, all bits being loaded at the same clock edge."</li>
+<li>Draw D6.1a.</li>
+<li>CPU registers: PC, IR, general-purpose registers ($t0, $s0), pipeline registers (IF/ID).</li>
+<li>32-bit → ek bit ek FF → 32 flip-flops.</li></ol>
+<p class="ans">Answer: definition + diagram + PC, IR, GPRs, pipeline registers; 32 flip-flops.</p></div>
+<div class="trap"><b>Galti mat karna:</b> Har bit ke liye alag clock mat banao; common clock hi register ka matlab hai. Aur Q → D chain mat banao (wo shift register hai, 6.5). ALU register nahi hai (wo combinational hai).</div>
+<div class="yr"><b>Ek line mein:</b> Register = n D flip-flops + ek common clock, jo n-bit word ek saath store karta hai.</div>
+</div>
+
+<div class="topic"><h3>6.2 Registers: load enable, reset, CPU preview</h3>
+<div class="why"><b>Pehle socho:</b> Locker socho. Ghanti (clock) har second bajti hai, par locker ka saamaan tabhi badalta hai jab tum darwaza kholte ho (<b>LOAD = 1</b>). Darwaza band ho (LOAD = 0) to ghanti chahe kitni baar baje, andar wahi rehta hai. <b>RESET</b> = locker khaali karna (sab 0). Plain register har edge pe overwrite karta tha; load enable usse hold karna sikhata hai.</div>
+<div class="def"><b>Definition:</b> <b>Load enable</b> lets a register either capture new data or keep its present value at each clock edge; it is built with a 2:1 multiplexer in front of each flip-flop that selects D when LOAD = 1 and the flip-flop's own Q when LOAD = 0. <b>Reset</b> forces the register to a known value (all 0s): a <b>synchronous reset</b> acts at the next active clock edge, an <b>asynchronous reset</b> acts immediately.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>2:1 MUX</dt><dd>Do inputs mein se ek chunne wala switch. Select = 1 → input 1 bahar, select = 0 → input 0 bahar.</dd>
+<dt>feedback (Q → MUX)</dt><dd>Flip-flop ka apna output MUX ke input 0 pe wapas. LOAD = 0 pe flip-flop apni hi value dobara load karta hai, yaani hold.</dd>
+<dt>LOAD (ld)</dt><dd>Control bit: 1 = naya data lo, 0 = purana rakho.</dd>
+<dt>synchronous / asynchronous reset</dt><dd>Sync: rst = 1 karke <i>agle edge</i> ka wait. Async: rst = 1 hote hi turant 0, clock ka wait nahi.</dd>
+<dt>clock gating</dt><dd>Clock ko AND gate se rokna. Yahan galat tareeka: delay (skew) aur glitch laata hai.</dd>
+<dt>priority</dt><dd>Dono ek saath aayein to kaun jeetega. Labs mein: reset &gt; load &gt; hold.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Har bit ke D pin ke aage ek 2:1 MUX. MUX input 1 = naya data, input 0 = us flip-flop ka apna Q. Select = LOAD.</li>
+<li>LOAD = 1 → MUX naya data deta hai → edge pe Q = data.</li>
+<li>LOAD = 0 → MUX Q hi wapas deta hai → edge pe Q = Q (wahi value dobara) → <mark>hold</mark>.</li>
+<li>Equation: Q⁺ = LOAD·D + LOAD'·Q (yahi 2:1 MUX ka formula hai).</li>
+<li>Clock ko kabhi mat roko (AND(CLK, LOAD) mat banao); clock saaf rakho aur MUX se decide karo.</li>
+<li>Reset upar se: rst = 1 → Q⁺ = 0, chahe LOAD kuch bhi ho.</li>
+<li>Verilog (sync reset): <code>always @(posedge clk) if (rst) q &lt;= 0; else if (ld) q &lt;= d;</code> (else nahi likha → hold). Async: <code>always @(posedge clk or posedge rst)</code>.</li>
+</ol>
+<p><b>Clock-by-clock trace (8-bit register, lab Q1 and Q2):</b></p>
+<table class="tt"><tr><th>Edge / time</th><th>rst</th><th>ld</th><th>d</th><th>MUX chunta hai</th><th>q after</th></tr>
+<tr><td>edge (t = 5)</td><td>0</td><td>1</td><td>1010 1010</td><td>d</td><td>1010 1010</td></tr>
+<tr><td>edge (t = 15)</td><td>0</td><td>1</td><td>1100 1100</td><td>d</td><td>1100 1100</td></tr>
+<tr><td>edge (t = 25)</td><td>0</td><td>0</td><td>1111 1111</td><td>Q (feedback)</td><td>1100 1100 (hold)</td></tr>
+<tr><td>t = 30, no edge</td><td>1</td><td>1</td><td>1111 1111</td><td>(edge ka wait)</td><td>1100 1100 (sync reset abhi nahi)</td></tr>
+<tr><td>edge (t = 35)</td><td>1</td><td>1</td><td>1111 1111</td><td>reset jeeta</td><td>0000 0000</td></tr></table>
+<table class="tt"><tr><th></th><th>Synchronous reset</th><th>Asynchronous reset</th></tr>
+<tr><td>Acts</td><td>at the next clock edge</td><td>immediately</td></tr>
+<tr><td>Needs clock?</td><td>yes</td><td>no</td></tr>
+<tr><td>Typical use</td><td>mod-N counters, FSM restart</td><td>power-on reset</td></tr></table></div>
+<figure data-d="D6.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Trapezoid = MUX, uska output D-FF ke D mein. MUX ka input "1" upar se naya data, input "0" ek wire jo FF ke Q se ghoom ke wapas aata hai. LOAD MUX ke select pe. Trace LOAD = 0, Q = 1: MUX Q = 1 bhejta hai → edge pe Q = 1 (hold).</p>
+<figure data-d="D6.2b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Ek box "8-bit register". D[7:0] bus andar, Q[7:0] bahar; bus pe tirchhi line aur "8" = 8 wires. LOAD aur RST control lines, neeche triangle = clock. PC, IR, saare registers isi block jaise dikhte hain.</p>
+<div class="ex"><b>Solved example (5 marks):</b> <p class="qq">Explain load enable and reset in a register. Draw one bit with a 2:1 MUX and write Verilog for an 8-bit register with synchronous reset and load.</p><ol>
+<li>Draw D6.2a; write Q⁺ = LOAD·D + LOAD'·Q.</li>
+<li>"LOAD = 1 selects the new data; LOAD = 0 feeds Q back so the register reloads its own value and holds. The clock itself is never gated."</li>
+<li>Reset: "Synchronous reset clears the register at the next active edge; asynchronous reset clears it immediately without the clock (used for power-on)."</li>
+<li>Verilog:
+<pre>module register_8bit_rst (input clk, rst, ld, input [7:0] d, output reg [7:0] q);
+    always @(posedge clk)
+        if (rst)     q &lt;= 8'b0;     // highest priority
+        else if (ld) q &lt;= d;        // load
+                                    // else: hold
+endmodule</pre></li></ol>
+<p class="ans">Answer: MUX per bit with Q feedback; priority rst &gt; ld &gt; hold; sync reset waits for the edge.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) LOAD = 0 pe MUX "0" bhejta hai samajhna: nahi, wo <b>Q</b> bhejta hai (0 bhejega to wo reset ban jaayega). (2) Sync reset ko turant maan lena: t = 30 pe rst = 1 hua par q t = 35 (edge) pe hi 0 hua. (3) if-else mein load ko reset se pehle likhna.</div>
+<p class="trick"><b>Trick:</b> "<b>Load band = apna hi Q wapas.</b>"</p>
+<div class="yr"><b>Ek line mein:</b> Har bit ke aage 2:1 MUX: LOAD = 1 naya D, LOAD = 0 apna Q (hold); reset sabse upar, sync reset edge ka wait karta hai, async turant.</div>
+</div>
+
+<div class="topic"><h3>6.3 Asynchronous (ripple) vs synchronous counters</h3>
+<div class="why"><b>Pehle socho:</b> Binary mein ginti dekho: 0111 → 1000. Koi bit kab badalta hai? <mark>Jab uske neeche (right) ke saare bits 1 hon</mark>. Do tarike se ye kara sakte hain. <b>Ripple:</b> dominoes ki line, pehla gira tab doosra, phir teesra: sasta par slow, aur girte waqt beech mein galat ginti dikhti hai. <b>Synchronous:</b> soldiers jo drum beat pe sab ek saath kadam rakhte hain: thoda extra logic, par fast aur saaf.</div>
+<div class="def"><b>Definition:</b> A <b>counter</b> is a sequential circuit that steps through a fixed sequence of states (usually binary counting) on successive clock pulses. In an <b>asynchronous (ripple) counter</b> only the first flip-flop receives the clock and each later flip-flop is clocked by the output of the previous one; in a <b>synchronous counter</b> all flip-flops share the same clock and logic decides which bits toggle.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>T flip-flop (reminder)</dt><dd>T = 1 → har active edge pe ulta (toggle); T = 0 → hold.</dd>
+<dt>propagation delay t<sub>pd</sub></dt><dd>Clock aane se Q badalne tak ka time (ek flip-flop ka). Jaise 10 ns.</dd>
+<dt>ripple</dt><dd>Lahar: badlav ek flip-flop se agle, phir agle tak, ek ke baad ek pahunchta hai.</dd>
+<dt>settle time</dt><dd>Clock ke baad sahi final count dikhne mein lagne wala time. Ripple: n × t<sub>pd</sub>.</dd>
+<dt>glitch / false state</dt><dd>Thodi der ke liye dikhne wala galat count (jaise 7 → 8 ke beech 6, 4, 0).</dd>
+<dt>divide-by-2</dt><dd>Toggle FF ka output clock ki aadhi frequency pe chalta hai: 2 clock pulses = ek poora output cycle.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Counting rule:</b> Q0 har clock pe badalta hai; Q1 tab jab Q0 = 1; Q2 tab jab Q1 = Q0 = 1. Isliye Q0 = clock ÷ 2, Q1 = ÷ 4, Q2 = ÷ 8; bit k ki frequency = f<sub>clk</sub> / 2<sup>k+1</sup>.</li>
+<li><b>Ripple build:</b> saare T = 1 (sab toggle karne ko ready). Sirf FF0 ko clock. FF1 ka clock = Q0, FF2 ka clock = Q1. Flip-flops falling-edge (bubble) wale hain, to FF1 tab toggle karta hai jab Q0 1 → 0 girta hai. Ye "neeche ke bits 1 se 0 hue = carry" hi hai.</li>
+<li><b>Ripple trace (3-bit, 0 → 7 → 0):</b> clock 1: Q0 0 → 1 → 001. Clock 2: Q0 1 → 0 (gira) → Q1 toggle 0 → 1 → 010. Clock 3: Q0 → 1 → 011. Clock 4: Q0 gira → Q1 1 → 0 gira → Q2 0 → 1 → 100. Isi rule se 101, 110, 111, aur clock 8 pe teeno girte hain → 000.</li>
+<li><b>Ripple delay:</b> clock 4 jaise case mein Q2 tab badalta hai jab Q1 badal chuka, jo Q0 ke baad badla: 3 delays. n-bit mein worst case <b>n × t<sub>pd</sub></b>. Clock period isse lamba hona chahiye: f<sub>max</sub> = 1 / (n × t<sub>pd</sub>).</li>
+<li><b>False states (4-bit, 7 → 8):</b> neeche table. Har step ek t<sub>pd</sub> baad.</li>
+<li><b>Synchronous:</b> sab FFs ko same clock. T inputs AND gates se: T0 = 1, T1 = Q0, T2 = Q0·Q1, T3 = Q0·Q1·Q2 (6.4). Edge pe jo bits badalne hain sab ek saath badalte hain → koi false state nahi; delay = ek FF delay + AND chain, n ke saath nahi badhta.</li>
+</ol>
+<table class="tt"><tr><th>Time after the clock edge</th><th>Kya hua</th><th>Q3 Q2 Q1 Q0</th><th>Count dikhta hai</th></tr>
+<tr><td>0</td><td>purani value</td><td>0111</td><td>7</td></tr>
+<tr><td>1 × t<sub>pd</sub></td><td>Q0 1 → 0</td><td>0110</td><td>6 (galat)</td></tr>
+<tr><td>2 × t<sub>pd</sub></td><td>Q1 1 → 0</td><td>0100</td><td>4 (galat)</td></tr>
+<tr><td>3 × t<sub>pd</sub></td><td>Q2 1 → 0</td><td>0000</td><td>0 (galat)</td></tr>
+<tr><td>4 × t<sub>pd</sub></td><td>Q3 0 → 1</td><td>1000</td><td>8 (sahi)</td></tr></table>
+<table class="tt"><tr><th></th><th>Ripple (async)</th><th>Synchronous</th></tr>
+<tr><td>Clock</td><td>FF0 only; others clocked by previous Q</td><td>all FFs share one clock</td></tr>
+<tr><td>Delay to valid count</td><td>n × t<sub>pd</sub> (grows with n)</td><td>one FF delay + AND logic (constant)</td></tr>
+<tr><td>False states</td><td>yes (7 → 6 → 4 → 0 → 8)</td><td>no</td></tr>
+<tr><td>Hardware</td><td>minimum (no gates)</td><td>extra AND gates</td></tr>
+<tr><td>Use</td><td>slow dividers (watch: 32,768 Hz → 1 Hz)</td><td>CPUs, PC, timers, anything fast</td></tr></table></div>
+<figure data-d="D6.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Teen T-FF boxes, sab ka T = 1. CLK sirf FF0 mein (left). Har Q do jagah jaata hai: upar output (Q0, Q1, Q2) aur agle FF ke clock pin pe (bubble = falling edge). Trace: Q0 1 → 0 gira → FF1 ko falling edge mila → Q1 toggle.</p>
+<figure data-d="D6.3b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar clock, phir Q0, Q1, Q2. Q0 har edge pe badalta hai, Q1 har doosre pe, Q2 har chauthe pe. Kisi bhi column mein Q2 Q1 Q0 padho: 000, 001, 010 se 111 tak, phir 000. Q0 ka ek poora cycle = 2 clock cycles (÷2), Q2 ka = 8 (÷8).</p>
+<figure data-d="D6.3c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Ek clock edge ke baad Q0, Q1, Q2 ek ke baad ek (har ek t<sub>pd</sub> right shift hokar) girte hain, aur aakhir mein Q3 uthta hai. Neeche "count" row: 7, 6, 4, 0, 8. Shaded hissa = false values.</p>
+<div class="fx"><b>Formula:</b> Ripple settle time = <b>n × t<sub>pd</sub></b>; <b>f<sub>max</sub> = 1 / (n × t<sub>pd</sub>)</b>; bit k frequency = <b>f<sub>clk</sub> / 2<sup>k+1</sup></b>.<br><small>1 / ns = GHz = 1000 MHz. So f (MHz) = 1000 / T (ns).</small></div>
+<div class="ex"><b>Solved example 1 (class quiz type):</b> <p class="qq">(i) A 4-bit ripple counter has t<sub>pd</sub> = 10 ns. Max frequency? (ii) A 12-bit ripple counter with 0.6 ns flip-flops? (iii) Mock: 12-bit with 2 ns? (iv) 3-bit with 5 ns: worst settling time?</p><ol>
+<li>(i) 4 × 10 = 40 ns → f = 1000 / 40 = <b>25 MHz</b>.</li>
+<li>(ii) 12 × 0.6 = 7.2 ns → f = 1000 / 7.2 = <b>138.9 MHz ≈ 139 MHz</b>.</li>
+<li>(iii) 12 × 2 = 24 ns → f = 1000 / 24 = <b>41.67 MHz</b>.</li>
+<li>(iv) 3 × 5 = <b>15 ns</b>.</li></ol>
+<p class="ans">Answer: 25 MHz; ≈ 139 MHz; 41.67 MHz; 15 ns.</p></div>
+<div class="ex"><b>Solved example 2 (divide-by):</b> <p class="qq">(i) A binary counter is driven by a 16 MHz clock. Frequency of Q2? (ii) How many T flip-flops divide a 32,768 Hz watch crystal down to 1 Hz?</p><ol>
+<li>(i) Q2 = f / 2<sup>2+1</sup> = 16 / 8 = <b>2 MHz</b>.</li>
+<li>(ii) Har T flip-flop ÷2 karta hai. 32,768 = 2¹⁵ (2¹⁰ = 1024, × 32 = 32,768). To 15 baar ÷2 → 1 Hz → <b>15 flip-flops</b>.</li></ol>
+<p class="ans">Answer: 2 MHz; 15 flip-flops.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Ripple counter mein clock hai, to synchronous hai" galat: clock sirf FF0 ko milta hai. (2) Ripple delay ko sirf t<sub>pd</sub> likhna: ye n × t<sub>pd</sub> hai. (3) Rising-edge FF ka clock seedha Q se dena: wo down counter ban jaata hai; up ke liye falling-edge FF (ya Q') chahiye.</div>
+<p class="trick"><b>Trick:</b> "<b>Ripple = dominoes, sync = drum pe march.</b>" 7 → 8 ripple: "<b>7, 6, 4, 0, 8</b>" (har baar ek aur bit gira).</p>
+<div class="yr"><b>Ek line mein:</b> Ripple counter mein har FF pichhle ke Q se clock hota hai (sasta, n × t<sub>pd</sub> delay, false states); synchronous mein sab ek clock pe, AND logic se toggle (fast, glitch-free).</div>
+</div>
+
+<div class="topic"><h3>6.4 4-bit synchronous up-counter design</h3>
+<div class="why"><b>Pehle socho:</b> Synchronous counter mein sab flip-flops ek saath clock hote hain, to har flip-flop ko pehle se batana padega: "agle edge pe tum badloge ya nahi?" T flip-flop ke liye ye bas T input hai: T = 1 → badlo. Kaam: har bit ke liye T ka formula nikalna. Rule wahi: <mark>bit tab badalta hai jab neeche ke saare bits 1 hon</mark>, isliye T = neeche ke saare Q ka AND.</div>
+<div class="def"><b>Definition:</b> A <b>synchronous up-counter</b> is designed by writing the count sequence as a present-state/next-state table, finding each flip-flop input from the flip-flop's excitation table, minimising each input with a K-map, and wiring all flip-flops to a common clock. For T flip-flops this gives T0 = 1, T1 = Q0, T2 = Q0·Q1, T3 = Q0·Q1·Q2.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>present state / next state</dt><dd>Abhi ka count (Q) aur agle edge ke baad ka count (Q⁺). 0101 ka next state 0110.</dd>
+<dt>excitation table (reminder)</dt><dd>Q → Q⁺ ke liye input kya do. T flip-flop: T = Q ⊕ Q⁺ (bit badalna hai to 1). D flip-flop: D = Q⁺.</dd>
+<dt>count enable (EN)</dt><dd>EN = 0 → counter ruka; EN = 1 → ginta hai. Har T mein EN AND kar do.</dd>
+<dt>terminal count (tc)</dt><dd>Output jo sirf aakhri count (1111) pe 1 hota hai. Agle counter ko enable karne ke kaam aata hai (cascading).</dd>
+<dt>⌈log₂ N⌉</dt><dd>Wo sabse chhota k jisme 2ᵏ ≥ N. N = 12 → 2⁴ = 16 ≥ 12 → 4.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (design steps, class flow):</b><ol>
+<li><b>Step 1, sequence:</b> 0000 → 0001 → 0010, har edge pe +1 karte hue 1111 tak, phir wapas 0000 (16 states, 4 FFs).</li>
+<li><b>Step 2, state table:</b> har present state ke saamne next state (present + 1) likho.</li>
+<li><b>Step 3, excitation:</b> har bit ke liye T = Q ⊕ Q⁺: jo bit badla wahan 1, jo nahi badla wahan 0.</li>
+<li><b>Step 4, minimise:</b> T columns dekho (neeche table). T0 column mein sab 1 → <b>T0 = 1</b>. T1 sirf un rows mein 1 jahan Q0 = 1 → <b>T1 = Q0</b>. T2 sirf jahan Q1 = Q0 = 1 (0011, 0111, 1011, 1111) → <b>T2 = Q1·Q0</b>. T3 sirf 0111 aur 1111 mein, yaani Q2 = Q1 = Q0 = 1 → <b>T3 = Q2·Q1·Q0</b>. (K-map mein bhi: T2 ke 1s 4 cells ka group banate hain jahan Q1 = Q0 = 1, Q3 aur Q2 cancel.)</li>
+<li><b>Step 5, wire:</b> 4 T-FFs, common clock; T0 = 1 (ya EN), T1 se Q0, ek AND (Q0, Q1) se T2, doosra AND (pichhla AND, Q2) se T3. Ye "AND chain" hai.</li>
+</ol>
+<table class="tt"><tr><th>Q3Q2Q1Q0</th><th>Q⁺</th><th>T3</th><th>T2</th><th>T1</th><th>T0</th><th></th><th>Q3Q2Q1Q0</th><th>Q⁺</th><th>T3</th><th>T2</th><th>T1</th><th>T0</th></tr>
+<tr><td>0000</td><td>0001</td><td>0</td><td>0</td><td>0</td><td>1</td><td></td><td>1000</td><td>1001</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>0001</td><td>0010</td><td>0</td><td>0</td><td>1</td><td>1</td><td></td><td>1001</td><td>1010</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>0010</td><td>0011</td><td>0</td><td>0</td><td>0</td><td>1</td><td></td><td>1010</td><td>1011</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>0011</td><td>0100</td><td>0</td><td>1</td><td>1</td><td>1</td><td></td><td>1011</td><td>1100</td><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>0100</td><td>0101</td><td>0</td><td>0</td><td>0</td><td>1</td><td></td><td>1100</td><td>1101</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>0101</td><td>0110</td><td>0</td><td>0</td><td>1</td><td>1</td><td></td><td>1101</td><td>1110</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>0110</td><td>0111</td><td>0</td><td>0</td><td>0</td><td>1</td><td></td><td>1110</td><td>1111</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>0111</td><td>1000</td><td><b>1</b></td><td>1</td><td>1</td><td>1</td><td></td><td>1111</td><td>0000</td><td><b>1</b></td><td>1</td><td>1</td><td>1</td></tr></table>
+<p>Check ek row: 0111 → 1000. Chaaron bits badle → T3T2T1T0 = 1111. Formula: T1 = Q0 = 1, T2 = Q1·Q0 = 1, T3 = Q2·Q1·Q0 = 1 ✓.</p></div>
+<figure data-d="D6.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaar T-FFs ek line mein, neeche ek shared CLK line. Left mein EN → T0. Q0 seedha T1 mein. Pehla AND gate Q0 aur Q1 leta hai → T2. Doosra AND pehle AND ka output aur Q2 leta hai → T3. Trace count = 0011: T1 = 1, AND1 = 1·1 = 1 → T2 = 1, AND2 = 1·0 = 0 → T3 = 0. Edge pe Q0, Q1, Q2 toggle → 0100 ✓.</p>
+<div class="fx"><b>Formula:</b> Up: <b>T0 = 1, T1 = Q0, T2 = Q0·Q1, T3 = Q0·Q1·Q2</b> (with enable: AND every T with EN).<br>D flip-flops: D = Q ⊕ T → D0 = Q0', D1 = Q1 ⊕ Q0, D2 = Q2 ⊕ Q1Q0, D3 = Q3 ⊕ Q2Q1Q0.<br>Down: T0 = 1, T1 = Q0', T2 = Q0'·Q1'. Up/down: T1 = UP·Q0 + UP'·Q0'. tc = Q3Q2Q1Q0. FFs for mod-N = ⌈log₂ N⌉.</div>
+<div class="ex"><b>Solved example 1 (mock 6 marks, D flip-flops):</b> <p class="qq">Design a 3-bit synchronous up-counter using D flip-flops: state table, next-state equations and circuit.</p><ol>
+<li>State table: 000 → 001 → 010 → 011 → 100 → 101 → 110 → 111 → 000.</li>
+<li>D flip-flop excitation: D = Q⁺, isliye D2 D1 D0 = next state column.</li>
+<li>Bit 0 har baar ulta: D0 = Q0'.</li>
+<li>Bit 1 tab ulta jab Q0 = 1: "ulta jab X = 1" = Q ⊕ X → D1 = Q1 ⊕ Q0.</li>
+<li>Bit 2 tab ulta jab Q1 = Q0 = 1 → D2 = Q2 ⊕ (Q1·Q0).</li>
+<li>Check 011: D0 = 0, D1 = 1 ⊕ 1 = 0, D2 = 0 ⊕ 1 = 1 → 100 ✓. Check 111: D0 = 0, D1 = 0, D2 = 1 ⊕ 1 = 0 → 000 ✓.</li>
+<li>Circuit: 3 D-FFs on one clock; inverter Q0 → D0; XOR(Q1, Q0) → D1; AND(Q1, Q0) → XOR with Q2 → D2.</li></ol>
+<p class="ans">Answer: D0 = Q0', D1 = Q1 ⊕ Q0, D2 = Q2 ⊕ Q1Q0.</p></div>
+<div class="ex"><b>Solved example 2 (down counter + FF count):</b> <p class="qq">(i) Find the T equations of a 3-bit synchronous DOWN counter. (ii) Minimum flip-flops for mod-12, mod-20 and for dividing 1 MHz to 1 kHz?</p><ol>
+<li>(i) Down count mein bit tab badalta hai jab neeche ke saare bits <b>0</b> hon (100 → 011: teeno badle). T0 = 1, T1 = Q0', T2 = Q0'·Q1'.</li>
+<li>Check 100 → 011: T0 = 1, T1 = 1 (Q0 = 0), T2 = 1·1 = 1 → teeno toggle → 011 ✓. Check 010 → 001: T1 = 1, T2 = Q0'Q1' = 1·0 = 0 → Q1, Q0 toggle → 001 ✓.</li>
+<li>(ii) mod-12: 2³ = 8 &lt; 12 ≤ 16 = 2⁴ → 4. mod-20: 16 &lt; 20 ≤ 32 → 5. 1 MHz → 1 kHz = ÷1000 → mod-1000: 512 &lt; 1000 ≤ 1024 → 10.</li></ol>
+<p class="ans">Answer: T0 = 1, T1 = Q0', T2 = Q0'Q1'; 4, 5, 10 flip-flops.</p></div>
+<div class="trap"><b>Galti mat karna:</b> T2 = Q1 likhna (galat; T2 = Q0·Q1, <b>saare</b> neeche ke bits). Down counter mein Q ki jagah Q' use karna bhool jaana. Mod-N ke FFs N/2 ya log₂ N ko round-down karna: hamesha round <b>up</b>.</div>
+<p class="trick"><b>Trick:</b> "<b>Neeche sab 1 → main palat jaata hoon</b>" (up). Down mein "neeche sab 0".</p>
+<div class="yr"><b>Ek line mein:</b> Synchronous up-counter: common clock, T0 = 1 aur har agla Tk = neeche ke saare Q ka AND (T1 = Q0, T2 = Q0Q1, T3 = Q0Q1Q2).</div>
+</div>
+
+<div class="topic"><h3>6.5 Shift registers: SISO, SIPO, PISO, PIPO</h3>
+<div class="why"><b>Pehle socho:</b> Aag bujhane wali bucket line socho: har whistle (clock) pe har aadmi apni bucket agle ko de deta hai. Bits bhi aise hi ek flip-flop se agle mein khisakte hain. Kyun chahiye? Bahut se cables sirf <b>ek wire</b> pe data bhejte hain (USB, UART): CPU ke paas 8-bit byte hai (parallel) aur wire pe ek ek bit bhejna hai (serial). Shift register yahi badalta hai: parallel ↔ serial.</div>
+<div class="def"><b>Definition:</b> A <b>shift register</b> is a chain of flip-flops on a common clock in which the output of each flip-flop drives the input of the next, so the stored bits move one position per clock pulse. By how data enters and leaves it is classified as SISO, SIPO, PISO or PIPO.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>serial</dt><dd>Ek wire, ek time pe ek bit. 4 bits bhejne mein 4 clocks.</dd>
+<dt>parallel</dt><dd>n wires, saare bits ek saath, 1 clock.</dd>
+<dt>SISO / SIPO / PISO / PIPO</dt><dd>Serial-In Serial-Out, Serial-In Parallel-Out, Parallel-In Serial-Out, Parallel-In Parallel-Out. Pehla shabd = data kaise andar, doosra = kaise bahar.</dd>
+<dt>UART</dt><dd>Serial communication port. Transmitter (TX) = PISO, Receiver (RX) = SIPO.</dd>
+<dt>Shift/Load' (sh_ld)</dt><dd>PISO ka control: ek value pe parallel load, doosri pe shift. Portal code: sh_ld = 0 load, 1 shift.</dd>
+<dt>delay line</dt><dd>Signal ko kuch clocks late karna. 4-bit SISO = 4 clock delay.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>SISO:</b> 4 D-FFs chain: serial in → FF0 → FF1 → FF2 → FF3 → serial out (Q3). Har edge pe har bit ek aage. Verilog: <code>q &lt;= {q[2:0], serial_in}; serial_out = q[3];</code></li>
+<li><b>SIPO:</b> wahi chain, par har Q bahar nikala (taps). 4 clocks baad poora word Q3Q2Q1Q0 pe ek saath padh lo.</li>
+<li><b>PISO:</b> har D ke aage 2:1 MUX. Load mode: MUX parallel bit chunta hai, ek edge pe poora word andar. Shift mode: MUX pichhle FF ka Q chunta hai, har edge pe ek bit bahar. Plain chain parallel data le hi nahi sakti, isliye MUX zaroori.</li>
+<li><b>PIPO:</b> koi chain nahi; ye bas load wala register hai (buffer).</li>
+</ol>
+<p><b>SISO / SIPO clock-by-clock trace</b> (4-bit, new bit enters q[0], shifts toward q[3], start 0000, input 1, 0, 1, 1, 0, 0, 0, 0):</p>
+<table class="tt"><tr><th>Edge</th><th>serial in</th><th>q3 q2 q1 q0</th><th>serial out (q3)</th></tr>
+<tr><td>1</td><td>1</td><td>0001</td><td>0</td></tr>
+<tr><td>2</td><td>0</td><td>0010</td><td>0</td></tr>
+<tr><td>3</td><td>1</td><td>0101</td><td>0</td></tr>
+<tr><td>4</td><td>1</td><td>1011</td><td>1 (pehla 1 bahar, 4th edge pe)</td></tr>
+<tr><td>5</td><td>0</td><td>0110</td><td>0</td></tr>
+<tr><td>6</td><td>0</td><td>1100</td><td>1</td></tr>
+<tr><td>7</td><td>0</td><td>1000</td><td>1</td></tr>
+<tr><td>8</td><td>0</td><td>0000</td><td>0</td></tr></table>
+<p>Edges 1 to 4 SIPO view hain: stream 1, 0, 1, 1 → q = 0001, 0010, 0101, <b>1011</b> (poora word ek saath). SISO view: serial out pe input wahi pattern 4 clocks late aata hai (1, 0, 1, 1 edges 4 se 7 pe).</p>
+<p><b>PISO trace</b> (portal: sh_ld = 0 load, 1 shift right, d_out = q[0], 0 enters from the left):</p>
+<table class="tt"><tr><th>Edge</th><th>sh_ld</th><th>q3 q2 q1 q0</th><th>d_out = q0</th></tr>
+<tr><td>1</td><td>0 (load 1011)</td><td>1011</td><td>1</td></tr>
+<tr><td>2</td><td>1 (shift)</td><td>0101</td><td>1</td></tr>
+<tr><td>3</td><td>1</td><td>0010</td><td>0</td></tr>
+<tr><td>4</td><td>1</td><td>0001</td><td>1</td></tr>
+<tr><td>5</td><td>1</td><td>0000</td><td>0</td></tr></table>
+<p>d_out = 1, 1, 0, 1: ye 1011 ke bits <b>right se</b> hain (q0, q1, q2, q3), yaani <mark>LSB pehle bahar</mark>. Class study-pack ke problem title mein "MSB first" likha hai, par d_out = q[0] aur right shift ke saath LSB hi pehle nikalta hai (slide error, LSB first sahi).</p>
+<table class="tt"><tr><th>Type</th><th>Input</th><th>Output</th><th>Clocks for n bits</th><th>Use</th></tr>
+<tr><td>SISO</td><td>1 bit</td><td>1 bit</td><td>n</td><td>delay line</td></tr>
+<tr><td>SIPO</td><td>1 bit</td><td>n bits</td><td>n</td><td>UART receiver (serial → parallel)</td></tr>
+<tr><td>PISO</td><td>n bits</td><td>1 bit</td><td>1 load + n shifts</td><td>UART transmitter (parallel → serial)</td></tr>
+<tr><td>PIPO</td><td>n bits</td><td>n bits</td><td>1</td><td>buffer / register</td></tr></table>
+<p>Extra uses: shift left = × 2, shift right = ÷ 2 (logical), LFSR random numbers (6.E1).</p></div>
+<figure data-d="D6.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaar D-FFs left se right (FF0 se FF3). Har FF ka Q teer se agle ke D mein. Left mein serial in, right mein serial out. Neeche common CLK. Ek bit ko serial out tak pahunchne mein 4 edges.</p>
+<figure data-d="D6.5b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> SISO jaisa hi, bas har Q se ek wire upar (Q0, Q1, Q2, Q3). Ye taps hain jahan se poora word ek saath padhte ho.</p>
+<figure data-d="D6.5c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Har D-FF se pehle ek MUX. MUX ka input L upar se parallel bit (D2, D1, D0), input S left wale FF ka Q (sabse left MUX ke S pe 0). Neeche Shift/Load' line har MUX ke select pe. Right wale FF (FF0) ka Q serial out hai. Load pe saare L ek saath andar; shift pe har bit ek jagah right, aur FF0 ka bit bahar.</p>
+<figure data-d="D6.5d"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaar alag D-FFs, koi Q → D connection nahi. D3 se D0 upar se andar, Q3 se Q0 right se bahar, ek clock. Ek edge pe poora word load.</p>
+<div class="ex"><b>Solved example 1 (5 marks):</b> <p class="qq">Draw SISO, SIPO, PISO and PIPO shift registers (4-bit) and state one application of each. Show the SIPO contents for the input stream 1011.</p><ol>
+<li>Draw D6.5a, D6.5b, D6.5c, D6.5d.</li>
+<li>Uses: SISO delay line; SIPO UART receiver; PISO UART transmitter; PIPO buffer register.</li>
+<li>SIPO trace (start 0000, new bit into q0): after 1 → 0001; after 0 → 0010; after 1 → 0101; after 1 → 1011.</li></ol>
+<p class="ans">Answer: four diagrams + uses; SIPO = 0001, 0010, 0101, 1011.</p></div>
+<div class="ex"><b>Solved example 2 (lab MCQ type):</b> <p class="qq">(i) A 4-bit SIPO starts at 0000; bits 1, 1, 0, 1 arrive. Final q[3:0]? (ii) A PISO loads 1100 and shifts right with d_out = q[0]. First four d_out values (including the load edge)?</p><ol>
+<li>(i) Har edge pe q = {q[2:0], new bit}: 0001 → 0011 → 0110 → 1101.</li>
+<li>(ii) Load: q = 1100, d_out = q0 = 0. Shift: 0110 → d_out 0. Shift: 0011 → 1. Shift: 0001 → 1.</li></ol>
+<p class="ans">Answer: (i) 1101 (ii) 0, 0, 1, 1.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) PISO output ko "MSB first" likhna jab d_out = q[0] hai: LSB first. (2) PISO bina MUX ke draw karna. (3) Verilog mein blocking <code>=</code> se shift likhna: q[1] = q[0] naya q[0] copy kar lega aur saare bits d_in ban jaayenge; <code>&lt;=</code> use karo.</div>
+<p class="trick"><b>Trick:</b> "<b>Receive = SIPO, Transmit = PISO.</b>" Naam ka pehla hissa = andar kaise, doosra = bahar kaise.</p>
+<div class="yr"><b>Ek line mein:</b> Shift register = D-FFs ki chain (Q → D, common clock); SISO delay, SIPO serial → parallel (RX), PISO parallel → serial with load MUX (TX), PIPO buffer.</div>
+</div>
+
+<div class="topic"><h3>6.E1 Ring, Johnson, mod-N, divide-by-N, LFSR</h3>
+<div class="why"><b>Pehle socho:</b> Shift register ke last output ko wapas pehle input mein jod do to bits gol gol ghoomte rehte hain, jaise musical chairs. Isse aise counters bante hain jinhe decode karna aasaan hai (ring, Johnson). Kabhi 16 states nahi, sirf 6 ya 10 chahiye (ghadi ke seconds, decimal digit): mod-N counter. Aur feedback mein XOR daalo to "random jaisa" sequence milta hai (LFSR), jo testing aur CRC mein kaam aata hai.</div>
+<div class="def"><b>Definition:</b> A <b>ring counter</b> is a shift register whose last output is fed back to its first input, circulating a single 1 through n states. A <b>Johnson (twisted-ring) counter</b> feeds back the complement of the last output and has 2n states. A <b>mod-N counter</b> counts 0 to N − 1 and then returns to 0. An <b>LFSR</b> (linear feedback shift register) feeds back the XOR of selected bits; a maximal-length n-bit LFSR cycles through 2ⁿ − 1 non-zero states.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>preset</dt><dd>Shuru mein ek fixed value daal dena (ring counter mein 0001). Bina preset ke 0000 → 0000 hi ghoomta rahega.</dd>
+<dt>one-hot</dt><dd>Exactly ek bit 1 (0100). Ring counter ka har state one-hot hai, isliye decoder ki zarurat nahi.</dd>
+<dt>mod-N</dt><dd>N states wala counter. Mod-6: 0, 1, 2, 3, 4, 5, 0.</dd>
+<dt>decode &amp; reset</dt><dd>Jab counter N pe pahunche, AND gate se pehchaano aur clear kar do.</dd>
+<dt>unused / invalid states</dt><dd>Patterns jo sequence mein kabhi nahi aate. 4-bit Johnson: 16 − 8 = 8.</dd>
+<dt>tap</dt><dd>LFSR ke wo bits jinka XOR feedback banta hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Ring counter (4-bit):</b> SISO chain + Q3 → D0. Preset 0001. Har edge pe 1 ek jagah left khisakta hai, Q3 ka bit wapas Q0 mein: 0001 → 0010 → 0100 → 1000 → 0001. <b>n FFs = n states</b> (4).</li>
+<li><b>Johnson counter (4-bit):</b> feedback Q3' (ulta) → D0. Start 0000. Trace: 0000 (Q3 = 0, Q3' = 1 andar) → 0001 → 0011 → 0111 → 1111 (ab Q3 = 1, andar 0 jaata hai) → 1110 → 1100 → 1000 → 0000. <b>8 states = 2n</b>. Har step mein sirf ek bit badalta hai, isliye 2-input gate se glitch-free decode.</li>
+<li><b>3-bit Johnson (mock):</b> 000 → 001 → 011 → 111 → 110 → 100 → 000: 6 states = 2 × 3.</li>
+<li><b>Mod-N, method A (detect N, async reset):</b> normal binary counter, aur jaise hi count N banta hai, AND gate use pehchaan ke saare FFs clear kar deta hai. N thodi der (few ns) ke liye dikhta hai: glitch state.</li>
+<li><b>Mod-N, method B (detect N − 1, synchronous reset / parallel load):</b> jab count N − 1 ho, agle edge pe 0 load karo. Koi glitch state nahi, isliye production designs mein preferred. Verilog: <code>if (q == N-1) q &lt;= 0; else q &lt;= q + 1;</code></li>
+<li><b>Divide-by-N:</b> mod-N counter ka terminal count (ya MSB) har N clocks mein ek baar → f / N. Binary counter ka bit k = f / 2<sup>k+1</sup>.</li>
+<li><b>LFSR (4-bit, x⁴ + x³ + 1):</b> shift left, naya Q0 = Q3 ⊕ Q2. Start 0001: 0001 → 0010 → 0100 → 1001 → 0011 → 0110 → 1101 → 1010 → 0101 → 1011 → 0111 → 1111 → 1110 → 1100 → 1000 → 0001. 15 states = 2⁴ − 1. 0000 kabhi nahi aata: 0000 se 0 ⊕ 0 = 0, hamesha 0000 (lock-up), isliye wo exclude.</li>
+</ol>
+<table class="tt"><tr><th>Counter (n FFs)</th><th>States</th><th>n = 4</th><th>Feedback</th></tr>
+<tr><td>Binary (ripple / sync)</td><td>2ⁿ</td><td>16</td><td>AND / adder logic</td></tr>
+<tr><td>Ring</td><td>n</td><td>4</td><td>Q(n−1) → D0</td></tr>
+<tr><td>Johnson</td><td>2n</td><td>8</td><td>Q(n−1)' → D0</td></tr>
+<tr><td>LFSR (maximal)</td><td>2ⁿ − 1</td><td>15</td><td>XOR of taps</td></tr></table></div>
+<figure data-d="D6.E1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> SISO jaisi chain FF0 se FF3, aur upar se ek lambi wire Q3 se wapas D0 tak. Preset 0001 likha hai. Trace: 1000 pe Q3 = 1 wapas D0 mein → agla 0001.</p>
+<figure data-d="D6.E1b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Same chain, par feedback Q3' (bubble) se. 8 states ki list dekho: pehle left se 1 bharte hain (0001, 0011, 0111, 1111), phir 0 bharte hain (1110, 1100, 1000, 0000).</p>
+<div class="ex"><b>Solved example 1 (mod-6 counter):</b> <p class="qq">Design a mod-6 counter (0 to 5) from a binary up-counter. Give the reset logic for both methods and the counting sequence.</p><ol>
+<li>FFs: ⌈log₂ 6⌉ = 3 (2³ = 8 ≥ 6).</li>
+<li>Sequence: 000 → 001 → 010 → 011 → 100 → 101 → 000 (6 states).</li>
+<li><b>Method A (class: reset at 6):</b> 6 = 110. 0 se 6 tak sirf 6 mein Q2 = Q1 = 1 (7 = 111 kabhi aata hi nahi). To CLR = Q2·Q1 → async clear. 110 bas kuch ns dikhta hai, phir 000.</li>
+<li><b>Method B (sync, no glitch):</b> 5 = 101. 0 se 5 mein sirf 5 mein Q2 = Q0 = 1. Jab Q2·Q0 = 1 → agle edge pe 000 load.</li>
+<li>Check method B: 100 pe Q0 = 0 → normal count → 101. 101 pe Q2·Q0 = 1 → edge pe 000 ✓.</li></ol>
+<p class="ans">Answer: 3 FFs; async clear = Q2·Q1 (detect 6) or sync reset when Q2·Q0 = 1 (detect 5); sequence 0 to 5.</p></div>
+<div class="ex"><b>Solved example 2 (mod-10 / decade counter):</b> <p class="qq">Design a mod-10 counter. How many flip-flops, and what reset logic?</p><ol>
+<li>FFs: 2³ = 8 &lt; 10 ≤ 16 = 2⁴ → 4 FFs.</li>
+<li>Sequence 0000 to 1001 (0 to 9), phir 0000.</li>
+<li>Method A: 10 = 1010. Counting upar jaate hue Q3 = Q1 = 1 pehli baar 1010 pe hota hai (8 = 1000, 9 = 1001 mein Q1 = 0). CLR = Q3·Q1.</li>
+<li>Method B: 9 = 1001. 0 se 9 mein sirf 9 mein Q3 = Q0 = 1 (8 = 1000 mein Q0 = 0). Sync reset jab Q3·Q0 = 1.</li>
+<li>Unused states: 16 − 10 = 6 (1010 se 1111).</li></ol>
+<p class="ans">Answer: 4 FFs; CLR = Q3·Q1 (async, detect 10) or sync reset on Q3·Q0 (detect 9).</p></div>
+<div class="ex"><b>Solved example 3 (quiz NAT/MCQ):</b> <p class="qq">(i) States of a 5-bit Johnson counter? (ii) Unused states of a 4-bit Johnson counter? (iii) States of an 8-bit maximal LFSR? (iv) A 4-bit ring counter preset to 1000 rotating left: next state?</p><ol>
+<li>(i) 2n = 2 × 5 = 10.</li>
+<li>(ii) 2⁴ − 2 × 4 = 16 − 8 = 8.</li>
+<li>(iii) 2⁸ − 1 = 255.</li>
+<li>(iv) Rotate left: {q[2:0], q[3]} = 000 followed by 1 → 0001.</li></ol>
+<p class="ans">Answer: 10; 8; 255; 0001.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Ring counter ko preset na karna (0000 hamesha 0000). (2) Johnson ke states 2ⁿ likhna: 2n hai. (3) LFSR ke 2ⁿ states likhna: all-zero exclude → 2ⁿ − 1. (4) "Decode & reset" ko glitch-free bolna: async clear mein N thodi der dikhta hai; parallel-load / sync method glitch-free hai.</div>
+<p class="trick"><b>Trick:</b> 4 FFs ke liye "<b>4, 8, 15, 16</b>" = ring, Johnson, LFSR, binary.</p>
+<div class="yr"><b>Ek line mein:</b> Ring = n states (Q3 → D0), Johnson = 2n (Q3' → D0), LFSR = 2ⁿ − 1 (XOR feedback); mod-N = count N (async clear) ya N − 1 (sync reset, no glitch) detect karke 0 pe wapas.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Register definition / FF count</td><td>1. n D-FFs + common clock. 2. n-bit → n FFs. 3. D6.1a + PC, IR, GPRs, pipeline registers.</td></tr>
+<tr><td>Load enable / reset (MUX, priority, sync vs async)</td><td>1. 2:1 MUX per bit, LOAD = 0 → Q feedback. 2. Q⁺ = LOAD·D + LOAD'·Q. 3. rst &gt; ld &gt; hold. 4. Sync waits for edge, async immediate. 5. Never gate the clock.</td></tr>
+<tr><td>Ripple counter f<sub>max</sub> / settle time</td><td>1. T = n × t<sub>pd</sub>. 2. f = 1000 / T(ns) MHz. 3. 3-bit, 5 ns → 15 ns.</td></tr>
+<tr><td>Ripple 7 → 8 transient values</td><td>Bits right se ek ek girte hain: 0111 → 0110 → 0100 → 0000 → 1000 = 7, 6, 4, 0, 8.</td></tr>
+<tr><td>Ripple vs synchronous comparison</td><td>Clock, delay, glitches, hardware, use (table in 6.3) + D6.3a and D6.4a.</td></tr>
+<tr><td>Divide-by / frequency of bit k</td><td>1. f<sub>k</sub> = f / 2<sup>k+1</sup>. 2. ÷2<sup>m</sup> → m FFs (32,768 → 15).</td></tr>
+<tr><td>Synchronous counter design (T or D FFs)</td><td>1. Sequence. 2. PS/NS table. 3. T = Q ⊕ Q⁺ (ya D = Q⁺). 4. Columns dekh ke / K-map: T0 = 1, T1 = Q0, T2 = Q0Q1, T3 = Q0Q1Q2. 5. D version: Dk = Qk ⊕ Tk. 6. Circuit + waveform.</td></tr>
+<tr><td>Down / up-down counter equations</td><td>Down: bit badalta jab neeche sab 0: T1 = Q0', T2 = Q0'Q1'. Up/down: T1 = UP·Q0 + UP'·Q0'.</td></tr>
+<tr><td>Min FFs for mod-N</td><td>Smallest k with 2ᵏ ≥ N: mod-12 → 4, mod-20 → 5, mod-1000 → 10.</td></tr>
+<tr><td>Shift register trace (SISO / SIPO / PISO)</td><td>1. Direction note karo (naya bit kahan aata hai). 2. Clock-by-clock table banao. 3. PISO with d_out = q[0]: LSB first.</td></tr>
+<tr><td>Which shift register for UART TX / RX</td><td>TX = PISO, RX = SIPO, delay line = SISO, buffer = PIPO.</td></tr>
+<tr><td>Ring / Johnson / LFSR states</td><td>Ring n, Johnson 2n (unused 2ⁿ − 2n), LFSR 2ⁿ − 1, binary 2ⁿ. Sequence trace karke likho.</td></tr>
+<tr><td>Mod-N counter design</td><td>1. FFs = ⌈log₂ N⌉. 2. Async: detect N (AND of its 1 bits) → clear (glitch). 3. Sync: detect N − 1 → load 0 next edge (no glitch). 4. Sequence table.</td></tr>
+</table></div>
+</section>
