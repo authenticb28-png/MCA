@@ -1,0 +1,43 @@
+<div class="topic"><h3>3.3b Decoder (n-to-2ⁿ)</h3>
+<div class="why"><b>Pehle socho:</b> Hotel mein 4 rooms hain: 0, 1, 2, 3. Reception pe ek board hai jisme har room ki ek bulb hai. Receptionist room number <i>binary</i> mein daalta hai (do switch: 00, 01, 10, 11) aur <mark>sirf usi room ki bulb jalti hai, baaki teen band rehti hain</mark>. Ye kaam karne wala circuit hi <b>decoder</b> hai: ek "code" (binary number) leke batata hai "kaunsi line?".</div>
+<div class="def"><b>Definition:</b> A <b>decoder</b> is a combinational circuit that converts an n-bit binary input into 2ⁿ output lines, such that for each input combination exactly one output line is active (1) and all others are 0.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>n-to-2ⁿ</dt><dd>n input bits, 2ⁿ output lines. 2 input bits → 2² = 4 outputs (2-to-4). 3 input bits → 2³ = 8 outputs (3-to-8).</dd>
+<dt>one-hot</dt><dd>"Ek hi garam". Outputs ke group mein <b>exactly ek</b> bit 1 hai, baaki sab 0. Jaise 4 outputs D3 D2 D1 D0 = <b>0100</b>: sirf D2 "hot" hai. 0110 one-hot NAHI hai (do 1 hain), 0000 bhi nahi (koi 1 nahi). Decoder ka output hamesha one-hot hota hai (jab enable = 1).</dd>
+<dt>active / asserted</dt><dd>Output "ON" hai, yaani 1 (active-high decoder mein).</dd>
+<dt>enable (E)</dt><dd>Master switch. E = 0 → saare outputs 0 (decoder band). E = 1 → normal kaam.</dd>
+<dt>minterm</dt><dd>Ek AND term jisme har input exactly ek baar aata hai (seedha ya bar ke saath) aur jo sirf <b>ek</b> row mein 1 hota hai. A1'A0' sirf row 00 mein 1 hai, isliye ye minterm m0 hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (2-to-4 decoder, inputs A1 A0):</b><ol>
+<li>Input ek 2-bit number hai: A1A0 = 00, 01, 10 ya 11, yaani decimal 0, 1, 2 ya 3.</li>
+<li>Har number ke liye ek output line hai: D0, D1, D2, D3.</li>
+<li>Rule: <mark>input ka decimal value k hai to sirf Dk = 1</mark>.</li>
+<li>Har output ek AND gate hai jo sirf apne number pe 1 deta hai. D2 ko "10" chahiye, yaani A1 = 1 aur A0 = 0. Isliye D2 = A1 · A0' (A0 pe NOT lagao taaki A0 = 0 hone pe AND ko 1 mile).</li>
+<li>Isi tarah: D0 = A1'·A0', D1 = A1'·A0, D2 = A1·A0', D3 = A1·A0. Har output = ek minterm.</li>
+<li>Enable ho to har AND mein E bhi jod do: D2 = E·A1·A0'.</li>
+</ol>
+<table class="tt"><tr><th>A1</th><th>A0</th><th>D3</th><th>D2</th><th>D1</th><th>D0</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><b>1</b></td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>0</td><td><b>1</b></td><td>0</td></tr>
+<tr><td>1</td><td>0</td><td>0</td><td><b>1</b></td><td>0</td><td>0</td></tr>
+<tr><td>1</td><td>1</td><td><b>1</b></td><td>0</td><td>0</td><td>0</td></tr></table>
+<p>Table mein dekho: har row mein sirf ek 1 hai, aur woh diagonal pe chalta hai. Yahi "one-hot" hai.</p></div>
+<figure data-d="D3.3c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left se A1, A0 aate hain; har ek ka NOT bhi banta hai (A1', A0'). Right mein 4 AND gates hain, har AND ko teen wire milte hain: E, A1 ya A1', A0 ya A0'. Trace karo A1A0 = 10, E = 1: sirf D2 wale AND ko (1, 1, A0' = 1) teeno 1 milte hain, to sirf D2 = 1.</p>
+<div class="fx"><b>Formula:</b> n inputs → <b>2ⁿ outputs</b>, <b>Dk = mk</b> (output k = minterm k).<br>Gates: 2ⁿ AND gates (each with n inputs, n + 1 with enable) + n NOT gates.<br><small>3-to-8: 8 AND gates of 3 inputs + 3 NOT gates.</small></div>
+<div class="ex"><b>Solved example 1 (direct):</b> <p class="qq">A 3-to-8 decoder has inputs A2A1A0 = 101 and E = 1. Which output is 1? Write the output word D7 to D0.</p><ol>
+<li>101 ko decimal mein badlo: 1×4 + 0×2 + 1×1 = 4 + 0 + 1 = 5.</li>
+<li>Rule: sirf D5 = 1.</li>
+<li>D7 D6 D5 D4 D3 D2 D1 D0 likho, D5 ki jagah 1: 0 0 1 0 0 0 0 0.</li></ol>
+<p class="ans">Answer: D5 = 1; output = 0010 0000 (one-hot).</p></div>
+<div class="ex"><b>Solved example 2 (exam favourite):</b> <p class="qq">Implement a full adder using a 3-to-8 decoder and OR gates.</p><ol>
+<li>Full adder ke inputs A, B, Cin ko decoder ke A2, A1, A0 pe lagao. Ab decoder har row ka minterm khud bana deta hai.</li>
+<li>Sum = 1 jab 1s ki ginti odd ho: rows 001, 010, 100, 111 → decimal 1, 2, 4, 7. Isliye Sum = Σm(1, 2, 4, 7).</li>
+<li>Cout = 1 jab kam se kam do 1 hon: rows 011, 101, 110, 111 → 3, 5, 6, 7. Isliye Cout = Σm(3, 5, 6, 7).</li>
+<li>Ek 4-input OR gate lo: inputs D1, D2, D4, D7 → output Sum.</li>
+<li>Doosra 4-input OR: D3, D5, D6, D7 → output Cout.</li></ol>
+<p class="ans">Answer: Sum = D1 + D2 + D4 + D7; Cout = D3 + D5 + D6 + D7. (Any function = OR of the decoder outputs of its minterms.)</p></div>
+<div class="trap"><b>Galti mat karna:</b> Decoder aur MUX ko mix mat karo. <b>MUX data pass karta hai</b> (many in → one out). <b>Decoder data pass nahi karta</b>, sirf batata hai "kaunsi line" (n in → 2ⁿ out, one-hot). DEMUX = decoder jiska enable hi data input hai.</div>
+<p class="trick"><b>Trick:</b> "<b>De-code = number padho, bulb jalao.</b>" Input ka decimal value = jalne wali bulb ka number.</p>
+<div class="yr"><b>Ek line mein:</b> n-bit number in → 2ⁿ lines out → sirf us number wali line 1 (one-hot); har output ek minterm hai.</div>
+</div>
