@@ -14,7 +14,15 @@ let body;
 if (only) body = read(only + '.html');
 else {
   const units = Array.from({ length: 15 }, (_, i) => 'u' + String(i + 1).padStart(2, '0') + '.html').filter((f) => fs.existsSync(path.join(ldir, f)));
-  body = read('cover.html') + units.map(read).join('\n') + read('cheatsheet.html');
+  // Contents page: unit start pages come from learn/toc_pages.json (written by a first build + pdftotext, see BUILD_NOTES).
+  const tp = fs.existsSync(path.join(ldir, 'toc_pages.json')) ? JSON.parse(read('toc_pages.json')) : {};
+  const toc = '<section class="toc"><h2>Contents</h2><table>' + units.map((f) => {
+    const h = (read(f).match(/<h2>(.*?)<\/h2>/) || [])[1] || f;
+    const n = (h.match(/Unit (\d+)/) || [])[1];
+    return '<tr><td>' + h + '</td><td class="pg">page ' + (tp[n] || '?') + '</td></tr>';
+  }).join('') + '<tr><td>Last-hour cheat sheet</td><td class="pg">page ' + (tp.sheet || '?') + '</td></tr></table>' +
+  '<p class="read">Ek din mein sab nahi ho paaye to order: 4 (numbers) → 2 (K-map) → 3 → 5 → 6 → 7 → 11 → 12 → 13 → 14 → 15, phir baaki. Har unit ke end ka "Exam mein kya aata hai" table zaroor dekho.</p></section>';
+  body = read('cover.html') + toc + units.map(read).join('\n') + read('cheatsheet.html');
 }
 const scripts = ['js/svglib.js'].concat(Array.from({ length: 15 }, (_, i) => 'data/unit' + String(i + 1).padStart(2, '0') + '.js'));
 
@@ -23,7 +31,7 @@ const css = `
 @font-face { font-family: Title; src: url("../fonts/Caveat.ttf"); }
 @page { size: A4; margin: 14mm 14mm 16mm 16mm; }
 :root { --ink:#22346e; --line:#8e9cc4; --panel2:transparent; --code-bg:transparent; --code-ink:#22346e; --gate:transparent; }
-html { background-color: #fffef9; background-image: radial-gradient(circle, #e2e7f1 0.5px, transparent 0.7px); background-size: 5mm 5mm; }
+html { background-color: #fffef9; }
 body { background: transparent; font-family: Hand, "DejaVu Sans", sans-serif; color: var(--ink); font-size: 12.8pt; line-height: 1.5; }
 b, strong, th, dt { font-weight: 700; -webkit-text-stroke: 0.22px currentColor; }
 section { break-before: page; }
@@ -82,6 +90,7 @@ figcaption .how { color: #4b5876; }
 .sheet .cs { columns: 2; column-gap: 7mm; font-size: 11pt; line-height: 1.35; }
 .sheet .cs p { break-inside: avoid; margin: 0 0 2.2mm; padding: 1.2mm 2mm; background: rgba(255, 240, 160, .35); border-radius: 5px; }
 .sheet .cs b { color: #a8322a; }
+.toc table { width: 100%; font-size: 14pt; } .toc td { border: 0; border-bottom: 1px dashed #c3cbe0; padding: 1.6mm 1mm; } .toc .pg { text-align: right; white-space: nowrap; color: #a8322a; }
 .legend > div, .legend > p { margin: 1.5mm 0; }
 `;
 
