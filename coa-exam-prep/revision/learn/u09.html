@@ -1,0 +1,236 @@
+<section>
+<h2>Unit 9 · Von Neumann vs Harvard Architecture</h2>
+<div class="story"><b>Is unit ki kahani:</b> Units 1–8 mein humne saare parts bana liye: gates, ALU, flip-flops, register file, SRAM, DRAM. Ab sawaal hai ki <b>inhe jodein kaise</b>? CPU aur memory ke beech kitne raaste (buses) hon, aur program kahan rakha jaaye? Do classic blueprints hain: <b>Von Neumann</b> (ek memory, ek bus: simple, par bus pe traffic jam = bottleneck) aur <b>Harvard</b> (instructions aur data ke liye alag memory, alag bus). Aaj ke CPUs dono ka mix hain: <b>modified Harvard</b> (andar split L1 cache, bahar ek DRAM). Unit 10 mein dekhenge ki CPU ko kaunsi instructions di jaati hain (CISC vs RISC).</div>
+
+<div class="topic"><h3>9.1 From Gates to a Complete Machine</h3>
+<div class="why"><b>Pehle socho:</b> Ek <b>sheher</b> socho. Factories (CPU) saamaan banati hain, godown (memory) saamaan rakhte hain, bandargah / port (I/O) bahar ki duniya se len-den karta hai, aur <b>sadkein (bus)</b> sabko jodti hain. Factory kitni bhi tez ho, agar sadak ek hi hai aur patli hai to sheher dheema chalega. Isliye <mark>parts ke saath-saath unka jodne ka tarika (organisation) bhi speed decide karta hai</mark>.</div>
+<div class="def"><b>Definition:</b> A complete computer consists of a <b>CPU</b> (compute), <b>memory</b> (store programs and data), <b>I/O</b> (communicate with the outside world) and a <b>bus</b> (a set of address, data and control lines that connects them). <b>Computer organisation</b> is the study of how exactly these parts are connected, for example how many buses join the CPU and memory.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>CPU</dt><dd>Central Processing Unit: control unit + ALU + registers. Hisaab karta hai aur sabko chalata hai.</dd>
+<dt>I/O</dt><dd>Input/Output: keyboard, screen, disk, network. Computer ka bahar se baat karne ka tarika.</dd>
+<dt>bus</dt><dd>Wires ka group jo parts ko jodta hai. Teen hisse: <b>address lines</b> (kahan: "address 0x40"), <b>data lines</b> (kya: "value 42"), <b>control lines</b> (kya karna hai: "read" ya "write").</dd>
+<dt>computer organisation</dt><dd>Hardware ko kaise joda gaya hai (kitni buses, kitni memories). ISA (instruction set) isse alag hai: woh programmer ko dikhne wala "contract" hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Units 1–8: gates → adder/ALU → flip-flops → registers/register file → SRAM/DRAM. Saare parts tayaar.</li>
+<li>CPU ko memory se ek word padhna hai: address lines pe address daalta hai (0x40).</li>
+<li>Control line pe "read" signal deta hai.</li>
+<li>Memory data lines pe value bhejti hai (0x2A), CPU le leta hai.</li>
+<li>I/O devices bhi isi tarah bus se jude hain.</li>
+<li>Design ka sawaal: CPU aur memory ke beech <b>ek</b> bus ho ya <b>do</b>? Jawab se do blueprints bante hain: Von Neumann (ek) aur Harvard (do).</li>
+</ol></div>
+<figure data-d="D9.1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar teen box: CPU (compute), MEMORY (store), I/O (talk to world). Neeche ek lambi patti = BUS (address + data + control). Har box se bus tak do arrows (upar-neeche) = do-taraf ka len-den. Exam mein yahi 4 blocks aur unka kaam likhna hai.</p>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Draw the block diagram of a basic computer system and explain the role of each component. (3 marks)</p><ol>
+<li>Draw D9.1a: CPU, memory and I/O connected to one system bus.</li>
+<li>CPU: executes instructions; it contains the control unit, ALU and registers.</li>
+<li>Memory: stores the program and the data.</li>
+<li>I/O: connects the computer to keyboards, screens, disks and networks.</li>
+<li>Bus: carries address, data and control signals between these units.</li></ol>
+<p class="ans">Answer: diagram + one line for each of CPU, memory, I/O, bus.</p></div>
+<div class="trap"><b>Galti mat karna:</b> "Bus sirf data le jaati hai" galat hai: bus mein <b>address + data + control</b> teeno lines hoti hain. Aur "kitni buses" wala sawaal <b>computer organisation</b> ka hai, ISA ka nahi.</div>
+<p class="trick"><b>Trick:</b> <b>C-M-I-B</b> = "<b>C</b>ompute, <b>M</b>emorise, <b>I</b>nteract, <b>B</b>ridge". Bus ki lines: "<b>A-D-C</b>": Address (kahan), Data (kya), Control (kaise).</p>
+<div class="yr"><b>Ek line mein:</b> Computer = CPU + memory + I/O + bus (address, data, control); organisation = in parts ko kaise jodte hain, khaaskar kitni buses.</div>
+</div>
+
+<div class="topic"><h3>9.2 Von Neumann Architecture: Structure and History</h3>
+<div class="why"><b>Pehle socho:</b> 1945 se pehle computer ek hi kaam ke liye <b>wire kiye jaate the</b>. Naya program chalana hai? Plugs aur wires hath se badlo, din lag jaate the. Jaise ek <b>washing machine</b> jo sirf ek tarah ka wash kar sake, doosra wash chahiye to machine kholo. Von Neumann ka idea: <mark>program ko bhi numbers bana ke usi memory mein rakh do jahan data hai</mark>. Naya program = memory mein naye numbers load karo. Machine wahi, kaam naya. Yahin se "software" paida hua.</div>
+<div class="def"><b>Definition:</b> The <b>Von Neumann (stored-program) architecture</b> keeps program instructions and data, both encoded as numbers, in the same memory, and moves both over a single shared bus between the memory and the CPU. Its four classic components are the control unit, the ALU, the memory and I/O. It was described by John von Neumann in the "First Draft of a Report on the EDVAC" (1945).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>stored-program concept</dt><dd>Program instructions ko numbers bana ke memory mein data ke saath rakhna. <code>add r3, r1, r2</code> bhi memory mein bas ek 32-bit number hai.</dd>
+<dt>control unit</dt><dd>CPU ka "manager": memory se instruction laata (fetch) hai, samajhta (decode) hai, aur baaki parts ko signals deta hai. Ye ek FSM hai (Unit 7).</dd>
+<dt>ALU</dt><dd>Arithmetic Logic Unit: add, subtract, compare, AND/OR karta hai.</dd>
+<dt>unified memory</dt><dd>Ek hi memory, ek hi address space: address 0x00 pe instruction ho sakti hai, 0x40 pe data.</dd>
+<dt>PC (program counter)</dt><dd>Register jo batata hai agli instruction kis address pe hai.</dd>
+<dt>IR (instruction register)</dt><dd>Register jisme abhi chal rahi instruction rakhi hai.</dd>
+<dt>EDVAC</dt><dd>Ek early computer jiske liye von Neumann ne 1945 mein ye design likha.</dd>
+<dt>JIT compiler</dt><dd>Just-In-Time: program chalte-chalte naya machine code banata hai (Java, JavaScript). Ye tabhi possible hai jab code = data.</dd>
+</dl></div>
+<figure data-d="D9.2b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Ek hi memory ki table: Address, Contents, Kind. 0x00, 0x04, 0x08 pe teen instructions (lw, add, sw), highlighted. 0x40 aur 0x44 pe data words (0x0000002A = 42 decimal, aur 0). Dhyan do: instructions aur data <b>same memory</b> mein side-by-side hain. Program ka matlab: 0x40 se 42 load karo (r1), r1 + r2 karo (r3), r3 ko 0x44 pe store karo.</p>
+<div class="how"><b>Kaise kaam karta hai (ek instruction ka safar):</b><ol>
+<li>PC = 0x00. Control unit bus pe address 0x00 bhejta hai: <b>instruction fetch</b>. Memory "lw r1, 0x40" bhejti hai, woh IR mein jaati hai.</li>
+<li>Control unit decode karta hai: "memory se load karna hai".</li>
+<li>Ab <b>wahi bus</b> pe address 0x40 jaata hai: <b>data access</b>. Memory 0x2A bhejti hai, woh r1 mein.</li>
+<li>PC = 0x04. Next instruction "add r3, r1, r2" fetch hoti hai (bus phir use hui). ALU jodta hai.</li>
+<li>PC = 0x08. "sw r3, 0x44" fetch, phir wahi bus se r3 ki value 0x44 pe likhi jaati hai.</li>
+<li>Har kadam pe instructions aur data <b>ek hi bus</b> pe baari-baari chalte hain. Yahi design ki pehchaan hai (aur limit bhi, 9.3).</li>
+</ol></div>
+<figure data-d="D9.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein CPU box: andar Control unit, ALU, Registers, PC · IR. Right mein ek MEMORY box "(one, unified)" jisme instructions aur data dono hain. Beech mein highlighted do arrows = <b>SINGLE SHARED BUS</b> (address + data + control). Neeche I/O bhi isi bus se juda. Ek hi raasta, isliye ek waqt pe ek hi transfer.</p>
+<div class="how"><b>"Programs are data" ka matlab aur asar:</b><ol>
+<li>Compiler aur assembler program ko data ki tarah <i>likhte</i> hain (output file = numbers).</li>
+<li>OS program ko chalane ke liye bas uske bytes memory mein copy karta hai (loader).</li>
+<li>JIT compiler chalte waqt naya code banata hai.</li>
+<li>Self-modifying code possible hai, aur yahi kai security attacks (code injection) ki jad hai: attacker data ki jagah code ghusa deta hai.</li>
+</ol></div>
+<div class="how"><b>History aur kyun jeeta:</b> John von Neumann ne <b>1945</b> mein "First Draft of a Report on the EDVAC" mein likha (Eckert, Mauchly aur Turing ke kaam pe based). Jeeta kyunki (1) <b>simplicity</b>: ek memory, ek bus, sasta; (2) <b>generality</b>: wahi hardware koi bhi program chala sakta hai. Lagbhag har general-purpose computer isi model pe chalta hai.</div>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Explain the stored-program concept and draw the Von Neumann architecture, naming its four classic components. (5 marks)</p><ol>
+<li>Stored-program concept: instructions are encoded as numbers and stored in the same memory as data; to run a different program, different numbers are loaded, so no rewiring is needed (memory map D9.2b).</li>
+<li>Draw D9.2a: CPU (control unit, ALU, registers, PC, IR), one unified memory, one shared bus, I/O on the bus.</li>
+<li>Control unit fetches and decodes instructions and directs all other units; ALU performs arithmetic and logic; memory holds program and data with uniform addressing; I/O communicates with the outside world.</li>
+<li>Described by John von Neumann in the First Draft of a Report on the EDVAC (1945).</li>
+<li>Advantages: simplicity (one memory, one bus) and generality (any program on the same hardware).</li></ol>
+<p class="ans">Answer: stored-program idea + diagram + four components with roles + 1945 EDVAC + simplicity/generality.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Von Neumann mein instruction aur data ki alag memory hai" galat: woh <b>Harvard</b> hai. Von Neumann = <b>ek</b> memory, <b>ek</b> bus. (2) Stored-program idea ko Harvard Mark I ka bolna galat: Mark I mein program paper tape pe tha, memory mein nahi. (3) Four components mein "bus" ya "registers" likhna: classic chaar = <b>Control unit, ALU, Memory, I/O</b>.</div>
+<p class="trick"><b>Trick:</b> Von Neumann = "<b>ek ghar, ek darwaza</b>": code aur data ek hi ghar (memory) mein, ek hi darwaze (bus) se aate-jaate hain. Chaar parts: "<b>CAMI</b>" = Control, ALU, Memory, I/O.</p>
+<div class="yr"><b>Ek line mein:</b> Von Neumann = stored program (code bhi numbers, data ke saath ek memory mein) + ek shared bus; parts: control unit, ALU, memory, I/O; EDVAC report 1945; simple aur general.</div>
+</div>
+
+<div class="topic"><h3>9.3 The Von Neumann Bottleneck</h3>
+<div class="why"><b>Pehle socho:</b> Ek dukaan socho jiska <b>sirf ek darwaza</b> hai, aur woh itna patla ki ek waqt mein ek hi aadmi nikal sake. Andar ka kaarigar (CPU) bahut tez hai. Usko do cheezein chahiye: <b>order slip</b> (instruction: kya banana hai) aur <b>kachcha maal</b> (data). Dono usi ek darwaze se aate hain, baari-baari. Kaarigar kitna bhi tez ho, <mark>darwaza hi speed tay karta hai</mark>; aadha time woh khaali baitha intezaar karta hai. Yahi <b>Von Neumann bottleneck</b> hai (bottleneck = botal ki patli gardan, jahan se sab dheere nikalta hai).</div>
+<div class="def"><b>Definition:</b> The <b>Von Neumann bottleneck</b> (term coined by John Backus in 1977) is the performance limit caused by instructions and data sharing a single bus between CPU and memory: an instruction fetch and a data access cannot happen in the same cycle, and the CPU can compute faster than the bus can supply instructions and data.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>bottleneck</dt><dd>Kisi system ka sabse dheema hissa jo poore system ki speed rok deta hai. Botal ki gardan.</dd>
+<dt>bus contention</dt><dd>Do kaam ek hi bus maang rahe hain (fetch aur data); ek ko rukna padega.</dd>
+<dt>IPC</dt><dd>Instructions Per Cycle: ek clock cycle mein kitni instructions poori hoti hain. Bus ek hi transfer de sakti hai to IPC pe cap lag jaata hai.</dd>
+<dt>bandwidth</dt><dd>Bus ek second mein kitna data le ja sakti hai. Unit: bits/s ya bytes/s (GB/s).</dd>
+<dt>GHz</dt><dd>10⁹ cycles per second. 1 GHz = har second 1,000,000,000 cycles.</dd>
+<dt>Gbit/s vs GB/s</dt><dd>1 byte = 8 bits. Gbit/s ko 8 se divide karo to GB/s. 64 Gbit/s = 8 GB/s.</dd>
+</dl></div>
+<figure data-d="D9.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein CPU (fast), right mein MEMORY (code + data). Beech ki do lines beech mein patli ho jaati hain = "ONE narrow bus". Neeche likha: "fetch instruction OR load/store data, never both in the same cycle". Wahi patla hissa bottleneck hai.</p>
+<div class="how"><b>Kaise kaam karta hai (kyun performance rukti hai):</b><ol>
+<li><b>Bus contention:</b> <code>lw</code> instruction ko pehle fetch (bus use), phir data load (bus phir use). Dono ek saath nahi.</li>
+<li><b>IPC cap:</b> instructions kitni tezi se aati hain, woh bus decide karti hai, ALU nahi.</li>
+<li><b>Idle compute units:</b> data ka intezaar karte hue ALU khaali baitha rehta hai.</li>
+<li><b>Worsens with CPU speed:</b> CPU tez hota gaya, bus utni tez nahi badhi, to gap badhta gaya (Unit 8 ka memory wall bhi isi se juda hai).</li>
+<li><b>Responses:</b> caches (garam code aur data chip pe hi rakho), wider/faster buses, Harvard-style alag raaste.</li>
+</ol></div>
+<div class="ex"><b>Solved example 1 (cycle count, single door):</b> <p class="qq">A program has 10 instructions, of which 4 are loads/stores (each needs one data access). Each memory transfer takes 1 bus cycle and there is no cache. How many bus cycles does memory traffic take on a Von Neumann machine and on a Harvard machine?</p><ol>
+<li>Har instruction ko fetch karna hai: 10 fetches.</li>
+<li>Loads/stores ka data access: 4.</li>
+<li>Von Neumann: ek hi bus, sab baari-baari: 10 + 4 = <b>14 bus cycles</b>.</li>
+<li>Harvard: fetch I-bus pe, data D-bus pe, ek saath. 4 data accesses apni instruction ke saath overlap ho jaate hain, to sirf 10 fetch cycles: <b>10 cycles</b>.</li>
+<li>Farak: 14 ÷ 10 = 1.4 guna. Agar har instruction load/store hoti (10 + 10 = 20 vs 10), to 2 guna. Isliye "up to 2×".</li></ol>
+<p class="ans">Answer: Von Neumann 14 cycles, Harvard 10 cycles (1.4×; best case 2×).</p></div>
+<div class="fx"><b>Formula:</b> Bus bandwidth (bytes/s) = <b>bits moved per cycle × clock rate ÷ 8</b><br><small>Von Neumann: one bus carries instruction bits + data bits. Harvard: each bus carries only its own share.</small></div>
+<div class="ex"><b>Solved example 2 (class worked, p28):</b> <p class="qq">A 1 GHz CPU must fetch a 32-bit instruction and access a 32-bit data word every cycle. Find the required bandwidth of the single Von Neumann bus, and of each Harvard bus.</p><ol>
+<li>Bits per cycle (VN) = 32 + 32 = 64 bits.</li>
+<li>Per second: 64 × 10⁹ = 64 Gbit/s.</li>
+<li>Bytes: 64 ÷ 8 = 8 GB/s.</li>
+<li>Harvard: I-bus 32 × 10⁹ ÷ 8 = 4 GB/s; D-bus bhi 4 GB/s.</li></ol>
+<p class="ans">Answer: 8 GB/s on the single VN bus; 4 GB/s + 4 GB/s on the Harvard buses.</p></div>
+<div class="ex"><b>Solved example 3 (class homework + mock):</b> <p class="qq">(a) 2 GHz, 64-bit instruction + 64-bit data per cycle. (b) 2 GHz, 32-bit instruction + 32-bit data per cycle. Required Von Neumann bus bandwidth?</p><ol>
+<li>(a) 64 + 64 = 128 bits per cycle. 128 × 2 × 10⁹ = 256 Gbit/s. 256 ÷ 8 = <b>32 GB/s</b>. Harvard: 16 GB/s per bus.</li>
+<li>(b) 32 + 32 = 64 bits. 64 × 2 × 10⁹ = 128 Gbit/s. 128 ÷ 8 = <b>16 GB/s</b>.</li></ol>
+<p class="ans">Answer: (a) 32 GB/s (Harvard 16 + 16); (b) 16 GB/s.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) ALU ko dosh dena: bottleneck <b>shared raasta (bus)</b> hai, ALU nahi. (2) Bytes/s maanga ho to 8 se divide karna bhoolna. (3) Term ka credit von Neumann ko dena: <b>John Backus, 1977</b> ne naam diya.</div>
+<p class="trick"><b>Trick:</b> "<b>Ek darwaza, do mehmaan</b>: instruction aur data ek saath andar nahi aa sakte." Bandwidth: "<b>bits jodo, GHz se guna, 8 se bhaag</b>".</p>
+<div class="yr"><b>Ek line mein:</b> Bottleneck = ek bus pe instruction fetch aur data access baari-baari (Backus 1977); effects: contention, IPC cap, idle ALU, CPU ke saath badhta; fixes: cache, wider bus, Harvard split; bandwidth = bits × GHz ÷ 8.</div>
+</div>
+
+<div class="topic"><h3>9.4 Harvard Architecture: Separate I and D Memories</h3>
+<div class="why"><b>Pehle socho:</b> Dukaan ka ek darwaza problem tha. Solution: <b>do darwaze</b> bana do: ek sirf order slips (instructions) ke liye, ek sirf kachche maal (data) ke liye. Ab dono ek saath andar aa sakte hain, kaarigar ko intezaar nahi. Kharcha: do darwaze, do raaste, zyada deewar todni padi. Aur ab order slip wale darwaze se maal nahi aa sakta (code aur data alag duniya). Yahi <b>Harvard</b> hai: <mark>alag instruction memory + alag data memory + do alag buses</mark>.</div>
+<div class="def"><b>Definition:</b> The <b>Harvard architecture</b> uses physically separate memories and separate buses for instructions (I-memory, I-bus) and data (D-memory, D-bus), so an instruction fetch and a data access can take place in the same clock cycle. It is named after the Harvard Mark I (1944), which held instructions on punched paper tape and data in relay counters.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>I-memory / I-bus</dt><dd>Sirf instructions ki memory aur uska raasta. CPU yahan se sirf fetch karta hai.</dd>
+<dt>D-memory / D-bus</dt><dd>Sirf data ki memory aur uska raasta. Load/store yahan hote hain (do-taraf).</dd>
+<dt>throughput</dt><dd>Ek second mein kitna kaam (yahan: kitne memory transfers) ho sakta hai.</dd>
+<dt>address space</dt><dd>Addresses ki "duniya". Harvard mein do: I-address 0x10 aur D-address 0x10 alag jagah hain.</dd>
+<dt>DSP</dt><dd>Digital Signal Processor: audio/video filter, FFT jaisa lagatar data stream ka kaam karne wala chip.</dd>
+<dt>microcontroller</dt><dd>Chhota computer-on-a-chip (CPU + memory + I/O), jaise Arduino ka ATmega328.</dd>
+<dt>flash</dt><dd>Non-volatile memory: power jaane pe bhi data rehta hai. ATmega328 mein program flash mein, data SRAM mein.</dd>
+<dt>deterministic timing</dt><dd>Har baar kaam bilkul utne hi time mein: real-time systems (airbag, motor control) ke liye zaruri.</dd>
+</dl></div>
+<figure data-d="D9.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar-left INSTRUCTION MEMORY, upar-right DATA MEMORY, neeche beech mein CPU (Control, ALU). Left ka highlighted arrow = I-bus, sirf instruction memory se CPU ki taraf (ek-taraf, kyunki instructions sirf padhi jaati hain). Right mein do arrows = D-bus, dono taraf (load aur store). Do alag raaste, isliye ek hi cycle mein dono transfer.</p>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Cycle shuru: CPU I-bus pe PC ka address bhejta hai, instruction memory se instruction aati hai.</li>
+<li><b>Usi cycle mein</b> pichli <code>lw</code> instruction D-bus pe data memory se apna data le aati hai.</li>
+<li>Do alag buses, koi takraav (contention) nahi.</li>
+<li>Isliye memory throughput Von Neumann se <b>2 guna tak</b> (jab har cycle mein fetch aur data dono hon).</li>
+<li>Kharcha: do memories, do bus systems: zyada wires, pins, silicon. Code aur data alag address spaces mein, to program code ko data ki tarah aasani se nahi padh/likh sakta (kam flexibility).</li>
+</ol></div>
+<figure data-d="D9.4b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Do rows. Upar "Von Neumann": FETCH instruction (cycle 1), phir ACCESS data (cycle 2), total 2 cycles. Neeche "Harvard": FETCH aur ACCESS ek ke upar ek, dono cycle 1 mein, total 1 cycle. Khadi dashed lines cycle ki seemayein hain. Same kaam, aadha time.</p>
+<div class="how"><b>History aur kahan use hota hai:</b><ol>
+<li><b>Harvard Mark I (1944):</b> instructions punched paper tape pe, data electro-mechanical relay counters mein. Alag rakhna majboori thi (alag technology).</li>
+<li>Aaj alag rakhna ek <b>design choice</b> hai (on-chip alag memories / caches).</li>
+<li><b>DSPs:</b> filters/FFT mein har cycle instruction + data dono chahiye.</li>
+<li><b>Real-time systems:</b> bus takraav nahi, to timing pakki (deterministic).</li>
+<li><b>Microcontrollers:</b> <b>ATmega328 (Arduino Uno) = true Harvard</b>: code flash mein, data SRAM mein. Embedded / IoT.</li>
+</ol></div>
+<table><tr><th>Point</th><th>Von Neumann</th><th>Harvard</th></tr>
+<tr><td>Memory</td><td>one (unified code + data)</td><td>two (separate I and D)</td></tr>
+<tr><td>Buses</td><td>one shared</td><td>two independent (I-bus, D-bus)</td></tr>
+<tr><td>Fetch + data access</td><td>sequential (2 cycles)</td><td>simultaneous (1 cycle)</td></tr>
+<tr><td>Throughput</td><td>limited by the bottleneck</td><td>up to 2× higher</td></tr>
+<tr><td>Cost / complexity</td><td>lower</td><td>higher (more wires, pins, silicon)</td></tr>
+<tr><td>Flexibility</td><td>high (code = data, one address space)</td><td>lower (separate address spaces)</td></tr>
+<tr><td>Origin</td><td>EDVAC report, 1945</td><td>Harvard Mark I, 1944</td></tr>
+<tr><td>Typical use</td><td>general-purpose computers (memory model)</td><td>DSPs, microcontrollers (ATmega328), real-time</td></tr></table>
+<div class="ex"><b>Solved example 1 (Harvard bandwidth):</b> <p class="qq">A 1 GHz Harvard CPU fetches a 32-bit instruction and a 32-bit data word per cycle. Bandwidth needed on EACH bus?</p><ol>
+<li>Har bus pe sirf apna hissa: 32 bits per cycle.</li>
+<li>32 × 10⁹ = 32 Gbit/s.</li>
+<li>32 ÷ 8 = 4 GB/s.</li></ol>
+<p class="ans">Answer: 4 GB/s per bus (VN would need 8 GB/s on one bus).</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this):</b> <p class="qq">Draw block diagrams of Von Neumann and Harvard architectures and compare them (six points). Where is each used? (5 marks)</p><ol>
+<li>Draw D9.2a (one memory, one shared bus) and D9.4a (instruction memory on the I-bus, data memory on the D-bus).</li>
+<li>Write six rows of the table: memory, buses, fetch + data timing, throughput, cost, flexibility.</li>
+<li>Add the timeline D9.4b: VN needs 2 cycles, Harvard 1 cycle for a fetch plus a data access.</li>
+<li>Uses: Von Neumann for general-purpose computers; Harvard for DSPs and microcontrollers such as the ATmega328; modern CPUs use modified Harvard.</li></ol>
+<p class="ans">Answer: two diagrams + six-point table + uses.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Harvard = do CPU" galat: CPU ek, <b>memories aur buses do</b>. (2) "Harvard program ko 2 guna tez chalata hai" galat: sirf memory transfer throughput <b>up to</b> 2×. (3) "Harvard ka throughput kam hai" galat: zyada hai; uske nuksaan hain zyada pins/wiring, do memory systems, aur code ko data ki tarah treat na kar paana.</div>
+<p class="trick"><b>Trick:</b> <b>H</b>arvard = "<b>H</b>" ke do khambe = <b>do</b> memories, <b>do</b> buses. Mark I = paper tape (instructions) + relays (data).</p>
+<div class="yr"><b>Ek line mein:</b> Harvard = alag instruction memory + alag data memory + do buses → fetch aur data ek cycle mein (up to 2× throughput); kharcha: zyada pins, kam flexibility; Mark I 1944; DSP, ATmega328.</div>
+</div>
+
+<div class="topic"><h3>9.5 Modified Harvard in Modern CPUs</h3>
+<div class="why"><b>Pehle socho:</b> Ek bade restaurant ki rasoi socho. Chef ke <b>bilkul paas do chhoti trolleys</b> hain: ek mein recipe cards (instructions), ek mein masale-sabzi (data), taaki chef dono ek saath utha sake (Harvard speed). Par peeche <b>ek hi bada store room</b> hai jisme sab kuch rakha hai (ek memory, aasaan management). Trolleys khaali hon to store room se bhar lo. Yahi <b>modified Harvard</b> hai: <mark>andar se Harvard (split L1), bahar se Von Neumann (ek DRAM)</mark>.</div>
+<div class="def"><b>Definition:</b> A <b>modified Harvard architecture</b> splits only the level-1 cache into a separate instruction cache (L1-I) and data cache (L1-D), so the core can fetch an instruction and access data in the same cycle, while the L2/L3 caches and the main memory (DRAM) are unified and hold both code and data in one address space. Almost all modern CPUs, such as x86-64 desktops and the ARM Cortex-M4, use it.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>L1-I / L1-D</dt><dd>Level-1 Instruction cache aur Level-1 Data cache: core ke sabse paas ki do alag chhoti SRAM memories.</dd>
+<dt>unified cache / memory</dt><dd>Ek hi memory jisme code aur data dono (L2, L3, DRAM).</dd>
+<dt>cache coherence</dt><dd>Hardware jo dhyan rakhta hai ki saari copies (L1-I, L1-D, L2, DRAM) ek doosre se match karein, taaki software ko ek hi memory dikhe.</dd>
+<dt>pipeline (preview)</dt><dd>CPU ek saath kai instructions ke alag-alag stage chalata hai (Unit 14). IF stage = instruction fetch, MEM stage = data access.</dd>
+<dt>structural hazard (preview)</dt><dd>Do stages ko ek hi hardware chahiye ek hi cycle mein. Ek hi memory ho to IF aur MEM takrate hain; split L1 ye hata deta hai (Unit 15).</dd>
+</dl></div>
+<figure data-d="D9.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein CPU CORE. Uske right mein do chhote box: upar L1-I (instructions, highlighted arrow core ki taraf), neeche L1-D (data, do-taraf arrows). Dono ka raasta ek box L2 / L3 (unified) mein milta hai, phir DRAM (unified code + data). Beech ki khadi dashed line: left = "HARVARD ZONE" (split L1), right = "VON NEUMANN ZONE" (L2 se neeche sab ek).</p>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Program aur data dono <b>ek hi DRAM</b> mein (ek address space): OS load karta hai, linker jodta hai, sab aasaan (Von Neumann fayda).</li>
+<li>Core ke paas L1 do hisson mein: L1-I aur L1-D.</li>
+<li>Har cycle pipeline L1-I se instruction <b>aur</b> L1-D se data ek saath le leta hai: koi contention nahi (Harvard fayda).</li>
+<li>L1 mein miss hua to unified L2/L3, phir DRAM se block aata hai.</li>
+<li>Cache coherence hardware ensure karta hai ki copies match karein, to programmer ko ek hi memory dikhti hai.</li>
+<li>Yahi split L1 5-stage pipeline mein IF aur MEM ka structural hazard hatata hai (Unit 15).</li>
+</ol></div>
+<table><tr><th>Point</th><th>Von Neumann</th><th>Harvard</th><th>Modified Harvard</th></tr>
+<tr><td>Where split?</td><td>nowhere</td><td>whole memory system</td><td>only L1 (L1-I, L1-D)</td></tr>
+<tr><td>Main memory</td><td>one</td><td>two</td><td>one (unified DRAM)</td></tr>
+<tr><td>Fetch + data same cycle?</td><td>no</td><td>yes</td><td>yes (on L1 hits)</td></tr>
+<tr><td>Address spaces seen by software</td><td>one</td><td>two</td><td>one</td></tr>
+<tr><td>Example (class activity)</td><td>EDVAC-style designs</td><td>ATmega328 (Arduino Uno)</td><td>ARM Cortex-M4, x86-64 desktop</td></tr>
+<tr><td>Used today in</td><td>the memory model of general-purpose computers</td><td>DSPs, microcontrollers, real-time</td><td>almost all modern CPUs (desktop, laptop, phone)</td></tr></table>
+<div class="ex"><b>Solved example 1 (class activity):</b> <p class="qq">Classify: ATmega328 (Arduino Uno), ARM Cortex-M4, x86-64 desktop.</p><ol>
+<li>ATmega328: program flash mein, data SRAM mein, alag buses → <b>true Harvard</b>.</li>
+<li>ARM Cortex-M4: alag instruction aur data paths, par ek unified address space → <b>modified Harvard</b>.</li>
+<li>x86-64 desktop: split L1-I/L1-D, unified L2/L3 aur DRAM → <b>modified Harvard</b> (pure Von Neumann NAHI).</li></ol>
+<p class="ans">Answer: true Harvard; modified Harvard; modified Harvard.</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this):</b> <p class="qq">Explain modified Harvard architecture with a diagram. Why do almost all modern CPUs use it? (4 marks)</p><ol>
+<li>Draw D9.5a: core → split L1-I and L1-D → unified L2/L3 → unified DRAM; mark the Harvard zone and the Von Neumann zone.</li>
+<li>The split L1 lets the pipeline fetch an instruction and access data in the same cycle, avoiding the Von Neumann bottleneck where it matters most.</li>
+<li>The unified main memory gives one address space, so loading, linking and programming stay simple and flexible.</li>
+<li>Hardware cache coherence keeps the split caches consistent, so software sees a single memory; the design scales to real workloads.</li></ol>
+<p class="ans">Answer: diagram + "Harvard speed inside, Von Neumann flexibility outside" + coherence.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Modern x86 ko "pure Von Neumann" kehna: uska L1 split hai, to modified Harvard. (2) "Modern CPU ke programs ko do address spaces dikhte hain" galat: software ko <b>ek</b> memory dikhti hai. (3) Split ko DRAM ya register file level pe batana: split sirf <b>L1</b> pe hai.</div>
+<p class="trick"><b>Trick:</b> "<b>Andar Harvard, bahar Von Neumann</b>" ya "<b>L1 split, baaki sab ek</b>".</p>
+<div class="yr"><b>Ek line mein:</b> Modified Harvard = split L1-I/L1-D (fetch + data ek cycle mein) + unified L2/L3/DRAM (ek address space), coherence hardware se consistent; x86-64 aur Cortex-M4 isi pe, ATmega328 true Harvard.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Basic computer block diagram</td><td>CPU, memory, I/O on one bus (D9.1a); one line per role; bus = address + data + control.</td></tr>
+<tr><td>Stored-program concept / Von Neumann diagram</td><td>1. Code stored as numbers with data in one memory (D9.2b). 2. D9.2a: CPU (CU, ALU, registers), one memory, one bus, I/O. 3. Four components: control unit, ALU, memory, I/O. 4. EDVAC 1945. 5. Simplicity + generality.</td></tr>
+<tr><td>MCQ: defining feature of VN / Harvard</td><td>VN: one memory + one shared bus. Harvard: separate I and D memories + two buses, fetch and data in the same cycle.</td></tr>
+<tr><td>Who / when (one-word)</td><td>Bottleneck term: John Backus, 1977. Stored program: von Neumann, EDVAC report 1945. Harvard Mark I: 1944, punched paper tape + relays.</td></tr>
+<tr><td>Explain the bottleneck</td><td>One bus shared → fetch OR data per cycle (D9.3a); four effects: contention, IPC cap, idle ALU, worsens with CPU speed; fixes: caches, wider buses, Harvard split.</td></tr>
+<tr><td>Bandwidth numerical</td><td>1. Add bits per cycle (VN: instr + data; Harvard: each bus separately). 2. × clock (GHz = 10⁹). 3. ÷ 8 for bytes. 1 GHz 32+32 → 8 GB/s (Harvard 4 + 4); 2 GHz 64+64 → 32 GB/s; 2 GHz 32+32 → 16 GB/s.</td></tr>
+<tr><td>Cycle count VN vs Harvard</td><td>VN cycles = fetches + data accesses; Harvard cycles = fetches (data overlaps). Ratio is at most 2.</td></tr>
+<tr><td>VN vs Harvard comparison (six points)</td><td>Memory, buses, fetch + data timing (2 vs 1 cycle, D9.4b), throughput, cost, flexibility, use. Draw both diagrams.</td></tr>
+<tr><td>Harvard disadvantages (MSQ)</td><td>More pins/wiring, two memory systems, code cannot easily be treated as data. NOT lower throughput.</td></tr>
+<tr><td>Modified Harvard + why modern CPUs use it</td><td>D9.5a; split L1 for parallel fetch + data; unified L2/L3 + DRAM for one address space; hardware cache coherence; split is at L1 only.</td></tr>
+<tr><td>Classify a processor</td><td>ATmega328 → true Harvard; ARM Cortex-M4 → modified Harvard; x86-64 desktop → modified Harvard.</td></tr>
+</table></div>
+</section>

@@ -1,0 +1,305 @@
+<section>
+<h2>Unit 4 · Number Systems &amp; Two's Complement</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 3 mein humne adder banaya jo bits jodta hai. Par bits ka <i>matlab</i> kya hai? 1011 ek number hai, par kaunsa: 11 ya −5? Ye unit sikhata hai ki numbers binary aur hex mein kaise likhte hain, negative numbers kaise likhte hain (sign-magnitude, 1's complement, 2's complement), chhote number ko bade register mein kaise daalte hain (sign extension), add/subtract kaise hota hai, aur kab answer box mein fit nahi hota (overflow). Agla unit (5) batayega ki ye bits <i>yaad</i> kaise rakhe jaate hain (latches, flip-flops).</div>
+
+<div class="topic"><h3>4.1 Number systems: binary, decimal, hex conversions</h3>
+<div class="why"><b>Pehle socho:</b> Tum roz decimal use karte ho kyunki insaan ke 10 ungliyan hain: digits 0 se 9. Computer ke andar har wire pe sirf do haalat hain: current hai (1) ya nahi hai (0), jaise switch ON/OFF. Isliye computer <b>base 2</b> (binary) mein ginta hai. Lambi binary strings padhna mushkil hai (1011 0101 1100 0011), isliye insaan unhe chhota karke <b>hex</b> (base 16) mein likhte hain. Teeno systems ek hi idea pe chalte hain: <mark>har position ki ek "keemat" (weight) hoti hai</mark>.</div>
+<div class="def"><b>Definition:</b> A <b>positional number system</b> with base (radix) r represents a value as the sum of each digit multiplied by r raised to the power of its position, positions being numbered 0, 1, 2 from the right. Binary uses base 2 (digits 0, 1), decimal base 10 (0 to 9) and hexadecimal base 16 (0 to 9, A to F).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>base / radix</dt><dd>Kitne alag digits hain, aur har position pichhli se kitni guna keemti hai. Decimal: base 10. Binary: base 2. Hex: base 16.</dd>
+<dt>place value / weight</dt><dd>Kisi position ki keemat. Decimal mein right se: 1, 10, 100, 1000. Binary mein: 1, 2, 4, 8, 16, 32 (har baar ×2).</dd>
+<dt>bit</dt><dd>Ek binary digit, 0 ya 1. "101" mein 3 bits hain.</dd>
+<dt>nibble / byte</dt><dd>4 bits = nibble (ek hex digit). 8 bits = byte (do hex digits). 1011 0101 ek byte hai.</dd>
+<dt>MSB / LSB</dt><dd>Most Significant Bit = sabse left wala bit (sabse bada weight). Least Significant Bit = sabse right wala (weight 1). 101101 mein MSB ka weight 32, LSB ka 1.</dd>
+<dt>subscript ₂ ₁₀ ₁₆, prefix 0x</dt><dd>Number kis base mein hai ye batata hai. 101₂ = five, 101₁₀ = one hundred one. 0x2A ka matlab hex 2A.</dd>
+<dt>remainder</dt><dd>Divide karne ke baad jo bachta hai. 45 ÷ 2 = 22, remainder 1 (kyunki 22 × 2 = 44, 45 − 44 = 1).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Decimal se shuru (place value):</b> 237 ka matlab hai 2 sau + 3 das + 7 ek = 2×100 + 3×10 + 7×1 = 200 + 30 + 7 = 237. Har position pichhli se 10 guna keemti hai.</li>
+<li><b>Binary mein bilkul wahi, bas ×2:</b> weights right se 1, 2, 4, 8, 16, 32, 64, 128. 101101₂ = 1×32 + 0×16 + 1×8 + 1×4 + 0×2 + 1×1 = 32 + 8 + 4 + 1 = <b>45</b>. Rule: <mark>jahan bit 1 hai, us position ka weight jodo; 0 wali positions chhod do</mark>.</li>
+<li><b>Decimal → binary, method 1 (baar baar 2 se divide):</b> number ko 2 se divide karo, remainder (0 ya 1) likho, quotient ko phir 2 se divide karo, jab tak quotient 0 na ho jaaye. Phir remainders ko <b>neeche se upar</b> padho. 45 ke liye:
+<table class="tt"><tr><th>Division</th><th>Quotient</th><th>Remainder</th></tr>
+<tr><td>45 ÷ 2</td><td>22</td><td>1 (LSB)</td></tr>
+<tr><td>22 ÷ 2</td><td>11</td><td>0</td></tr>
+<tr><td>11 ÷ 2</td><td>5</td><td>1</td></tr>
+<tr><td>5 ÷ 2</td><td>2</td><td>1</td></tr>
+<tr><td>2 ÷ 2</td><td>1</td><td>0</td></tr>
+<tr><td>1 ÷ 2</td><td>0</td><td>1 (MSB)</td></tr></table>
+Neeche se upar: 1 0 1 1 0 1 → <b>101101</b>. Check: 32 + 8 + 4 + 1 = 45. Ye kyun kaam karta hai: 237 ÷ 10 karo to remainder 7 aata hai, jo 237 ka <i>last</i> digit hai. Waise hi ÷ 2 ka remainder binary ka last bit (LSB) hai. Isliye pehla remainder sabse right mein jaata hai.</li>
+<li><b>Decimal → binary, method 2 (powers of 2 ghatao):</b> sabse bada power of 2 dhoondo jo number se chhota ya barabar ho, use ghatao, us position pe 1 likho; baaki se phir yahi karo. 45: 32 ≤ 45 → 45 − 32 = 13; 16 &gt; 13 → 0; 8 ≤ 13 → 13 − 8 = 5; 4 ≤ 5 → 5 − 4 = 1; 2 &gt; 1 → 0; 1 ≤ 1 → 1 − 1 = 0. Positions 32, 16, 8, 4, 2, 1 → 1 0 1 1 0 1 = <b>101101</b>. Same answer.</li>
+<li><b>Binary → hex (4 ke group):</b> 16 = 2⁴, isliye <mark>ek hex digit = exactly 4 bits</mark>. Bits ko <b>right se</b> 4-4 ke group mein todo, har group ko hex digit mein badlo. 10110101 → 1011 | 0101 → B | 5 → <b>0xB5</b>. Agar bits 4 ke multiple nahi hain to left mein 0 jodo: 1101101 (7 bits) → 0110 | 1101 → <b>0x6D</b>.</li>
+<li><b>Hex → binary:</b> ulta karo, har hex digit ko 4 bits mein likho. 0x2A → 2 = 0010, A = 1010 → 0010 1010.</li>
+<li><b>Hex → decimal:</b> hex weights right se 1, 16, 256, 4096. 0xB5 = 11×16 + 5×1 = 176 + 5 = <b>181</b>. 0x3E8 = 3×256 + 14×16 + 8×1 = 768 + 224 + 8 = <b>1000</b>. 0x3C = 3×16 + 12 = 48 + 12 = <b>60</b>.</li>
+<li><b>Decimal → hex:</b> 16 se divide karo, remainders neeche se upar. 181 ÷ 16 = 11 remainder 5 (11 × 16 = 176); 11 ÷ 16 = 0 remainder 11 = B → <b>B5</b>.</li>
+<li><b>Octal (base 8):</b> 8 = 2³, isliye ek octal digit = 3 bits. (1217)₈ → 001 010 001 111 → ab 4 ke group banao right se: 0010 1000 1111 → <b>0x28F</b> = 2×256 + 8×16 + 15 = 512 + 128 + 15 = 655.</li>
+<li><b>Fraction (binary point ke baad):</b> weights 1/2, 1/4, 1/8 (0.5, 0.25, 0.125). 0.101₂ = 0.5 + 0 + 0.125 = 0.625. Ulta (0.625 → binary): ×2 karte jao, integer part likho: 0.625×2 = 1.25 → 1; 0.25×2 = 0.5 → 0; 0.5×2 = 1.0 → 1 → <b>0.101</b> (yahan upar se neeche padho).</li>
+<li><b>n bits mein kitna aata hai (unsigned):</b> 0 se 2ⁿ − 1. 4 bits: 0 se 15. 8 bits: 0 se 255. 1000 tak ke liye kitne bits? 2⁹ = 512 (kam), 2¹⁰ = 1024 (kaafi) → <b>10 bits</b>.</li>
+</ol>
+<table class="tt"><tr><th>Hex</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+<tr><th>Binary</th><td>0000</td><td>0001</td><td>0010</td><td>0011</td><td>0100</td><td>0101</td><td>0110</td><td>0111</td></tr>
+<tr><th>Hex</th><td>8</td><td>9</td><td>A (10)</td><td>B (11)</td><td>C (12)</td><td>D (13)</td><td>E (14)</td><td>F (15)</td></tr>
+<tr><th>Binary</th><td>1000</td><td>1001</td><td>1010</td><td>1011</td><td>1100</td><td>1101</td><td>1110</td><td>1111</td></tr></table>
+<p>Powers of 2 ratt lo: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024. 2¹⁰ = 1024 ≈ 1 K, 2²⁰ ≈ 1 M, 2³⁰ ≈ 1 G.</p></div>
+<figure data-d="D4.1a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar wali row mein bits 1 0 1 1 0 1 hain. Beech wali row mein har bit ka weight (32, 16, 8, 4, 2, 1). Neeche wali row "contribution" hai: bit 1 hai to weight aata hai, bit 0 hai to 0. Highlighted columns (32, 8, 4, 1) jodo: 32 + 8 + 4 + 1 = 45.</p>
+<div class="fx"><b>Formula:</b> Value = Σ (digit × base<sup>position</sup>), position 0 = rightmost.<br>Unsigned n bits: 0 to 2ⁿ − 1. Bits needed for value N: smallest n with 2ⁿ − 1 ≥ N.<br><small>1 hex digit = 4 bits, 1 octal digit = 3 bits.</small></div>
+<div class="ex"><b>Solved example 1 (exam favourite, 5 marks):</b> <p class="qq">Convert (a) 157₁₀ to binary, octal and hex, (b) 0x3E8 to decimal, (c) 10110.011₂ to decimal. Show working.</p><ol>
+<li>(a) Repeated ÷2: 157 ÷ 2 = 78 r 1; 78 ÷ 2 = 39 r 0; 39 ÷ 2 = 19 r 1; 19 ÷ 2 = 9 r 1; 9 ÷ 2 = 4 r 1; 4 ÷ 2 = 2 r 0; 2 ÷ 2 = 1 r 0; 1 ÷ 2 = 0 r 1.</li>
+<li>Remainders neeche se upar: 1 0 0 1 1 1 0 1 → 157₁₀ = <b>1001 1101₂</b>. Check: 128 + 16 + 8 + 4 + 1 = 157.</li>
+<li>Octal: right se 3 ke group: 10 | 011 | 101 → 010 | 011 | 101 → 2 | 3 | 5 → <b>235₈</b>. Check: 2×64 + 3×8 + 5 = 128 + 24 + 5 = 157.</li>
+<li>Hex: right se 4 ke group: 1001 | 1101 → 9 | D → <b>0x9D</b>. Check: 9×16 + 13 = 144 + 13 = 157.</li>
+<li>(b) 0x3E8 = 3×256 + 14×16 + 8×1 = 768 + 224 + 8 = <b>1000</b>.</li>
+<li>(c) 10110.011: left part 16 + 0 + 4 + 2 + 0 = 22; right part 0×0.5 + 1×0.25 + 1×0.125 = 0.375 → <b>22.375</b>.</li></ol>
+<p class="ans">Answer: 157 = 1001 1101₂ = 235₈ = 0x9D; 0x3E8 = 1000; 10110.011₂ = 22.375.</p></div>
+<div class="ex"><b>Solved example 2 (MCQ / NAT type):</b> <p class="qq">(i) Convert 181₁₀ to hex. (ii) How many bits are needed to store unsigned numbers up to 1000?</p><ol>
+<li>(i) 181 ÷ 16 = 11 remainder 5 (16 × 11 = 176, 181 − 176 = 5). 11 ÷ 16 = 0 remainder 11 = B.</li>
+<li>Neeche se upar: B, 5 → 0xB5. Check via binary: 1011 0101 = 128 + 32 + 16 + 4 + 1 = 181.</li>
+<li>(ii) 9 bits max = 2⁹ − 1 = 511 &lt; 1000 (kam). 10 bits max = 2¹⁰ − 1 = 1023 ≥ 1000 (kaafi).</li></ol>
+<p class="ans">Answer: (i) 0xB5 (ii) 10 bits.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Remainders upar se neeche padhna: 42 ke remainders upar se neeche 0 1 0 1 0 1 hain; aise padhoge to 010101 = 21 aayega (galat). Sahi: neeche se upar = 101010 = 42. (2) Hex group left se banana: 1101101 ko 1101 | 101 karna galat hai, group hamesha <b>right se</b>. (3) 0x10 ko "das" samajhna: 0x10 = 1×16 + 0 = 16.</div>
+<p class="trick"><b>Trick:</b> 4 bits ke weights "<b>8 4 2 1</b>" ratt lo. Koi bhi nibble 2 second mein: 1011 = 8 + 2 + 1 = 11 = B.</p>
+<div class="yr"><b>Ek line mein:</b> Har position ka weight base ki power hai; binary → decimal = 1 wale weights jodo, decimal → binary = ÷2 aur remainders neeche se upar, binary ↔ hex = right se 4-4 bits ka group.</div>
+</div>
+
+<div class="topic"><h3>4.2 Signed representations overview</h3>
+<div class="why"><b>Pehle socho:</b> Kaagaz pe −5 likhne ke liye hum "−" sign lagate hain. Par computer ke paas sirf 0 aur 1 hain, koi "−" nahi. To negative number kaise likhein? Teen ideas try kiye gaye: (1) ek bit ko sign bana do (<b>sign-magnitude</b>), (2) saare bits ulat do (<b>1's complement</b>), (3) ulat ke 1 jodo (<b>2's complement</b>). Pehle do mein problems hain, teesra jeet gaya. Teeno ko ek hi number pe dekhenge.</div>
+<div class="def"><b>Definition:</b> A <b>signed number representation</b> encodes both positive and negative integers using bits. In <b>sign-magnitude</b> the MSB is the sign (0 = +, 1 = −) and the remaining bits give the magnitude; in <b>one's complement</b> a negative number is formed by inverting every bit of the positive number; in <b>two's complement</b> it is formed by inverting every bit and adding 1.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>sign bit</dt><dd>Sabse left wala bit (MSB). 0 = positive, 1 = negative. Teeno systems mein yahi rule hai.</dd>
+<dt>magnitude</dt><dd>Sign ke bina size. −5 ka magnitude 5.</dd>
+<dt>invert / complement</dt><dd>Har bit ulta karo: 0 → 1, 1 → 0. 0101 ka invert = 1010.</dd>
+<dt>two zeros</dt><dd>Zero ke do alag patterns hona (+0 aur −0). Bekaar hai: ek pattern waste, aur "kya ye zero hai?" check karne ke liye do comparisons.</dd>
+<dt>end-around carry</dt><dd>1's complement addition mein jo carry left se bahar nikle, use wapas right wale bit mein jodna padta hai. Extra kaam.</dd>
+<dt>range</dt><dd>Sabse chhota se sabse bada number jo n bits mein likh sakte ho.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (same number, teeno tarike, 4 bits):</b><ol>
+<li>Pehle +5 likho: 0101 (teeno systems mein positive number same hota hai).</li>
+<li><b>Sign-magnitude −5:</b> sirf sign bit 1 kar do, magnitude 101 waisa hi → <b>1101</b>.</li>
+<li><b>1's complement −5:</b> 0101 ke saare bits ulto → <b>1010</b>.</li>
+<li><b>2's complement −5:</b> 1010 mein 1 jodo → <b>1011</b>.</li>
+<li>8-bit mein ±18 (class slide): +18 = 0001 0010. Sign-magnitude −18 = <b>1001 0010</b>. 1's complement −18 = <b>1110 1101</b>. 2's complement −18 = <b>1110 1110</b>.</li>
+<li><b>Two zeros problem:</b> sign-magnitude mein 0000 (+0) aur 1000 (−0). 1's complement mein 0000 (+0) aur 1111 (−0). 2's complement mein sirf 0000 (1111 ka matlab −1 hai).</li>
+<li><b>Addition problem (sign-magnitude):</b> 5 + (−3) seedha jodo: 0101 + 1011 = 1 0000 → 0000 = 0. Galat (answer 2 hona chahiye). Isliye sign-magnitude ko jodne se pehle signs compare karne wala alag circuit chahiye.</li>
+<li><b>Addition (1's complement):</b> 5 + (−3) = 0101 + 1100 = 1 0001. Bahar nikla carry wapas jodo: 0001 + 1 = 0010 = 2. Sahi, par extra "end-around" step lagta hai.</li>
+<li><b>Addition (2's complement):</b> 5 + (−3) = 0101 + 1101 = 1 0010 → carry chhod do → 0010 = 2. Seedha sahi. <mark>Isliye har CPU 2's complement use karta hai.</mark></li>
+</ol>
+<table class="tt"><tr><th>Bits</th><th>Unsigned</th><th>Sign-mag</th><th>1's comp</th><th>2's comp</th><th>Bits</th><th>Unsigned</th><th>Sign-mag</th><th>1's comp</th><th>2's comp</th></tr>
+<tr><td>0000</td><td>0</td><td>+0</td><td>+0</td><td>0</td><td>1000</td><td>8</td><td>−0</td><td>−7</td><td>−8</td></tr>
+<tr><td>0001</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1001</td><td>9</td><td>−1</td><td>−6</td><td>−7</td></tr>
+<tr><td>0010</td><td>2</td><td>2</td><td>2</td><td>2</td><td>1010</td><td>10</td><td>−2</td><td>−5</td><td>−6</td></tr>
+<tr><td>0011</td><td>3</td><td>3</td><td>3</td><td>3</td><td>1011</td><td>11</td><td>−3</td><td>−4</td><td>−5</td></tr>
+<tr><td>0100</td><td>4</td><td>4</td><td>4</td><td>4</td><td>1100</td><td>12</td><td>−4</td><td>−3</td><td>−4</td></tr>
+<tr><td>0101</td><td>5</td><td>5</td><td>5</td><td>5</td><td>1101</td><td>13</td><td>−5</td><td>−2</td><td>−3</td></tr>
+<tr><td>0110</td><td>6</td><td>6</td><td>6</td><td>6</td><td>1110</td><td>14</td><td>−6</td><td>−1</td><td>−2</td></tr>
+<tr><td>0111</td><td>7</td><td>7</td><td>7</td><td>7</td><td>1111</td><td>15</td><td>−7</td><td>−0</td><td>−1</td></tr></table>
+<p>Table mein dekho: left half (MSB = 0) mein sab systems same hain. Right half (MSB = 1) mein har system alag padhta hai. <mark>Bits ka khud koi matlab nahi; instruction decide karti hai</mark> ki unsigned padhna hai ya signed (jaise MIPS add vs addu, lb vs lbu).</p></div>
+<div class="fx"><b>Formula:</b> Sign-magnitude and 1's complement range: −(2ⁿ⁻¹ − 1) to +(2ⁿ⁻¹ − 1) (two zeros). 2's complement range: −2ⁿ⁻¹ to +(2ⁿ⁻¹ − 1) (one zero).<br>1's complement of x = (2ⁿ − 1) − x; 2's complement of x = 2ⁿ − x.<br><small>4 bits: S-M and 1's: −7 to +7; 2's: −8 to +7. 8 bits: S-M and 1's: −127 to +127; 2's: −128 to +127.</small></div>
+<div class="ex"><b>Solved example (exam 5 marks):</b> <p class="qq">Represent −23 in 8-bit sign-magnitude, one's complement and two's complement. Compare the three representations.</p><ol>
+<li>+23 binary: 23 = 16 + 4 + 2 + 1 → 0001 0111.</li>
+<li>Sign-magnitude: MSB 1, baaki magnitude 001 0111 → <b>1001 0111</b>.</li>
+<li>One's complement: 0001 0111 ka har bit ulto → <b>1110 1000</b>.</li>
+<li>Two's complement: 1110 1000 + 1 = <b>1110 1001</b>. Check: −128 + 64 + 32 + 8 + 1 = −23.</li>
+<li>Comparison (likhne ka tareeka): "Sign-magnitude and one's complement both have two zeros (+0 and −0) and a symmetric range −127 to +127 in 8 bits. Sign-magnitude addition needs sign-comparison logic; one's complement needs an end-around carry. Two's complement has a single zero, range −128 to +127, and the same adder performs both addition and subtraction, so it is used in all modern CPUs. Sign-magnitude survives only as the sign bit of floating-point numbers."</li></ol>
+<p class="ans">Answer: S-M 1001 0111; 1's 1110 1000; 2's 1110 1001.</p></div>
+<div class="trap"><b>Galti mat karna:</b> 1000 0000 ko 2's complement mein "−0" mat bolo. 2's complement mein ye <b>−128</b> hai. "−0" sirf sign-magnitude (1000 0000) aur 1's complement (1111 1111) mein hota hai.</div>
+<p class="trick"><b>Trick:</b> "<b>S-M: sign flip. 1's: sab flip. 2's: sab flip + 1.</b>"</p>
+<div class="yr"><b>Ek line mein:</b> Negative likhne ke teen tarike hain; sign-magnitude aur 1's complement mein do zero aur addition ki pareshani hai, 2's complement mein ek zero aur seedha addition, isliye wahi use hota hai.</div>
+</div>
+
+<div class="topic"><h3>4.3 Two's complement deep dive: negation and range</h3>
+<div class="why"><b>Pehle socho:</b> Gaadi ka purana 3-digit odometer (km meter) socho, jo 000 pe hai. Use ek km <i>peeche</i> chalao to wo <b>999</b> dikhayega. To 3 digit ki duniya mein "999" ka matlab hi "−1" ho gaya: kyunki 999 + 1 = 1000, aur 3 digit mein 1000 ka "1" gir jaata hai, bachta hai 000. 2's complement bilkul yahi hai, binary odometer pe: 4-bit 0000 se ek peeche = <b>1111 = −1</b>. Isliye addition apne aap sahi aata hai.</div>
+<div class="def"><b>Definition:</b> In <b>n-bit two's complement</b>, the MSB has weight −2ⁿ⁻¹ and every other bit has its normal positive weight. The negative of x is 2ⁿ − x, which is obtained by inverting all bits of x and adding 1. The range is −2ⁿ⁻¹ to 2ⁿ⁻¹ − 1.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>wrap-around</dt><dd>Sabse bade pattern ke baad wapas sabse chhote pe aa jaana. 4-bit mein 1111 + 1 = 0000 (carry bahar gir jaata hai).</dd>
+<dt>2ⁿ (modulus)</dt><dd>n bits mein total patterns. 4 bits: 2⁴ = 16 patterns (0000 se 1111). Wheel pe 16 jagah hain; 16 kadam chalo to wapas wahin.</dd>
+<dt>negate</dt><dd>Number ka ulta sign wala version banana: +18 → −18, ya −18 → +18.</dd>
+<dt>MSB ka negative weight</dt><dd>8-bit mein MSB ka weight +128 nahi, <b>−128</b> hai. 1000 0001 = −128 + 1 = −127.</dd>
+<dt>asymmetric range</dt><dd>Negative side ek number zyada: 4-bit mein −8 hai par +8 nahi.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Wheel idea:</b> 4 bits ke 16 patterns ek ghadi ki tarah gol ghere mein lagao: 0000 upar, clockwise 0001, 0010 se 1111 tak. 1111 ke baad phir 0000. Har kadam = +1.</li>
+<li>0000 se ek kadam ulta (anticlockwise) = 1111. To 1111 = −1. Do kadam ulta = 1110 = −2. Teen ulta = 1101 = −3. <mark>Negative numbers bas "zero se peeche" wale positions hain.</mark></li>
+<li><b>Formula kyun −x = 2ⁿ − x:</b> 16 kadam chalo to wapas wahin aate ho, isliye "3 kadam peeche" = "16 − 3 = 13 kadam aage". 13 = 1101. Dekho, upar humne −3 = 1101 hi paaya. To <b>−x ka pattern = (2ⁿ − x) ka binary</b>.</li>
+<li><b>Invert + 1 kyun kaam karta hai:</b> x aur uska invert x' jodo to har column mein 1 + 0 = 1 aata hai: 0101 + 1010 = 1111 = 2ⁿ − 1 (koi carry nahi). Matlab x' = (2ⁿ − 1) − x. Ab 1 jodo: x' + 1 = 2ⁿ − x = −x. Bas, isliye <b>invert karo, 1 jodo</b>.</li>
+<li><b>Negation steps (8-bit, +18 → −18):</b> (a) +18 = 0001 0010. (b) Invert: 1110 1101. (c) 1 jodo: 1110 1101 + 1 → right bit 1 + 1 = 10, likho 0 carry 1; agla bit 0 + 1 = 1, carry khatam → <b>1110 1110</b>.</li>
+<li><b>Shortcut (copy till first 1):</b> right se chalo, bits <b>copy</b> karte jao jab tak pehla 1 na mile (us 1 ko bhi copy karo), uske baad baaki saare bits <b>ulto</b>. +18 = 0001 0010: right ka 0 copy → 0; agla 1 (pehla 1) copy → 1; baaki 0001 00 ulto → 1110 11. Joda: <b>1110 1110</b>. Same answer, addition ki zarurat nahi. Ek aur: +40 = 0010 1000 → right ke 000 copy, phir pehla 1 copy → "1000"; baaki 0010 ulto → 1101 → <b>1101 1000</b> = −40.</li>
+<li><b>Negative pattern ko padhna (method 1, weights):</b> 1110 1110 = −128 + 64 + 32 + 0 + 8 + 4 + 2 + 0 = −128 + 110 = <b>−18</b>.</li>
+<li><b>Method 2 (wapas negate):</b> MSB 1 hai to negative hai. Invert + 1 karo magnitude milega: 1110 1110 → 0001 0001 → +1 → 0001 0010 = 18. To value −18. (Negate dono taraf kaam karta hai.)</li>
+<li><b>Range nikalna, n = 4:</b> 16 patterns. MSB = 0 wale 8 patterns: 0000 se 0111 = 0 se +7 (zero ne ek jagah le li, isliye positive sirf 7 tak). MSB = 1 wale 8 patterns: 1000 se 1111 = −8 se −1. Range <b>−8 to +7</b>. Formula: −2³ = −8 to 2³ − 1 = 7.</li>
+<li><b>Range, n = 8:</b> −2⁷ = −128 to 2⁷ − 1 = +127. Sabse negative 1000 0000 = −128, sabse positive 0111 1111 = +127, −1 = 1111 1111. (16-bit: −32768 to +32767.)</li>
+<li><b>Sabse negative ka koi jodidaar nahi:</b> −8 = 1000 ko negate karo: invert 0111, +1 → 1000. Wapas −8! Kyunki +8 4 bits mein fit hi nahi hota.</li>
+</ol></div>
+<figure data-d="D4.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Teen ghere hain. Beech wali ring mein bit pattern, andar ki taraf (halka) unsigned value, bahar signed (2's complement) value. 0000 sabse upar hai, clockwise chalo to +1 hota hai. 0111 (+7) ke baad 1000 (−8) aata hai; ye highlighted line <b>signed overflow ki deewar</b> hai. 1111 (−1) se ek aage 0000 (0): ye unsigned ka carry-out point hai (15 → 0). Trace: 1101 dhoondo, bahar likha hai −3, andar 13; 13 + 3 = 16 = 2⁴.</p>
+<div class="fx"><b>Formula:</b> <b>−x = x' + 1 = 2ⁿ − x</b> &nbsp;·&nbsp; <b>Range = −2ⁿ⁻¹ to 2ⁿ⁻¹ − 1</b> &nbsp;·&nbsp; MSB weight = −2ⁿ⁻¹<br><small>n = 4: −8 to 7 · n = 6: −32 to 31 · n = 8: −128 to 127 · n = 16: −32768 to 32767. All ones = −1.</small></div>
+<div class="ex"><b>Solved example 1 (class exit ticket):</b> <p class="qq">Write −45 in 8-bit two's complement and verify.</p><ol>
+<li>+45: 45 = 32 + 8 + 4 + 1 → 0010 1101.</li>
+<li>Invert: 1101 0010.</li>
+<li>+1: right bit 0 + 1 = 1, koi carry nahi → 1101 0011.</li>
+<li>Shortcut se check: 0010 1101 ka right bit hi pehla 1 hai, use copy karo; baaki 0010 110 ulto → 1101 001 → 1101 0011. Same.</li>
+<li>Verify weights se: −128 + 64 + 16 + 2 + 1 = −128 + 83 = −45.</li></ol>
+<p class="ans">Answer: −45 = 1101 0011.</p></div>
+<div class="ex"><b>Solved example 2 (MCQ/NAT type):</b> <p class="qq">(i) 0xB7 as an 8-bit signed integer? (ii) Decimal value of 1011 0100 (8-bit two's complement)? (iii) Range of a 6-bit two's complement number? (iv) Show +18 + (−18) = 0.</p><ol>
+<li>(i) 0xB7 = 1011 0111. MSB 1 → negative. Weights: −128 + 32 + 16 + 4 + 2 + 1 = −128 + 55 = <b>−73</b>. (Unsigned padho to 183.)</li>
+<li>(ii) 1011 0100 = −128 + 32 + 16 + 4 = −128 + 52 = <b>−76</b>.</li>
+<li>(iii) n = 6: −2⁵ = −32 to 2⁵ − 1 = 31 → <b>−32 to +31</b>.</li>
+<li>(iv) 0001 0010 + 1110 1110: bit 0: 0 + 0 = 0. Bit 1: 1 + 1 = 10 → 0, carry 1. Bits 2 se 7: har column mein ek 1 hai, plus aaya hua carry 1 = 10 → 0, carry 1. Result 1 0000 0000. 9th bit (carry) 8-bit box mein fit nahi, gir jaata hai → 0000 0000 = 0.</li></ol>
+<p class="ans">Answer: −73; −76; −32 to +31; sum = 0 (carry discarded).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "+1" bhool jaana: sirf invert karoge to 1's complement banega, 2's nahi (−45 = 1101 0010 galat). (2) Range ko symmetric likhna (−127 to +127): ye sign-magnitude ka hai; 2's complement mein −128 to +127. (3) Shortcut mein left se copy shuru karna: copy hamesha <b>right</b> se.</div>
+<p class="trick"><b>Trick:</b> "<b>Odometer peeche chalao.</b>" −1 hamesha all ones (1111 1111). Range: "negative side pe ek extra, kyunki zero positive side pe baitha hai."</p>
+<div class="yr"><b>Ek line mein:</b> 2's complement mein −x = invert + 1 = 2ⁿ − x, MSB ka weight −2ⁿ⁻¹ hai, aur range −2ⁿ⁻¹ se 2ⁿ⁻¹ − 1.</div>
+</div>
+
+<div class="topic"><h3>4.4 Sign extension</h3>
+<div class="why"><b>Pehle socho:</b> Odometer wapas lo. 3-digit meter pe −1 = 999. Ab gaadi mein 6-digit meter lag gaya. −1 ab kya dikhega? <b>999999</b>, na ki 000999 (wo to 999 km hai, positive!). Matlab chhote number ko bade box mein daalte waqt naye khaali digits ko "sign wale digit" se bharna padta hai. Binary mein bhi: 4-bit ya 16-bit number ko 8-bit ya 32-bit register mein daalna ho (MIPS mein 16-bit immediate ko 32-bit ALU tak), to <mark>naye upar wale bits mein MSB copy karo</mark>.</div>
+<div class="def"><b>Definition:</b> <b>Sign extension</b> increases the number of bits of a two's complement number without changing its value, by copying the sign bit (MSB) into every new higher-order bit. <b>Zero extension</b> fills the new bits with 0 and is correct only for unsigned numbers.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>extend (widen)</dt><dd>Bits badhana: 4-bit → 8-bit, 16-bit → 32-bit.</dd>
+<dt>sign bit</dt><dd>MSB. 1 = negative, 0 = positive (2's complement mein).</dd>
+<dt>immediate</dt><dd>Instruction ke andar likha constant number. MIPS mein 16 bits ka hota hai, jaise addi $t0, $t0, −1 mein −1.</dd>
+<dt>lb / lbu</dt><dd>MIPS "load byte" (signed, sign-extend karta hai) aur "load byte unsigned" (zero-extend karta hai).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>Purane number ka MSB dekho.</li>
+<li>Naye jitne bits chahiye, sab mein wahi MSB likho, purane bits ko right mein waise hi rakho.</li>
+<li>+5 (4-bit) = 0101, MSB 0 → 0000 0101 (8-bit). Value 5 hi.</li>
+<li>−5 (4-bit) = 1011, MSB 1 → <b>1111 1011</b>. Check: −128 + 64 + 32 + 16 + 8 + 2 + 1 = −128 + 123 = −5. Value same.</li>
+<li>Agar galti se 0 bhar diye: 0000 1011 = 8 + 2 + 1 = <b>+11</b>. Bilkul galat.</li>
+<li><b>Kyun copy karne se value nahi badalti:</b> 4-bit mein MSB ka weight −8 tha. 8-bit mein bits 7 se 3 ab 1 1 1 1 1 hain: −128 + 64 + 32 + 16 + 8 = −8. Yaani naye saare 1s milke wahi −8 dete hain jo pehle akela MSB deta tha. Baaki bits (2 + 1 = 3) same → total −8 + 3 = −5.</li>
+<li><b>MIPS mein:</b> addi, lw, sw, slti aur branch offsets ka 16-bit immediate sign-extend hota hai. 0xFFFB (−5) → 0xFFFFFFFB. 0x0004 → 0x00000004. Logical ones (andi, ori, xori) zero-extend karte hain. lb byte 0xF0 → 0xFFFFFFF0; lbu 0xF0 → 0x000000F0.</li>
+</ol></div>
+<figure data-d="D4.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar 4 input bits a3 a2 a1 a0, neeche 8 output bits y7 se y0. Neeche ke right 4 bits seedhe wire se upar wale se jude hain (y3 = a3, y2 = a2, y1 = a1, y0 = a0). Highlighted wire a3 (sign bit) se nikal ke y7, y6, y5, y4 sab mein jaata hai. Trace: a = 1011 → a3 = 1 → y7 se y4 = 1111 → y = 1111 1011.</p>
+<div class="fx"><b>Formula:</b> sign-extend n → m bits: new bits = copies of the MSB. Verilog: <code>y = {{4{a[3]}}, a};</code> (a[3] ko 4 baar repeat karo, phir a)</div>
+<div class="ex"><b>Solved example 1:</b> <p class="qq">Sign-extend the 4-bit value 1010 to 8 bits and give its decimal value.</p><ol>
+<li>MSB = 1.</li>
+<li>Naye 4 bits mein 1 bharo: 1111 1010.</li>
+<li>Value: 4-bit 1010 = −8 + 2 = −6. 8-bit 1111 1010 = −128 + 64 + 32 + 16 + 8 + 2 = −128 + 122 = −6. Same.</li></ol>
+<p class="ans">Answer: 1111 1010 = −6.</p></div>
+<div class="ex"><b>Solved example 2 (MCQ + 4 marks):</b> <p class="qq">(i) Sign-extend the 8-bit value 0xF4 to 16 bits. (ii) What is sign extension and why does the MIPS datapath need it? Give a positive and a negative 16-bit example.</p><ol>
+<li>(i) 0xF4 = 1111 0100, MSB 1 → upper 8 bits all 1 = 0xFF → <b>0xFFF4</b> (= −12).</li>
+<li>(ii) Model answer: "Sign extension widens a two's complement number by copying its sign bit into the new upper bits, so the value is unchanged. The MIPS ALU and registers are 32 bits wide but the immediate field of I-format instructions is only 16 bits, so offsets of lw/sw, constants of addi and branch offsets are sign-extended before use. Example: 0x0004 (+4) → 0x00000004; 0xFFFC (−4) → 0xFFFFFFFC."</li></ol>
+<p class="ans">Answer: 0xFFF4; definition + need + two examples as above.</p></div>
+<div class="trap"><b>Galti mat karna:</b> Negative number mein 0 bharna (zero-padding) value badal deta hai. Aur ulta: unsigned data (lbu, andi, ori) ko sign-extend nahi karte, wahan 0 bharte hain.</div>
+<p class="trick"><b>Trick:</b> "<b>Signed → MSB copy. Unsigned → zero copy.</b>"</p>
+<div class="yr"><b>Ek line mein:</b> 2's complement number ko chauda karte waqt naye bits mein MSB copy karo, value same rehti hai (−5: 1011 → 1111 1011).</div>
+</div>
+
+<div class="topic"><h3>4.5 Binary addition and subtraction</h3>
+<div class="why"><b>Pehle socho:</b> School mein 47 + 38 aise karte the: 7 + 8 = 15, likho 5, 1 carry upar. Binary mein bhi bilkul wahi, bas <mark>2 hote hi carry</mark> lagta hai (10 pe nahi). Aur subtraction ke liye alag circuit nahi chahiye: A − B = A + (−B), aur −B to invert + 1 se ban jaata hai. Ek hi adder dono kaam karta hai.</div>
+<div class="def"><b>Definition:</b> <b>Binary addition</b> adds column by column from the LSB, producing a sum bit and a carry into the next column. In two's complement, <b>subtraction</b> A − B is performed as A + B' + 1. An <b>adder-subtractor</b> uses one XOR gate per bit of B and a control input K (or M) that also feeds the carry-in, so that K = 0 gives A + B and K = 1 gives A − B.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>carry</dt><dd>Column ka sum 2 ya 3 ho to agle column mein jaane wala 1. 1 + 1 = 10₂: likho 0, carry 1.</dd>
+<dt>carry-in (Cin) / carry-out (Cout)</dt><dd>Kisi column mein aane wala carry / usse nikalne wala carry. 4-bit adder ka final carry-out C4 kehlata hai.</dd>
+<dt>discard the carry</dt><dd>Signed answer mein 4 bits se bahar nikla 5th bit (C4) phenk do. Wo answer ka hissa nahi.</dd>
+<dt>borrow</dt><dd>Unsigned subtraction mein "udhaar". A + B' + 1 method mein C4 = 0 ka matlab borrow hua (A &lt; B), C4 = 1 ka matlab borrow nahi (A ≥ B).</dd>
+<dt>XOR as controlled inverter</dt><dd>B ⊕ 0 = B (waisa hi), B ⊕ 1 = B' (ulta). Isliye ek control K se B ko ulta ya seedha kar sakte hain.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Chaar rules:</b> 0 + 0 = 0 (carry 0); 0 + 1 = 1 (carry 0); 1 + 1 = 10 (likho 0, carry 1); 1 + 1 + 1 = 11 (likho 1, carry 1).</li>
+<li>Hamesha right column (bit 0) se shuru karo, har column mein A bit + B bit + aaya hua carry.</li>
+<li><b>Full example A (unsigned, 13 + 11 = 24):</b> 1101 + 1011.
+<table class="tt"><tr><th></th><th>C4 (bahar)</th><th>bit 3</th><th>bit 2</th><th>bit 1</th><th>bit 0</th></tr>
+<tr><td>carry in</td><td></td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+<tr><td>A = 13</td><td></td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>B = 11</td><td></td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>Sum</td><td><b>1</b></td><td>1</td><td>0</td><td>0</td><td>0</td></tr></table>
+Bit 0: 1 + 1 + 0 = 2 = 10 → likho 0, carry 1. Bit 1: 0 + 1 + 1 = 2 → likho 0, carry 1. Bit 2: 1 + 0 + 1 = 2 → likho 0, carry 1. Bit 3: 1 + 1 + 1 = 3 = 11 → likho 1, carry 1 (C4). Result <b>1 1000</b> = 16 + 8 = 24. 4-bit box mein sirf 1000 = 8 bachta hai; C4 = 1 batata hai ki unsigned answer 15 se bada ho gaya.</li>
+<li><b>Subtraction rule:</b> A − B = A + (B ka invert) + 1. Steps: B ko invert karo, A mein jodo, carry-in 1 rakho (ya pehle B ka 2's complement bana lo).</li>
+<li><b>Full example B (signed, 5 − 3, final carry discarded):</b> −3 = invert(0011) + 1 = 1100 + 1 = 1101. Ab 0101 + 1101.
+<table class="tt"><tr><th></th><th>C4 (bahar)</th><th>bit 3</th><th>bit 2</th><th>bit 1</th><th>bit 0</th></tr>
+<tr><td>carry in</td><td></td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>A = +5</td><td></td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>B = −3</td><td></td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>Sum</td><td><b>1</b> (phenko)</td><td>0</td><td>0</td><td>1</td><td>0</td></tr></table>
+Bit 0: 1 + 1 = 10 → 0, carry 1. Bit 1: 0 + 0 + 1 = 1 → 1, carry 0. Bit 2: 1 + 1 + 0 = 10 → 0, carry 1. Bit 3: 0 + 1 + 1 = 10 → 0, carry 1 (C4). Result 1 0010 → C4 discard → <b>0010 = +2</b>. Sahi (5 − 3 = 2).</li>
+<li><b>Adder-subtractor circuit:</b> har B bit ek XOR se guzarta hai jiska doosra input K hai, aur K hi Cin bhi hai. K = 0: B seedha, Cin = 0 → A + B. K = 1: B ulta, Cin = 1 → A + B' + 1 = A − B.</li>
+<li><b>Unsigned borrow:</b> 3 − 5: 0011 + 1010 + 1 = 1110, C4 = 0 → borrow hua (3 &lt; 5). Signed padho to 1110 = −2, sahi.</li>
+</ol></div>
+<figure data-d="D4.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaar FA (full adder) boxes right se left: FA0 (bit 0) right mein. Har FA ke upar A seedha aata hai aur B ek XOR se hokar. Upar ki K line har XOR mein jaati hai aur right side se neeche aakar FA0 ka Cin banti hai. Carries C1, C2, C3 right se left jaate hain, C4 left se bahar. Trace K = 1, A = 0101, B = 0011: XOR outputs 1100, Cin = 1, sum 0101 + 1100 + 1 = 1 0010 → S = 0010, C4 = 1.</p>
+<div class="fx"><b>Formula:</b> <b>A − B = A + B' + 1</b> &nbsp;·&nbsp; adder-subtractor: input to FA = Bᵢ ⊕ K, Cin = K.<br><small>Signed result: C4 phenko. Unsigned subtraction: C4 = 0 → borrow (A &lt; B).</small></div>
+<div class="ex"><b>Solved example (5 marks):</b> <p class="qq">Draw a 4-bit adder-subtractor and explain how one control input selects addition or subtraction. Trace 0101 − 0011.</p><ol>
+<li>Circuit: draw D4.5a (4 FAs in a chain, XOR on every B input, K to all XORs and to Cin of FA0).</li>
+<li>K = 0: Bᵢ ⊕ 0 = Bᵢ and Cin = 0 → S = A + B.</li>
+<li>K = 1: Bᵢ ⊕ 1 = Bᵢ' and Cin = 1 → S = A + B' + 1 = A + (−B) = A − B.</li>
+<li>Trace: K = 1. B = 0011 → XOR outputs 1100. 0101 + 1100 + 1: bit 0: 1 + 0 + 1 = 10 → 0 c1; bit 1: 0 + 0 + 1 = 1 → 1 c0; bit 2: 1 + 1 + 0 = 10 → 0 c1; bit 3: 0 + 1 + 1 = 10 → 0 c1.</li>
+<li>S = 0010 (+2), C4 = 1 (no borrow, kyunki 5 ≥ 3).</li></ol>
+<p class="ans">Answer: 0101 − 0011 = 0010 (+2), C4 = 1.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Subtract karte waqt sirf invert karna aur Cin = 1 bhool jaana (5 − 3 ka answer 0001 aayega, galat). (2) Signed answer mein C4 ko 5th bit bana ke likhna (1 0010 ko 18 padhna). (3) C4 = 1 ko "overflow" samajhna: signed overflow alag cheez hai (next topic).</div>
+<p class="trick"><b>Trick:</b> "<b>Minus = ulta + ek.</b>" Ek K wire do kaam karti hai: B ko ulta karti hai aur wahi +1 deti hai.</p>
+<div class="yr"><b>Ek line mein:</b> Binary addition school wala column addition hai (2 pe carry), aur A − B = A + B' + 1, jo ek XOR-wale adder (K = 1) se ho jaata hai.</div>
+</div>
+
+<div class="topic"><h3>4.6 Overflow detection rules</h3>
+<div class="why"><b>Pehle socho:</b> 2-litre ki bottle mein 3 litre paani daalo, 1 litre bahar gir jaata hai aur bottle mein galat maatra dikhti hai. 4-bit signed box sirf −8 se +7 tak hold kar sakta hai. 5 + 4 = 9 is box mein fit nahi hota, to adder ek galat pattern deta hai (1001 = −7). Ise <b>overflow</b> kehte hain. Aur ye chupchaap hota hai, koi alarm nahi bajta (odometer 999 se 000 pe chala jaata hai bina beep ke). Isliye CPU ek <b>flag</b> bit set karta hai taaki software check kar sake.</div>
+<div class="def"><b>Definition:</b> <b>Overflow</b> occurs when the true result of an arithmetic operation lies outside the range representable with the available bits. For two's complement (signed) addition it is indicated by the overflow flag <b>V (OF) = C<sub>in,MSB</sub> ⊕ C<sub>out,MSB</sub></b>; for unsigned addition by the carry flag <b>CF = C<sub>out,MSB</sub></b>.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>overflow</dt><dd>Sahi answer box ki range se bahar. 4-bit signed: answer +9 ya −9 aaye to overflow.</dd>
+<dt>C3 / C4 (4-bit)</dt><dd>C3 = MSB column (bit 3) mein <b>aane</b> wala carry. C4 = MSB column se <b>bahar jaane</b> wala carry.</dd>
+<dt>V / OF (overflow flag)</dt><dd>Signed overflow ka flag. V = C3 ⊕ C4 (dono alag hon to 1).</dd>
+<dt>CF (carry flag)</dt><dd>Unsigned overflow ka flag = C4.</dd>
+<dt>flag</dt><dd>Ek bit jo CPU result ke baare mein set karta hai, jaise "overflow hua" ya "result zero hai".</dd>
+<dt>trap</dt><dd>Error pe program ka ruk jaana. MIPS add/addi signed overflow pe trap karte hain; addu/addiu nahi.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Seedha matlab:</b> answer ko decimal mein socho. 4-bit signed range −8 to +7. Agar sahi answer is range ke bahar hai to overflow.</li>
+<li><b>Rule 1: positive + positive = negative</b> aaya → overflow. (Do positive ka sum kabhi negative nahi ho sakta; MSB 1 aaya matlab number bahut bada ho gaya.)</li>
+<li><b>Rule 2: negative + negative = positive</b> aaya → overflow.</li>
+<li><b>Opposite signs kabhi overflow nahi karte:</b> +5 + (−3) ka answer hamesha dono ke beech mein aata hai (−3 aur +5 ke beech), aur dono already range mein hain, to answer bhi range mein.</li>
+<li><b>Rule 3 (hardware): C3 ≠ C4 → overflow.</b> MSB column mein aane wala carry aur jaane wala carry alag hon to V = 1. Circuit mein bas ek XOR: V = C3 ⊕ C4.</li>
+<li><b>Rule 3 kyun sahi hai (MSB column dekho):</b> (a) Dono MSB 0 (dono positive): C4 = 0 hi hoga; sum bit = C3. C3 = 1 aaya to answer ka MSB 1 (negative) → overflow, aur tab C3 = 1 ≠ C4 = 0. (b) Dono MSB 1 (dono negative): C4 = 1 hi hoga; sum bit = C3. C3 = 0 aaya to answer positive → overflow, aur tab C3 = 0 ≠ C4 = 1. (c) MSB alag: column mein 0 + 1 + C3, isliye C4 = C3 hamesha → V = 0. Teeno cases rule se match.</li>
+<li><b>Carry-out ≠ signed overflow (bahut important):</b> −1 + 1 = 1111 + 0001 = 1 0000. C4 = 1 aaya, par signed answer 0000 = 0 bilkul sahi hai! C3 = 1, C4 = 1 → V = 0. Ulta, 7 + 1 = 0111 + 0001 = 1000: C4 = 0 par signed answer −8 galat (V = 1). Matlab <mark>C4 unsigned ka flag hai, signed ke liye C3 ⊕ C4 dekho</mark>.</li>
+<li>ALU dono flags hamesha banata hai; instruction decide karti hai kaunsa matter karta hai.</li>
+</ol>
+<table class="tt"><tr><th>A + B (4-bit)</th><th>bits</th><th>result</th><th>C3</th><th>C4 = CF</th><th>V</th><th>verdict</th></tr>
+<tr><td>5 + 4</td><td>0101 + 0100</td><td>1001 (−7)</td><td>1</td><td>0</td><td>1</td><td>signed overflow</td></tr>
+<tr><td>−6 + −5</td><td>1010 + 1011</td><td>0101 (+5)</td><td>0</td><td>1</td><td>1</td><td>signed overflow</td></tr>
+<tr><td>5 + −3</td><td>0101 + 1101</td><td>0010 (+2)</td><td>1</td><td>1</td><td>0</td><td>OK</td></tr>
+<tr><td>3 + 2</td><td>0011 + 0010</td><td>0101 (+5)</td><td>0</td><td>0</td><td>0</td><td>OK</td></tr>
+<tr><td>−1 + 1</td><td>1111 + 0001</td><td>0000</td><td>1</td><td>1</td><td>0</td><td>unsigned overflow only</td></tr>
+<tr><td>7 + 1</td><td>0111 + 0001</td><td>1000 (−8)</td><td>1</td><td>0</td><td>1</td><td>signed overflow only</td></tr>
+<tr><td>−8 + −8</td><td>1000 + 1000</td><td>0000</td><td>0</td><td>1</td><td>1</td><td>both</td></tr></table></div>
+<figure data-d="D4.6a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Right mein FA2, left mein FA3 (MSB). FA2 se FA3 mein jaane wala carry C3 hai, FA3 se bahar C4 (= CF). Dono wires tap karke ek XOR mein jaate hain; XOR ka output V hai. Trace 5 + 4: C3 = 1, C4 = 0 → XOR(1, 0) = 1 → V = 1 (overflow).</p>
+<div class="fx"><b>Formula:</b> <b>V = C3 ⊕ C4</b> (n-bit: C<sub>n−1</sub> ⊕ C<sub>n</sub>) &nbsp;·&nbsp; <b>CF = C4</b><br>Sign form: V = A3'B3'S3 + A3B3S3' (dono 0 aur sum 1, ya dono 1 aur sum 0).</div>
+<div class="ex"><b>Solved example 1 (overflow hota hai):</b> <p class="qq">In 4-bit two's complement compute 0101 + 0100. Is there overflow?</p><ol>
+<li>Bit 0: 1 + 0 + 0 = 1 → likho 1, carry 0.</li>
+<li>Bit 1: 0 + 0 + 0 = 0 → likho 0, carry 0.</li>
+<li>Bit 2: 1 + 1 + 0 = 10 → likho 0, carry 1 (ye C3 hai, MSB mein jaayega).</li>
+<li>Bit 3 (MSB): 0 + 0 + 1 = 1 → likho 1, carry 0 (C4 = 0).</li>
+<li>Result 1001. Rule 1: +5 + +4 = negative (MSB 1) → overflow. Rule 3: C3 = 1, C4 = 0 → V = 1. Decimal: 9 &gt; 7, fit nahi.</li></ol>
+<p class="ans">Answer: 1001 (reads as −7), V = 1 → signed overflow; CF = 0.</p></div>
+<div class="ex"><b>Solved example 2 (overflow nahi hota):</b> <p class="qq">Compute 0101 + 1101 (+5 + −3) and state V and CF.</p><ol>
+<li>Bit 0: 1 + 1 = 10 → 0, carry 1.</li>
+<li>Bit 1: 0 + 0 + 1 = 1 → 1, carry 0.</li>
+<li>Bit 2: 1 + 1 + 0 = 10 → 0, carry 1 (C3 = 1).</li>
+<li>Bit 3: 0 + 1 + 1 = 10 → 0, carry 1 (C4 = 1).</li>
+<li>Result 0010 = +2 (sahi). Signs opposite the → overflow possible hi nahi. C3 = 1 = C4 → V = 0. CF = 1 (par signed mein ignore).</li></ol>
+<p class="ans">Answer: 0010 = +2, V = 0, CF = 1 (no signed overflow).</p></div>
+<div class="ex"><b>Solved example 3 (mock 6 marks):</b> <p class="qq">Compute 0110 − 1101 (two's complement) on the adder-subtractor and state the overflow flag.</p><ol>
+<li>K = 1 → B' = 0010, Cin = 1.</li>
+<li>0110 + 0010 + 1: bit 0: 0 + 0 + 1 = 1 → 1, c0; bit 1: 1 + 1 + 0 = 10 → 0, c1; bit 2: 1 + 0 + 1 = 10 → 0, c1 (C3 = 1); bit 3: 0 + 0 + 1 = 1 → 1, c0 (C4 = 0).</li>
+<li>Result 1001. Decimal check: 6 − (−3) = +9, jo 4-bit range (max +7) se bahar hai; 1001 ko −7 padha jaayega.</li>
+<li>C3 = 1, C4 = 0 → V = 1.</li></ol>
+<p class="ans">Answer: 1001, V = 1 (overflow).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Carry-out C4 ko signed overflow flag bolna (1111 + 0001 mein C4 = 1 par V = 0). (2) "Positive + negative bhi overflow kar sakta hai" likhna: kabhi nahi. (3) Ye maanna ki overflow pe CPU khud error dega: by default chupchaap galat answer aata hai, flag check karna padta hai.</div>
+<p class="trick"><b>Trick:</b> "<b>Same sign andar, ulta sign bahar = overflow.</b>" Hardware ke liye: "<b>MSB mein carry aaya aur gaya alag = overflow.</b>"</p>
+<div class="yr"><b>Ek line mein:</b> Signed overflow tab hai jab do same-sign numbers ka sum ulta sign deta hai, hardware mein V = C3 ⊕ C4; unsigned overflow sirf CF = C4.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Binary → decimal (101101₂ = ?)</td><td>1. Bits ke neeche weights likho (right se 1, 2, 4, 8). 2. Jahan bit 1 hai wo weights jodo. 3. Fraction ho to 0.5, 0.25, 0.125 weights.</td></tr>
+<tr><td>Decimal → binary / hex / octal</td><td>1. ÷2 (ya ÷16) baar baar, har remainder likho. 2. Neeche se upar padho. 3. Binary se octal: right se 3 ke group; hex: right se 4 ke group. 4. Weights jod ke check karo.</td></tr>
+<tr><td>Hex → decimal (0x3E8, 0x3C)</td><td>1. Har digit × 16 ki power (1, 16, 256). 2. A = 10 se F = 15. 3. Jodo.</td></tr>
+<tr><td>Bits needed for N (unsigned)</td><td>1. Smallest n jisme 2ⁿ − 1 ≥ N. 2. 1000 → 10 bits, 20 → 5 bits.</td></tr>
+<tr><td>−x in S-M / 1's / 2's (8-bit)</td><td>1. +x binary (8 bits). 2. S-M: MSB 1. 3. 1's: sab ulto. 4. 2's: 1's + 1 (ya copy-till-first-1 shortcut). 5. Weights se verify.</td></tr>
+<tr><td>Signed value of a pattern (0xB7, 10110100)</td><td>1. Binary banao. 2. MSB 0 → normal. 3. MSB 1 → −2ⁿ⁻¹ + baaki weights (ya invert + 1 karke minus lagao).</td></tr>
+<tr><td>Range of n-bit 2's complement</td><td>−2ⁿ⁻¹ to 2ⁿ⁻¹ − 1 (6-bit: −32 to 31; 8-bit: −128 to 127). S-M / 1's: ±(2ⁿ⁻¹ − 1).</td></tr>
+<tr><td>Sign extension (0xF4 → 16 bits, 1010 → 8 bits)</td><td>1. MSB dekho. 2. Naye bits mein MSB copy. 3. Hex mein: MSB 1 → upar FF, MSB 0 → upar 00.</td></tr>
+<tr><td>Add / subtract with carries</td><td>1. Subtract ho to B invert + Cin 1. 2. Right se column by column, carry row likho. 3. Signed: C4 phenko. 4. Decimal mein check.</td></tr>
+<tr><td>Overflow? (V and CF)</td><td>1. Add karo, C3 aur C4 note karo. 2. V = C3 ⊕ C4, CF = C4. 3. Sign rule se cross-check (same sign in, ulta out). 4. Decimal answer range mein hai ya nahi.</td></tr>
+<tr><td>Theory: why 2's complement / adder-subtractor / V = C3 ⊕ C4 derivation</td><td>1. One zero, one adder for add and subtract, MSB = sign, no end-around carry. 2. Circuit D4.5a with K. 3. MSB column ke 3 cases (dono 0, dono 1, alag).</td></tr>
+</table></div>
+</section>

@@ -1,0 +1,333 @@
+<section>
+<h2>Unit 7 · Register Files &amp; Finite State Machines</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 5–6 mein humne flip-flop aur register (flip-flops ki row) banaye. Ab do bade sawaal: (1) CPU ke andar 32 registers hain, instruction unhe <i>number</i> se bulata hai, to inhe ek saath kaise organise karein? Jawab: <b>register file</b> (decoder se likho, MUX se padho, Unit 3 ke blocks). (2) CPU har cycle kya kare, ye kaun decide karta hai? Jawab: ek <b>Finite State Machine (FSM)</b>, jo yaad rakhti hai "abhi main kahan hoon" aur input dekh ke aage badhti hai. Unit 8 mein register file se badi memory (SRAM, DRAM) aayegi, aur Unit 13 mein register file + FSM (control) milke poora CPU banayenge.</div>
+
+<div class="topic"><h3>7.1 From Registers to Register Files</h3>
+<div class="why"><b>Pehle socho:</b> Instruction <code>add R1, R2, R3</code> ka matlab hai: R2 aur R3 padho, jodo, jawab R1 mein likho. Isme <mark>2 registers padhne hain aur 1 likhna hai, aur sab ek hi clock cycle mein</mark>. Agar har register alag-alag wire se juda ho to 32 registers ke liye wiring ka jungle ban jayega. Socho railway station ke <b>numbered lockers ki deewar</b>: tum locker ka number bolte ho aur woh khul jaata hai. Is deewar mein do "dekhne ki khidkiyan" hain (do lockers ek saath dekh sakte ho) aur ek "daalne ka slot" hai (ek locker mein saamaan rakh sakte ho). Yahi register file hai.</div>
+<div class="def"><b>Definition:</b> A <b>register file</b> is an array of registers inside the CPU with address-based access, which allows several registers to be read and one register to be written in the same clock cycle. The MIPS / RISC-V register file has 32 registers of 32 bits each, with 2 read ports and 1 write port.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>register</dt><dd>Flip-flops ki ek row jo ek saath ek word (jaise 32 bits) store karti hai. 32-bit register = 32 D flip-flops, sabka clock same.</dd>
+<dt>address (register number)</dt><dd>Register ka "locker number" binary mein. 32 registers hain to number 0 se 31 tak. R5 ka address = 00101.</dd>
+<dt>port</dt><dd>Register file ka ek "darwaza" jisse ek register padha ya likha jaata hai. 2 read ports = ek saath do alag registers padh sakte ho. 1 write port = ek cycle mein ek register likh sakte ho.</dd>
+<dt>width (word size)</dt><dd>Ek register mein kitne bits hain. MIPS mein 32. Width aur number of registers alag cheezein hain: "32 × 32" ka pehla 32 = kitne registers, doosra 32 = har ek ki width.</dd>
+<dt>log₂</dt><dd>"2 ko kitni baar multiply karein ki ye number mile". log₂ 32 = 5 kyunki 2×2×2×2×2 = 32. Isi se pata chalta hai address ke kitne bits chahiye.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>CPU ke paas 32 registers hain: R0 se R31.</li>
+<li>Har register ko number (address) se bulaya jaata hai. 32 alag numbers banane ke liye kitne bits? 2⁵ = 32, isliye <b>5 bits</b> (00000 se 11111).</li>
+<li><code>add R1, R2, R3</code> aaya: Read address 1 = 00010 (R2), Read address 2 = 00011 (R3), Write address = 00001 (R1).</li>
+<li>Dono read ports R2 aur R3 ka data turant ALU ko de dete hain.</li>
+<li>ALU jodta hai, aur clock edge pe jawab write port se R1 mein chala jaata hai.</li>
+<li>Isliye ports ki ginti instruction se match karti hai: <mark>2 source padhne = 2 read ports, 1 destination likhna = 1 write port</mark>.</li>
+<li>Speed: register file sabse tez storage hai (ns ka ek hissa), phir L1 cache, L2, RAM (Unit 8).</li>
+</ol></div>
+<div class="fx"><b>Formula:</b> Address bits per port = <b>log₂(number of registers)</b> &nbsp;·&nbsp; Total storage bits (= flip-flops) = <b>registers × width</b><br><small>32 registers → log₂ 32 = 5 bits. 32 × 32 = 1024 bits.</small></div>
+<div class="ex"><b>Solved example 1 (direct):</b> <p class="qq">A register file is designed with exactly 64 registers. What is the minimum number of bits required for the write address?</p><ol>
+<li>Sawaal: 64 alag numbers banane ke liye kitne bits?</li>
+<li>2 ki powers likho: 2¹ = 2, 2² = 4, 2³ = 8, 2⁴ = 16, 2⁵ = 32, 2⁶ = 64.</li>
+<li>2⁶ = 64, isliye log₂ 64 = 6.</li></ol>
+<p class="ans">Answer: 6 bits.</p></div>
+<div class="ex"><b>Solved example 2 (exam-level, class quiz):</b> <p class="qq">A register file has 16 registers, each 8 bits wide. How many flip-flops does it contain, and how wide must each read address be? Also find the total storage of the MIPS file (32 × 32) and of a 64 × 32 file.</p><ol>
+<li>Har bit = ek flip-flop. Flip-flops = registers × width = 16 × 8 = 128.</li>
+<li>Read address: log₂ 16. 2⁴ = 16, isliye 4 bits.</li>
+<li>MIPS: 32 × 32 = 1024 bits.</li>
+<li>64 × 32: 64 × 32 = 2048 bits (address 6 bits, kyunki 2⁶ = 64).</li></ol>
+<p class="ans">Answer: 128 flip-flops, 4-bit address; MIPS = 1024 bits; 64 × 32 = 2048 bits.</p></div>
+<div class="trap"><b>Galti mat karna:</b> "Number of registers" aur "width" ko mix mat karo. Address bits sirf <b>number of registers</b> se aate hain (16 registers → 4 bits), width se nahi. 16 × 8 file mein address 8 bits NAHI hai, 4 bits hai. Width (8) sirf data wires aur total bits mein aati hai.</div>
+<p class="trick"><b>Trick:</b> "<b>Ginti → address, chaudai → data.</b>" Kitne registers (ginti) se address bits; kitne bits per register (chaudai) se data bus.</p>
+<div class="yr"><b>Ek line mein:</b> Register file = number se chunne wale registers ka bank; MIPS: 32 × 32-bit, 5-bit address, 2 read + 1 write port, kyunki add rd, rs, rt do padhta hai aur ek likhta hai.</div>
+</div>
+
+<div class="topic"><h3>7.2 Register File Architecture (1 Write, 2 Read Ports)</h3>
+<div class="why"><b>Pehle socho:</b> Locker wali deewar mein do kaam hain. <b>Saamaan daalna (write):</b> pehle decide karo <i>kaunse</i> locker mein (number), phir decide karo <i>daalna hai ya nahi</i> (permission). <b>Dekhna (read):</b> number bolo, aur us locker ka saamaan khidki mein dikh jaaye. Unit 3 ke do blocks bilkul yahi karte hain: <b>decoder</b> number leke ek hi line ON karta hai (kaunsa locker), aur <b>MUX</b> number leke us ek input ko output pe bhej deta hai (khidki).</div>
+<div class="def"><b>Definition:</b> The <b>write port</b> of a register file uses an n-to-2ⁿ decoder whose one-hot outputs are ANDed with the write-enable signal (RegWrite) to load exactly one register at the clock edge (synchronous write). Each <b>read port</b> is a 2ⁿ:1 multiplexer whose select lines are the read address, so read data appears after the gate delay without any clock (combinational read).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>decoder (5-to-32)</dt><dd>5-bit number andar, 32 lines bahar, sirf us number wali line 1. Input 00011 → sirf line 3 = 1.</dd>
+<dt>one-hot</dt><dd>Lines ke group mein exactly ek line 1, baaki sab 0. Jaise 0000 1000: sirf line 3 "garam" hai.</dd>
+<dt>RegWrite / WE (write enable)</dt><dd>Ek control bit: 1 = "is cycle mein likhna hai", 0 = "kuch mat likho". <code>sw</code> ya <code>beq</code> jaise instructions register nahi likhte, unke liye RegWrite = 0.</dd>
+<dt>load enable</dt><dd>Register ka apna "haan, nayi value lo" signal. Enable = 1 to clock edge pe naya data andar, enable = 0 to purani value rakhe (Unit 6).</dd>
+<dt>MUX (32:1)</dt><dd>32 inputs mein se ek ko output pe bhejne wala switch. Kaunsa? Ye 5 select bits batate hain (2⁵ = 32). Select = 00010 → input 2 bahar.</dd>
+<dt>combinational</dt><dd>Output sirf abhi ke inputs pe depend karta hai, clock ka intezaar nahi. Input badla to thodi der (gate delay) baad output badal gaya.</dd>
+<dt>synchronous</dt><dd>Kaam sirf clock edge (0 → 1 hone ke pal) pe hota hai. Beech mein inputs badalte rahein, register nahi badalta.</dd>
+<dt>hardwired zero</dt><dd>R0 ($zero, RISC-V mein x0) hamesha 0 padhta hai, usme likhoge to ignore ho jaata hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (WRITE port, synchronous):</b><ol>
+<li>Write register address (5 bits, jaise 00001 = R1) 5-to-32 decoder mein jaata hai.</li>
+<li>Decoder ki 32 output lines mein se sirf line 1 = 1 (one-hot). Ye batata hai <b>KAHAN</b> likhna hai.</li>
+<li>Har decoder line ek 2-input AND gate mein jaati hai; AND ka doosra input <b>RegWrite</b> hai. Isliye 32 AND gates.</li>
+<li>AND ka output = us register ka load enable. en1 = D1 · RegWrite = 1 · 1 = 1. Baaki sab en = 0 (kyunki unki decoder line 0 hai).</li>
+<li>Write data (32 bits) <b>saare 32 registers</b> tak wire se pahunchta hai, lekin sirf jiska enable 1 hai woh clock edge pe use pakadta hai.</li>
+<li>Agar RegWrite = 0 to saare AND outputs 0: koi register nahi badlega. <mark>Decoder batata hai KAHAN, RegWrite batata hai KYA LIKHNA HAI YA NAHI.</mark></li>
+</ol></div>
+<figure data-d="D7.2b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein lamba box = 5-to-32 decoder, andar 5-bit "Write reg" aata hai. Har decoder output (D0, D1, D2, D31) ek AND gate mein jaata hai; upar se aane wali RegWrite line har AND ka doosra input hai. AND ka output (en0, en1) us register box (32 FFs) ka enable hai. Right mein Write data ki ek lambi line saare registers ko chhooti hai. Trace: Write reg = 00010, RegWrite = 1 → D2 = 1 → en2 = 1 → sirf R2 clock edge pe naya data lega.</p>
+<div class="how"><b>Kaise kaam karta hai (READ ports, combinational):</b><ol>
+<li>Har register ka 32-bit output do jagah jaata hai: MUX 1 aur MUX 2 (dono 32:1).</li>
+<li>Read register 1 (5 bits) MUX 1 ka select hai; Read register 2 (5 bits) MUX 2 ka select hai.</li>
+<li>Read register 1 = 00010 → MUX 1 R2 ko "Read data 1" pe bhejta hai. Read register 2 = 00011 → MUX 2 R3 ko "Read data 2" pe bhejta hai.</li>
+<li>Koi clock nahi: address diya, gate delay ke baad data aa gaya. Isliye ALU ko operands usi cycle mein mil jaate hain.</li>
+<li>"32 bits wide" MUX ka matlab: asal mein 32 chhote 1-bit 32:1 MUX side-by-side, sabka select same 5 bits.</li>
+</ol></div>
+<figure data-d="D7.2c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein register boxes R0, R1, R2, R31. Har box se line nikal ke DONO trapezium (32:1 MUX) mein jaati hai, isliye har register ka dot (fan-out) dikhta hai. Upar wala MUX ka select = Read register 1, neeche wale ka = Read register 2. Trace: Read register 1 = 00001 → upar wala MUX R1 ko "Read data 1" pe nikalta hai, koi clock arrow nahi hai.</p>
+<figure data-d="D7.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Ye poore register file ka bahar se dikhne wala box hai (exam mein yahi sabse pehle banao). Left: Read register 1 (rs, 5 bits), Read register 2 (rt, 5), Write register (rd ya rt, 5), Write data (32). Right: Read data 1 (ALU ka input A), Read data 2 (ALU input B ya memory). Upar RegWrite, neeche CLK jo sirf write ke liye hai. Wire pe tircha slash aur number = us wire mein kitne bits (5 ya 32).</p>
+<div class="how"><b>Read kyun combinational aur write kyun clock edge pe?</b>
+<table><tr><th>READ = combinational</th><th>WRITE = synchronous (clock edge)</th></tr>
+<tr><td>Clock ka intezaar nahi, sirf gate delay</td><td>Sirf clock edge pe register badalta hai</td></tr>
+<tr><td>ALU ko operands usi cycle mein chahiye, warna ek extra cycle waste</td><td>Address, data, RegWrite pehle set ho jaate hain, edge pe saaf-saaf likha jaata hai</td></tr>
+<tr><td>Do ports ek saath kaam karte hain</td><td>Beech mein badalte (adhure) value likhe nahi jaate, race nahi hota</td></tr>
+<tr><td>Cycle ki shuruaat mein purani value padhi</td><td>Nayi value agle cycle se padhne ko milti hai</td></tr></table>
+<p>Ek cycle ki kahani (<code>add R1, R1, R2</code>): cycle shuru → purana R1 aur R2 padha (combinational) → ALU ne joda → clock edge pe jawab R1 mein likha. Agar write bhi bina clock ke hota, to naya R1 turant read port pe aata, ALU phir se jodta, phir likhta: ek hi cycle mein value baar-baar badalti (race). Clock edge isko rokta hai. Yahi <b>read-before-write</b> hai.</p></div>
+<div class="fx"><b>Formula (n registers, w bits each):</b> address bits k = log₂ n &nbsp;·&nbsp; write decoder = <b>k-to-n</b> &nbsp;·&nbsp; AND gates = <b>n</b> &nbsp;·&nbsp; read MUX = <b>n:1</b>, w bits wide, k select lines, <b>one per read port</b> &nbsp;·&nbsp; storage = <b>n × w</b> bits.<br><small>MIPS: 5-to-32 decoder, 32 AND gates, two 32:1 MUXes (32-bit wide, 5 select bits each), 1024 bits.</small></div>
+<div class="ex"><b>Solved example 1 (class homework):</b> <p class="qq">An 8 × 16 register file (8 registers, 16 bits each) has 1 write and 2 read ports. Find the address width, decoder size and number of decoder output lines, MUX size, and total bits.</p><ol>
+<li>Registers = 8 → address bits = log₂ 8 = 3 (2³ = 8).</li>
+<li>Write decoder: 3 inputs, 2³ = 8 outputs → <b>3-to-8 decoder, 8 output lines</b>.</li>
+<li>AND gates with RegWrite: ek per register = 8.</li>
+<li>Read ports: 2 MUXes, har ek <b>8:1</b>, 16 bits wide, 3 select lines.</li>
+<li>Total bits = 8 × 16 = 128.</li></ol>
+<p class="ans">Answer: 3-bit address, 3-to-8 decoder (8 outputs), two 16-bit 8:1 MUXes, 128 bits.</p></div>
+<div class="ex"><b>Solved example 2 (mock: 4 × 32 file drawing):</b> <p class="qq">Draw / describe a register file with 4 registers of 32 bits, one write port and two read ports. Label the decoder, write enable and MUX select widths. What does it output if the hardwired-zero version is written with FACEFACE at address 00 and then address 00 is read?</p><ol>
+<li>Address bits = log₂ 4 = 2 (2² = 4).</li>
+<li>Write side: <b>2-to-4 decoder</b>; 4 AND gates (decoder line · WE) → load enables of R0 to R3; 32-bit write data bus to all 4.</li>
+<li>Read side: two <b>4:1 MUXes</b>, 32 bits wide, each with a <b>2-bit select</b> (rd_addr1, rd_addr2).</li>
+<li>Write on posedge clk only if WE = 1; reads are plain assign statements (combinational).</li>
+<li>Hardwired zero: write to address 00 is dropped, and reading 00 always gives 0.</li></ol>
+<p class="ans">Answer: 2-to-4 decoder + WE ANDs, two 32-bit 4:1 MUXes with 2-bit selects; reading R0 gives 00000000.</p></div>
+<pre>always @(posedge clk)                  // WRITE: only at the clock edge
+    if (we) reg_file[wr_addr] &lt;= wr_data;
+assign rd_data1 = reg_file[rd_addr1];   // READ: combinational (no clock)
+assign rd_data2 = reg_file[rd_addr2];</pre>
+<div class="trap"><b>Galti mat karna:</b> (1) Read port ko clock mat karo: operand ek cycle late milega. (2) RegWrite bhoolna: phir har cycle har register overwrite ho jayega. (3) 32:1 MUX ka select 32 bits NAHI, <b>5 bits</b> hai. (4) Write side pe MUX aur read side pe decoder likh dena ulta hai: <b>write = decoder, read = MUX</b>.</div>
+<p class="trick"><b>Trick:</b> "<b>Likhne ke liye Decoder, Dekhne ke liye MUX.</b>" Decoder ek line jalata hai (kahan rakhun), MUX ek cheez dikhata hai (kya hai).</p>
+<div class="yr"><b>Ek line mein:</b> Write = k-to-n decoder (kahan) AND RegWrite (likhun ya nahi), clock edge pe; Read = har port ka ek n:1 MUX, address = select, bina clock.</div>
+</div>
+
+<div class="topic"><h3>7.3 Introduction to Finite State Machines</h3>
+<div class="why"><b>Pehle socho:</b> <b>Vending machine</b> socho: ek drink ₹10 ki, tum ₹5 ke coin daalte ho. Pehla coin daala, kuch nahi nikla, par machine ko <i>yaad</i> hai "₹5 aa chuke". Doosra coin daala, ab drink nikli. Matlab machine ka jawab sirf abhi ke coin pe nahi, <mark>pichli history (jo yaad hai) pe bhi depend karta hai</mark>. Ye "yaad" hi <b>state</b> hai. <b>Traffic light</b> bhi aisi hi hai: GREEN hai, timer khatam hua to YELLOW, phir RED, phir GREEN. Har light ek state hai. CPU ka control unit bhi yahi karta hai: fetch → decode → execute → write-back.</div>
+<div class="def"><b>Definition:</b> A <b>finite state machine (FSM)</b> is a sequential circuit that has a finite number of states, moves from one state to another (a transition) according to its present state and inputs, and produces outputs. Formally it is the 5-tuple <b>(S, I, O, δ, λ)</b>: S = set of states, I = inputs, O = outputs, δ = next-state (transition) function, λ = output function.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>state</dt><dd>Machine ki "yaad", yaani history ka summary. Vending machine: "₹0 aaye", "₹5 aaye". Hardware mein state flip-flops mein binary number ke roop mein rehti hai.</dd>
+<dt>transition</dt><dd>Ek state se doosri state pe jaana, clock edge pe, input ke hisaab se. Diagram mein arrow.</dd>
+<dt>present state / next state</dt><dd>Present = abhi flip-flops mein kya hai. Next = agli clock edge pe kya hoga.</dd>
+<dt>next-state logic (δ)</dt><dd>Combinational circuit: (present state, input) leke next state nikalta hai. Traffic: (GREEN, T = 1) → YELLOW.</dd>
+<dt>state register</dt><dd>Flip-flops jo present state store karte hain; clock edge pe next state andar le lete hain. FSM ka <b>sirf yahi hissa</b> clocked hai.</dd>
+<dt>output logic (λ)</dt><dd>Combinational circuit jo state (aur Mealy mein input bhi) dekh ke output banata hai. Traffic: state RED → output "Stop".</dd>
+<dt>state diagram</dt><dd>Circle = state, arrow = transition, arrow pe input likha hota hai.</dd>
+<dt>state table</dt><dd>Wahi diagram table mein: har row = ek present state, har column = ek input value, cell mein next state.</dd>
+<dt>encoding</dt><dd>Har state ko binary code dena. Binary: G = 00, Y = 01, R = 10. One-hot: G = 001, Y = 010, R = 100 (har state ka apna flip-flop, ek hi 1).</dd>
+<dt>⌈ ⌉ (ceiling)</dt><dd>"Upar ki taraf round karo". ⌈2.32⌉ = 3, ⌈3⌉ = 3.</dd>
+<dt>reset state</dt><dd>Power on hone pe machine kahan se shuru kare (S0). Diagram mein bahar se aata arrow.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (hardware ke 3 blocks):</b><ol>
+<li><b>State register</b> (flip-flops) mein present state rakhi hai, jaise 00 = GREEN.</li>
+<li><b>Next-state logic</b> present state + input dekhta hai: GREEN aur T = 1 → next = 01 (YELLOW).</li>
+<li>Clock edge aata hai: state register 01 le leta hai. Ab present state = YELLOW.</li>
+<li><b>Output logic</b> state dekh ke output deta hai: YELLOW → "Slow".</li>
+<li>Present state wapas next-state logic mein jaati hai (feedback), aur cycle chalta rehta hai.</li>
+</ol></div>
+<figure data-d="D7.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Teen box left se right: next-state logic → state register (neeche CLK, sirf isme flip-flops) → output logic. State register ke output se ek arrow neeche ghoom ke wapas next-state logic mein jaata hai: yahi "yaad" ka feedback hai. Upar ka highlighted arrow (inputs se seedha output logic tak) sirf <b>Mealy</b> mein hota hai; Moore mein output logic sirf state dekhta hai. Neeche likha hai: Moore output = λ(state), Mealy output = λ(state, input).</p>
+<figure data-d="D7.3b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Teen circle = teen states, har circle mein state ka naam aur output (GREEN/Go, YELLOW/Slow, RED/Stop). Bahar se aata arrow GREEN pe = reset state. Arrow pe "T" = timer khatam hua to aage jao; har circle pe chhota loop "T'" = timer abhi chal raha hai to wahin raho. Trace: GREEN, T = 0 → GREEN; T = 1 → YELLOW; T = 1 → RED; T = 1 → GREEN. Output circle ke andar hai, isliye ye Moore machine hai.</p>
+<div class="how"><b>FSM design karne ka step-by-step tarika (traffic light pe poora karke):</b><ol>
+<li><b>Spec samjho:</b> Input T (timer khatam = 1). Output: Go, Slow ya Stop. Order GREEN → YELLOW → RED → GREEN, T = 0 pe wahin ruko.</li>
+<li><b>States list karo (meaning ke saath):</b> G = "green chal raha hai", Y = "yellow", R = "red". Reset state = G.</li>
+<li><b>State diagram banao</b> (D7.3b): har state se <b>har input value</b> ka arrow (T = 0 aur T = 1), dono.</li>
+<li><b>State table banao:</b>
+<table class="tt"><tr><th>Present</th><th>T = 0</th><th>T = 1</th><th>Output</th></tr>
+<tr><td>G</td><td>G</td><td>Y</td><td>Go</td></tr><tr><td>Y</td><td>Y</td><td>R</td><td>Slow</td></tr><tr><td>R</td><td>R</td><td>G</td><td>Stop</td></tr></table></li>
+<li><b>Encoding karo:</b> 3 states → ⌈log₂ 3⌉ = 2 flip-flops (Q1 Q0). G = 00, Y = 01, R = 10. Code 11 kabhi use nahi hota (don't care).</li>
+<li><b>Encoded table + equations:</b>
+<table class="tt"><tr><th>Q1 Q0</th><th>T</th><th>Q1⁺ Q0⁺</th></tr>
+<tr><td>00 (G)</td><td>0</td><td>00</td></tr><tr><td>00 (G)</td><td>1</td><td>01</td></tr>
+<tr><td>01 (Y)</td><td>0</td><td>01</td></tr><tr><td>01 (Y)</td><td>1</td><td>10</td></tr>
+<tr><td>10 (R)</td><td>0</td><td>10</td></tr><tr><td>10 (R)</td><td>1</td><td>00</td></tr></table>
+Q1⁺ = 1 wali rows: (Y, T = 1) aur (R, T = 0) → <b>Q1⁺ = Q0·T + Q1·T'</b>.<br>
+Q0⁺ = 1 wali rows: (G, T = 1) aur (Y, T = 0) → <b>Q0⁺ = Q1'·Q0'·T + Q0·T'</b>.<br>
+Output (11 ko don't care maan ke): <b>Go = Q1'·Q0'</b>, <b>Slow = Q0</b>, <b>Stop = Q1</b>.</li>
+<li><b>Circuit banao / simulate karo:</b> 2 D flip-flops (D1 = Q1⁺, D0 = Q0⁺), upar ke gates, aur reset jo 00 pe le aaye. Har row check karo.</li>
+</ol></div>
+<div class="fx"><b>Formula:</b> Flip-flops (binary encoding) = <b>⌈log₂ N⌉</b> &nbsp;·&nbsp; Flip-flops (one-hot) = <b>N</b><br><small>N = number of states. Shortcut: sabse chhoti power of 2 dhoondo jo N ke barabar ya badi ho; uska exponent = flip-flops.</small></div>
+<div class="ex"><b>Solved example 1 (flip-flop count):</b> <p class="qq">Find the minimum number of flip-flops (binary encoding) and the number for one-hot encoding for FSMs with 3, 5, 6 and 9 states.</p><ol>
+<li>Powers of 2: 2¹ = 2, 2² = 4, 2³ = 8, 2⁴ = 16.</li>
+<li>N = 3: 2 se zyada, 4 tak fit → 2² → <b>2 FFs</b>. One-hot: 3.</li>
+<li>N = 5: 4 se zyada, 8 tak fit → 2³ → <b>3 FFs</b>. One-hot: 5.</li>
+<li>N = 6: 8 tak fit → <b>3 FFs</b>. One-hot: 6.</li>
+<li>N = 9: 8 se zyada (2³ = 8 sirf 8 codes deta hai), 16 tak fit → 2⁴ → <b>4 FFs</b>. One-hot: 9.</li></ol>
+<p class="ans">Answer: 3 → 2 / 3; 5 → 3 / 5; 6 → 3 / 6; 9 → 4 / 9 (binary / one-hot).</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this):</b> <p class="qq">What is a finite state machine? Draw its general hardware block diagram. (3 marks)</p><ol>
+<li>A finite state machine is a sequential circuit with a finite set of states S, inputs I and outputs O; δ gives the next state and λ gives the output.</li>
+<li>It has three blocks: next-state logic (combinational), the state register (flip-flops, clocked) and output logic (combinational).</li>
+<li>The present state is fed back to the next-state logic, so the next state depends on the present state and the input.</li>
+<li>In a Moore machine the output depends on the state only; in a Mealy machine also on the input.</li>
+<li>Draw D7.3a. Example: traffic light (GREEN → YELLOW → RED on timer T), or the CPU control unit.</li></ol>
+<p class="ans">Answer: definition + (S, I, O, δ, λ) + 3-block diagram with feedback + one example.</p></div>
+<figure data-d="D7.3c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left box CONTROL ek FSM hai; right box DATAPATH (registers, ALU, MUX, memory) asli kaam karta hai. Upar ka dashed arrow = control signals (RegWrite, ALUSrc, MemWrite) control se datapath ko. Neeche ka arrow = status flags (Zero, overflow, opcode) datapath se control ko wapas. Isliye ALU ka Zero flag ek <b>status</b> signal hai, control signal nahi.</p>
+<div class="trap"><b>Galti mat karna:</b> (1) Reset state bhoolna. (2) Kisi state se kisi input ka arrow chhod dena: har state se har input value ka arrow chahiye (traffic light mein T' self-loops bhi). (3) One-hot ke liye ⌈log₂ N⌉ likhna: one-hot mein N flip-flops lagte hain. (4) 9 states ke liye 3 FFs bolna: 3 FFs sirf 8 codes dete hain.</div>
+<p class="trick"><b>Trick:</b> FSM = "<b>Socho (next-state logic) → Yaad rakho (state register) → Bolo (output logic)</b>". Sirf "yaad rakho" wale dabbe mein clock hai.</p>
+<div class="yr"><b>Ek line mein:</b> FSM = states + inputs + transitions + outputs; hardware = next-state logic → state register (clock) → output logic, state ka feedback; FFs = ⌈log₂ N⌉ (binary) ya N (one-hot).</div>
+</div>
+
+<div class="topic"><h3>7.4 Moore vs Mealy Machines</h3>
+<div class="why"><b>Pehle socho:</b> Do tarah ke chowkidar. <b>Moore chowkidar</b> sirf apni "position" dekh ke bolta hai: woh gate pe khada hai to "andar aao" bolega, bas. Uska jawab tab badalta hai jab woh position badalta hai (agla clock edge). <b>Mealy chowkidar</b> position + tumhara chehra (abhi ka input) dono dekhta hai, aur <i>turant</i> bol deta hai, position badalne ka intezaar nahi karta. Isliye <mark>Mealy ek cycle pehle jawab deta hai</mark>, par agar input hil-dul raha ho (glitch) to uska jawab bhi hilta hai.</div>
+<div class="def"><b>Definition:</b> In a <b>Moore machine</b> the outputs depend only on the present state, λ = f(state). In a <b>Mealy machine</b> the outputs depend on the present state and the present inputs, λ = f(state, input).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>output in the circle (Moore)</dt><dd>State diagram mein output state ke circle ke andar likha jaata hai: "S4 / 1". Us state mein ho to output 1, chahe input kuch bhi ho.</dd>
+<dt>output on the arrow (Mealy)</dt><dd>Arrow pe "input / output" likhte hain: "1/1" = input 1 aaya to output 1 aur is arrow pe jao.</dd>
+<dt>glitch</dt><dd>Signal mein galti se aaya chhota sa spike, jaise input ek pal ke liye 0 → 1 → 0 ho gaya. Mealy output input se seedha juda hai, isliye ye spike output mein bhi aa sakta hai.</dd>
+<dt>registered output</dt><dd>Output ke aage ek flip-flop laga dena; glitch hat jaata hai par output ek cycle late ho jaata hai (Moore jaisa).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (timing ka farak):</b><ol>
+<li>Maan lo detector ko "1011" dhoondhna hai aur abhi "101" dekh chuka hai (state S3).</li>
+<li>Ab bit 4 = 1 aata hai, clock edge abhi nahi aaya.</li>
+<li><b>Mealy:</b> output logic ko state S3 aur input 1 dono dikh rahe hain, to <b>usi cycle mein</b> output = 1 (arrow S3 —1/1→).</li>
+<li><b>Moore:</b> output sirf state se aata hai. Abhi state S3 hai jiska output 0. Clock edge pe state S4 banti hai, tab output = 1, yaani <b>agle cycle mein</b>.</li>
+<li>Isliye Moore ko ek extra state (S4, "match ho gaya") chahiye jisme output 1 likha ho. Mealy mein ye kaam arrow kar deta hai.</li>
+<li>Dono same pattern pakadte hain; farak sirf <b>kab</b> output aata hai aur <b>kitni states</b> lagti hain.</li>
+</ol></div>
+<table><tr><th>Point</th><th>Moore</th><th>Mealy</th></tr>
+<tr><td>Output depends on</td><td>state only</td><td>state + input</td></tr>
+<tr><td>Diagram notation</td><td>output inside circle (S1/1)</td><td>output on arrow (in/out)</td></tr>
+<tr><td>When output changes</td><td>only when state changes (clock edge)</td><td>as soon as input changes, same cycle</td></tr>
+<tr><td>Timing</td><td>one cycle after the input</td><td>same cycle as the input (one cycle earlier)</td></tr>
+<tr><td>Glitches</td><td>glitch-free (stable for whole cycle)</td><td>can glitch if input glitches</td></tr>
+<tr><td>Number of states</td><td>usually more (1011: 5)</td><td>usually fewer (1011: 4)</td></tr>
+<tr><td>Block diagram</td><td>output logic fed by state only</td><td>output logic fed by state and inputs</td></tr></table>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Compare Moore and Mealy machines (any five points). (5 marks)</p><ol>
+<li>Moore: output is a function of the present state only; Mealy: output is a function of the present state and the present input.</li>
+<li>Moore writes the output inside the state circle; Mealy writes input/output on each transition arrow.</li>
+<li>Mealy output responds in the same cycle as the input; Moore output appears one clock cycle later.</li>
+<li>Moore output is glitch-free; Mealy output can glitch when the input glitches.</li>
+<li>Mealy usually needs fewer states (1011 detector: Mealy 4, Moore 5).</li>
+<li>Draw D7.3a twice: Moore without, Mealy with the arrow from inputs to output logic.</li></ol>
+<p class="ans">Answer: five rows of the table above + the two block diagrams.</p></div>
+<p><b>Mealy → Moore conversion (class homework):</b> jis Mealy state mein alag-alag outputs wale arrows <i>aate</i> hain, use har output ke liye do copies mein tod do (ek copy "out 0", ek "out 1"). 1011 Mealy mein S1 do tarah se aata hai: S0 —1/0→ S1 aur S3 —1/1→ S1. To S1 ki ek copy "out 1" wali banti hai: wahi Moore ki S4 hai. Isliye Moore mein ek state zyada.</p>
+<div class="trap"><b>Galti mat karna:</b> (1) Ek hi diagram mein output circle mein BHI aur arrow pe BHI likh dena: ek notation choose karo. (2) Ye kehna ki Moore aur Mealy alag patterns detect karte hain: pattern same, sirf timing alag. (3) "Mealy late hai" bolna: ulta, Mealy ek cycle <b>pehle</b> output deta hai.</div>
+<p class="trick"><b>Trick:</b> <b>Mo</b>ore = "<b>O</b>" = gol circle ke andar output. Me<b>a</b>ly = <b>a</b>rrow pe output. Mealy "jaldi bolta hai" (same cycle), Moore "soch ke bolta hai" (agle cycle).</p>
+<div class="yr"><b>Ek line mein:</b> Moore = output sirf state se (circle mein, ek cycle baad, glitch-free, zyada states); Mealy = output state + input se (arrow pe, same cycle, glitch ho sakta hai, kam states).</div>
+</div>
+
+<div class="topic"><h3>7.5 Worked Example: Sequence Detector 1011</h3>
+<div class="why"><b>Pehle socho:</b> Tum ek lambi line mein aane wale bits dekh rahe ho: 1, 0, 1, 1, 0, 1, 1, 0. Kaam: jab bhi aakhri 4 bits "1011" hon, ghanti bajao. Tumhe saare purane bits yaad rakhne ki zarurat nahi, sirf itna ki <mark>"abhi tak pattern ka kitna hissa match ho chuka hai"</mark>. Jaise password type karte waqt: "maine pehle 3 letters sahi daale hain". Galat letter aaya to zero se shuru karna zaruri nahi: ho sakta hai galat letter ke saath ka aakhri hissa naye password ki shuruaat ho. Telecom mein frame ki shuruaat dhoondhne ke liye yahi detector use hota hai (DS1 pattern 001011, SONET 11110110).</div>
+<div class="def"><b>Definition:</b> A <b>sequence detector</b> is an FSM that receives one bit per clock cycle on a serial input and outputs 1 when a specified bit pattern has just appeared. With <b>overlapping</b> detection, the end of one match may be the beginning of the next match; with <b>non-overlapping</b> detection, the machine starts afresh after every match.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>serial input</dt><dd>Ek wire, har clock pe ek bit. Stream 10110110 ka matlab: pehle 1, phir 0, phir 1 (bit 1 sabse pehle).</dd>
+<dt>prefix</dt><dd>Pattern ki shuruaat ke tukde. 1011 ke prefixes: "1", "10", "101", "1011".</dd>
+<dt>suffix</dt><dd>Ab tak aaye input ke aakhri ke tukde. "1010" ke suffixes: "0", "10", "010", "1010".</dd>
+<dt>longest suffix that is a prefix</dt><dd>Aakhri wale tukdon mein se sabse lamba jo pattern ki shuruaat bhi ho. "1010" mein: "10" prefix hai (1011 bhi "10" se shuru hota hai), "010" nahi. To jawab "10". Yahi batata hai galti ke baad kahan jaana hai.</dd>
+<dt>overlap</dt><dd>Match ke aakhri bits agle match mein reuse ho sakte hain. Stream 1011011: bits 1–4 = 1011 aur bits 4–7 = 1011, bit 4 dono mein. Overlap: 2 matches. Non-overlap: 1.</dd>
+<dt>fall-back edge (failure arrow)</dt><dd>Galat bit aane pe peeche ki state pe jaane wala arrow.</dd>
+</dl></div>
+<div class="how"><b>States ka matlab (dono machines mein same):</b>
+<table><tr><th>State</th><th>Matlab (Hinglish)</th><th>Pattern ka kitna match</th></tr>
+<tr><td>S0</td><td>kuch kaam ka nahi dekha (start)</td><td>""</td></tr>
+<tr><td>S1</td><td>abhi tak "1" dekha</td><td>1</td></tr>
+<tr><td>S2</td><td>abhi tak "10" dekha</td><td>10</td></tr>
+<tr><td>S3</td><td>abhi tak "101" dekha</td><td>101</td></tr>
+<tr><td>S4 (sirf Moore)</td><td>"1011" poora mil gaya, output 1</td><td>1011</td></tr></table></div>
+<div class="how"><b>Har arrow kahan jaata hai aur KYUN (rule: naya string banao, uska longest suffix jo 1011 ka prefix ho):</b><ol>
+<li><b>S0, input 0:</b> string "0". 1011 "1" se shuru hota hai, "0" kisi kaam ka nahi → <b>S0</b>.</li>
+<li><b>S0, input 1:</b> "1" = pehla prefix → <b>S1</b>.</li>
+<li><b>S1, input 0:</b> "10" = prefix → <b>S2</b> (aage badho).</li>
+<li><b>S1, input 1:</b> "11". "11" prefix nahi, par uska aakhri "1" prefix hai → <b>S1 pe hi raho</b> (naya 1 nayi shuruaat ho sakta hai).</li>
+<li><b>S2, input 1:</b> "101" = prefix → <b>S3</b>.</li>
+<li><b>S2, input 0:</b> "100". Suffixes "00", "0": koi bhi "1" se shuru nahi → <b>S0</b>.</li>
+<li><b>S3, input 0:</b> "1010". Suffix "010" prefix nahi, par <b>"10" prefix hai</b> → <b>S2</b> (S0 nahi! "10" bacha hai, use mat phenko).</li>
+<li><b>S3, input 1:</b> "1011" = MATCH, output 1. Ab kahan jaayein?
+ <br>Overlap: aakhri "1" agle 1011 ki shuruaat ho sakta hai → <b>S1</b>.
+ <br>Non-overlap: match ke bits phenk do → <b>S0</b>.</li>
+<li><b>Moore S4</b> ("1011" dekha, output 1) ke arrows: S4 ki "yaad" bhi aakhir mein "1" hai, isliye overlap mein S4 bilkul S1 jaisa behave karta hai: input 0 → "10" → <b>S2</b>; input 1 → "11" → aakhri "1" → <b>S1</b>. Non-overlap mein S4 ko S0 jaisa maano: input 0 → <b>S0</b>, input 1 → <b>S1</b>.</li>
+</ol></div>
+<p><b>State tables (Lab 8, Q1 to Q4):</b></p>
+<table class="tt"><tr><th rowspan="2">Present</th><th colspan="2">Mealy overlap (next / out)</th><th colspan="2">Mealy non-overlap</th></tr>
+<tr><th>in = 0</th><th>in = 1</th><th>in = 0</th><th>in = 1</th></tr>
+<tr><td>S0</td><td>S0 / 0</td><td>S1 / 0</td><td>S0 / 0</td><td>S1 / 0</td></tr>
+<tr><td>S1</td><td>S2 / 0</td><td>S1 / 0</td><td>S2 / 0</td><td>S1 / 0</td></tr>
+<tr><td>S2</td><td>S0 / 0</td><td>S3 / 0</td><td>S0 / 0</td><td>S3 / 0</td></tr>
+<tr><td>S3</td><td>S2 / 0</td><td><b>S1 / 1</b></td><td>S2 / 0</td><td><b>S0 / 1</b></td></tr></table>
+<table class="tt"><tr><th rowspan="2">Present</th><th colspan="3">Moore overlap</th><th colspan="3">Moore non-overlap</th></tr>
+<tr><th>in = 0</th><th>in = 1</th><th>out</th><th>in = 0</th><th>in = 1</th><th>out</th></tr>
+<tr><td>S0</td><td>S0</td><td>S1</td><td>0</td><td>S0</td><td>S1</td><td>0</td></tr>
+<tr><td>S1</td><td>S2</td><td>S1</td><td>0</td><td>S2</td><td>S1</td><td>0</td></tr>
+<tr><td>S2</td><td>S0</td><td>S3</td><td>0</td><td>S0</td><td>S3</td><td>0</td></tr>
+<tr><td>S3</td><td>S2</td><td>S4</td><td>0</td><td>S2</td><td>S4</td><td>0</td></tr>
+<tr><td>S4</td><td><b>S2</b></td><td>S1</td><td><b>1</b></td><td><b>S0</b></td><td>S1</td><td><b>1</b></td></tr></table>
+<figure data-d="D7.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Chaar circle S0 (upar-left, reset arrow), S1 (upar-right), S2 (neeche-right), S3 (neeche-left). Arrow pe "input/output". Aage badhne wale arrows: S0 —1/0→ S1 —0/0→ S2 —1/0→ S3. Self-loops: S0 pe 0/0, S1 pe 1/0. Fall-back: S2 —0/0→ S0, S3 —0/0→ S2. Amber arrow S3 —1/1→ S1 = match + overlap. Trace "1011": S0 →(1) S1 →(0) S2 →(1) S3 →(1, output 1) S1.</p>
+<figure data-d="D7.5b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Bilkul D7.5a jaisa, sirf amber matching arrow badla: S3 —1/1→ <b>S0</b>. Matlab match ke baad sab bhool jao.</p>
+<figure data-d="D7.5c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Paanch circle, har circle mein "out 0" ya "out 1" likha hai (Moore). Sirf S4 (double circle) mein out 1. Arrows pe sirf input. Forward: S0 —1→ S1 —0→ S2 —1→ S3 —1→ S4. S4 se: 1 → S1, 0 → S2 (amber, overlap). Trace "1011": S0, S1, S2, S3, S4; output 1 tab dikhta hai jab machine S4 mein pahunch jaati hai (agle cycle mein).</p>
+<figure data-d="D7.5d"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> D7.5c jaisa, farak sirf amber arrow: S4 —0→ <b>S0</b>. S4 —1→ S1 waisa hi rehta hai (naya "1" to naya prefix hai hi).</p>
+<div class="how"><b>Input stream trace: 10110110 (Lab 8 ka shared stream), OVERLAP</b>
+<p>Mealy column: present state → next state, aur output <i>isi cycle</i> mein. Moore column: present state, aur output = 1 sirf jab present state S4 ho.</p>
+<table class="tt"><tr><th>Bit no.</th><th>Input</th><th>Mealy state → next</th><th>Mealy out</th><th>Moore state → next</th><th>Moore out</th></tr>
+<tr><td>1</td><td>1</td><td>S0 → S1</td><td>0</td><td>S0 → S1</td><td>0</td></tr>
+<tr><td>2</td><td>0</td><td>S1 → S2</td><td>0</td><td>S1 → S2</td><td>0</td></tr>
+<tr><td>3</td><td>1</td><td>S2 → S3</td><td>0</td><td>S2 → S3</td><td>0</td></tr>
+<tr><td>4</td><td>1</td><td>S3 → S1</td><td><b>1</b></td><td>S3 → S4</td><td>0</td></tr>
+<tr><td>5</td><td>0</td><td>S1 → S2</td><td>0</td><td>S4 → S2</td><td><b>1</b></td></tr>
+<tr><td>6</td><td>1</td><td>S2 → S3</td><td>0</td><td>S2 → S3</td><td>0</td></tr>
+<tr><td>7</td><td>1</td><td>S3 → S1</td><td><b>1</b></td><td>S3 → S4</td><td>0</td></tr>
+<tr><td>8</td><td>0</td><td>S1 → S2</td><td>0</td><td>S4 → S2</td><td><b>1</b></td></tr></table>
+<p>Dekho: Mealy bit 4 aur bit 7 pe 1 deta hai; Moore wahi do matches <b>ek cycle baad</b> (bit 5 aur bit 8 wale cycle mein) dikhata hai. Total <b>2 matches</b> (bits 1–4 aur 4–7, bit 4 share hua).</p>
+<p><b>Same stream, NON-overlap:</b></p>
+<table class="tt"><tr><th>Bit no.</th><th>Input</th><th>Mealy state → next</th><th>Mealy out</th><th>Moore state → next</th><th>Moore out</th></tr>
+<tr><td>1</td><td>1</td><td>S0 → S1</td><td>0</td><td>S0 → S1</td><td>0</td></tr>
+<tr><td>2</td><td>0</td><td>S1 → S2</td><td>0</td><td>S1 → S2</td><td>0</td></tr>
+<tr><td>3</td><td>1</td><td>S2 → S3</td><td>0</td><td>S2 → S3</td><td>0</td></tr>
+<tr><td>4</td><td>1</td><td>S3 → S0</td><td><b>1</b></td><td>S3 → S4</td><td>0</td></tr>
+<tr><td>5</td><td>0</td><td>S0 → S0</td><td>0</td><td>S4 → S0</td><td><b>1</b></td></tr>
+<tr><td>6</td><td>1</td><td>S0 → S1</td><td>0</td><td>S0 → S1</td><td>0</td></tr>
+<tr><td>7</td><td>1</td><td>S1 → S1</td><td>0</td><td>S1 → S1</td><td>0</td></tr>
+<tr><td>8</td><td>0</td><td>S1 → S2</td><td>0</td><td>S1 → S2</td><td>0</td></tr></table>
+<p>Bit 4 ke baad sab bhool gaye, to bits 5–7 sirf "011" bane: <b>1 match</b>.</p></div>
+<div class="fx"><b>Flip-flops:</b> Mealy 4 states → ⌈log₂ 4⌉ = <b>2 FFs</b> (one-hot 4). Moore 5 states → ⌈log₂ 5⌉ = <b>3 FFs</b> (one-hot 5).<br>
+<b>Mealy overlap equations</b> (S0 = 00, S1 = 01, S2 = 10, S3 = 11, input x): <b>Q1⁺ = Q0·x' + Q1·Q0'·x</b>, <b>Q0⁺ = x</b>, <b>out z = Q1·Q0·x</b>.<br><small>Q0⁺ = x kyun? Table dekho: input 1 pe next state hamesha S1 ya S3 (Q0 = 1), input 0 pe hamesha S0 ya S2 (Q0 = 0).</small></div>
+<div class="ex"><b>Solved example 1 (class exit ticket):</b> <p class="qq">Trace the Mealy 1011 (overlapping) detector on the input 101011. At which input bit (1 = first) does the output pulse?</p><ol>
+<li>Bit 1 = 1: S0 → S1 (out 0). Ab "1" dekha.</li>
+<li>Bit 2 = 0: S1 → S2 (out 0). "10".</li>
+<li>Bit 3 = 1: S2 → S3 (out 0). "101".</li>
+<li>Bit 4 = 0: S3 → S2 (out 0). "1010" ka suffix "10" bacha.</li>
+<li>Bit 5 = 1: S2 → S3 (out 0). "101" phir se.</li>
+<li>Bit 6 = 1: S3 → S1, <b>out 1</b>. Bits 3–6 = 1011.</li></ol>
+<p class="ans">Answer: output pulses only at bit 6.</p></div>
+<div class="ex"><b>Solved example 2 (count matches):</b> <p class="qq">How many times does a 1011 detector fire on 1011011 (a) with overlap, (b) without overlap?</p><ol>
+<li>Positions likho: bit 1 = 1, 2 = 0, 3 = 1, 4 = 1, 5 = 0, 6 = 1, 7 = 1.</li>
+<li>Bits 1–4 = 1 0 1 1 = match.</li>
+<li>(a) Overlap: bit 4 reuse ho sakta hai. Bits 4–7 = 1 0 1 1 = match. Total 2.</li>
+<li>(b) Non-overlap: bit 4 ke baad S0 se shuru. Bits 5–7 = 0 1 1, sirf 3 bits, match nahi. Total 1.</li></ol>
+<p class="ans">Answer: (a) 2, (b) 1.</p></div>
+<div class="ex"><b>Solved example 3 (mock variant: same method, different pattern):</b> <p class="qq">Draw the state table of a Mealy machine that detects 110 (overlapping), and of a Moore machine that detects 101 (overlapping).</p><ol>
+<li><b>Mealy 110.</b> States: S0 = "", S1 = "1", S2 = "11".</li>
+<li>S0: 0 → "0" → S0/0; 1 → "1" → S1/0.</li>
+<li>S1: 0 → "10": suffixes "10", "0", koi bhi "1" ya "11" nahi → S0/0; 1 → "11" → S2/0.</li>
+<li>S2: 1 → "111", suffix "11" → S2/0 (self-loop); 0 → "110" = match, output 1; suffixes "10", "0" prefix nahi → S0/1.</li>
+<li><b>Moore 101.</b> States: S0 = "" (0), S1 = "1" (0), S2 = "10" (0), S3 = "101" (out 1).</li>
+<li>S0: 0 → S0, 1 → S1. S1: 0 → S2, 1 → S1 ("11" → "1"). S2: 0 → S0 ("100"), 1 → S3.</li>
+<li>S3 ("101"): 0 → "1010" → suffix "10" → S2; 1 → "1011" → suffix "1" → S1.</li></ol>
+<p class="ans">Answer: Mealy 110: S0 {0: S0/0, 1: S1/0}, S1 {0: S0/0, 1: S2/0}, S2 {0: S0/1, 1: S2/0} (2 FFs). Moore 101: S0 {S0, S1, 0}, S1 {S2, S1, 0}, S2 {S0, S3, 0}, S3 {S2, S1, 1} (2 FFs).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Overlap allowed ho aur match ke baad S0 pe chale jaana: trailing "1" ek nayi shuruaat hai, S1 pe jao (Mealy) / S4 ko S1 jaisa banao (Moore). (2) S3 pe 0 aaya to S0 likhna: "1010" ke aakhir mein "10" hai, isliye <b>S2</b>. (3) S1 pe 1 aaya to S0 likhna: "11" ka aakhri "1" bacha hai, <b>S1 pe raho</b>. (4) Moore ko sirf 4 states dena: output 1 ke liye apni state chahiye, isliye 5.</div>
+<p class="trick"><b>Trick:</b> Har galat bit pe khud se poocho: "<b>Abhi tak ke string ka aakhri hissa, pattern ki shuruaat se kitna milta hai?</b>" Utne letters wali state pe jao. Moore S4 = "overlap mein S1 ka judwa, non-overlap mein S0 ka judwa".</p>
+<div class="yr"><b>Ek line mein:</b> State = "pattern ka kitna hissa mil chuka"; galti pe longest suffix-jo-prefix-hai wali state pe jao; Mealy 1011 = 4 states (S3 —1/1→ S1 overlap / S0 non-overlap), Moore = 5 states (S4 out 1, ek cycle late); 10110110 pe overlap 2, non-overlap 1.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Address bits for n registers</td><td>1. 2 ki powers likho. 2. Jo power n ke barabar (ya just badi) ho, uska exponent = bits. 32 → 5, 64 → 6, 16 → 4.</td></tr>
+<tr><td>Total bits / flip-flops in register file</td><td>registers × width. 16 × 8 = 128, 32 × 32 = 1024, 64 × 32 = 2048.</td></tr>
+<tr><td>Decoder / MUX size for a register file</td><td>1. k = log₂ n. 2. Write: k-to-n decoder (n output lines) + n AND gates with RegWrite. 3. Read: n:1 MUX per read port, w bits wide, k select lines.</td></tr>
+<tr><td>Draw register file (4 × 32 or 32 × 32)</td><td>1. Outer block (D7.2a) with widths. 2. Write port: decoder → AND with WE → load enables, data bus to all (D7.2b). 3. Read ports: two MUXes (D7.2c). 4. Write "read combinational, write on clock edge" with one reason each.</td></tr>
+<tr><td>Why read combinational, write synchronous</td><td>Read: operands needed in the same cycle, MUX needs no clock. Write: at the edge only, so no race / half-written values; read-before-write in one cycle.</td></tr>
+<tr><td>Hardwired zero output (lab MCQ)</td><td>Write to R0 ignored; read of R0 always 00000000.</td></tr>
+<tr><td>Flip-flops for an N-state FSM</td><td>Binary: smallest k with 2ᵏ ≥ N (3 → 2, 5 → 3, 6 → 3, 9 → 4). One-hot: N.</td></tr>
+<tr><td>Define FSM / draw block diagram</td><td>(S, I, O, δ, λ); next-state logic → state register (clock) → output logic, feedback arrow; Mealy adds input → output logic arrow.</td></tr>
+<tr><td>Design an FSM (traffic light)</td><td>1. Spec. 2. States with meaning + reset. 3. Diagram with every input arrow. 4. State table. 5. Encode (⌈log₂ N⌉ FFs). 6. Next-state + output equations. 7. Circuit.</td></tr>
+<tr><td>Moore vs Mealy comparison</td><td>Five rows: depends on, notation, timing (Mealy one cycle earlier), glitches, number of states; plus two block diagrams.</td></tr>
+<tr><td>Design a sequence detector (1011, 110, 101)</td><td>1. States = prefixes of the pattern ("", "1", "10", "101" for 1011).2. Forward arrows. 3. For each wrong bit: new string → longest suffix that is a prefix → that state. 4. Match edge: overlap → state of the reusable suffix, non-overlap → S0. 5. Moore: add a match state with out 1 that copies the outgoing arrows of that state. 6. Table + FF count.</td></tr>
+<tr><td>Trace a detector on a stream / count matches</td><td>Make a table: bit no., input, present → next, output. Mealy out on the matching arrow (same bit); Moore out when present state = match state (next bit). Count the 1s.</td></tr>
+</table></div>
+</section>

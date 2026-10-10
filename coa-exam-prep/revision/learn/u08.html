@@ -1,0 +1,252 @@
+<section>
+<h2>Unit 8 · Memory: SRAM vs DRAM &amp; the Memory Stack</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 7 ka register file flip-flops se bana hai: bahut tez, par sirf 32 words. Ek photo hi lakhon bytes ki hoti hai, OS billions bytes ka. Itni badi memory flip-flops se banana bahut mehenga hai. Is unit mein do sasti memory cells seekhenge: <b>SRAM</b> (6 transistor, tez, cache ke liye) aur <b>DRAM</b> (1 transistor + 1 capacitor, sasti aur dense, main memory ke liye). Phir dekhenge ki inhe <b>memory hierarchy</b> mein kaise layer karte hain taaki computer "upar jitna tez, neeche jitna bada" lage. Unit 9 mein yahi memory CPU se bus ke through judegi (Von Neumann / Harvard).</div>
+
+<div class="topic"><h3>8.1 Register Files; the Need for Bigger Memory</h3>
+<div class="why"><b>Pehle socho:</b> Padhai karte waqt teen jagah cheezein hoti hain: <b>desk pe kaagaz</b> (turant haath mein, par 2–3 hi aate hain), <b>bookshelf</b> (thoda uthna padta hai, 50 kitaabein), <b>library</b> (jaana padta hai, lakhon kitaabein). Sab kuch desk pe rakhna possible nahi: desk itni badi banegi hi nahi, aur bahut mehengi hogi. Computer mein bhi yahi hai: register file = desk, cache (SRAM) = bookshelf, main memory (DRAM) = library. <mark>Koi bhi ek memory tez + badi + sasti teeno ek saath nahi ho sakti.</mark></div>
+<div class="def"><b>Definition:</b> Register files are fast but tiny because each bit is stored in a flip-flop (about 20 or more transistors per bit). Large memories therefore use denser storage cells, <b>SRAM</b> (6 transistors per bit) and <b>DRAM</b> (1 transistor + 1 capacitor per bit), trading speed for capacity. Since no single technology is fast, large and cheap at the same time, computers combine several of them in a memory hierarchy.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>transistor</dt><dd>Chip ka sabse chhota electronic switch (ON/OFF). Gate, latch, memory cell sab inhi se bante hain. Ek bit mein jitne kam transistors, utni zyada bits ek chip mein aayengi.</dd>
+<dt>transistors per bit</dt><dd>Ek bit store karne mein kitne transistors lage. Flip-flop: 20+. SRAM: 6. DRAM: 1 (plus ek capacitor).</dd>
+<dt>density</dt><dd>Ek mm² chip area mein kitni bits. Kam transistors per bit = zyada density = sasti memory.</dd>
+<dt>cost per bit</dt><dd>Ek bit store karne ka kharcha. Area zyada = kharcha zyada.</dd>
+<dt>volatile</dt><dd>Power gayi to data gaya. Flip-flop, SRAM, DRAM teeno volatile hain.</dd>
+<dt>word / address line</dt><dd>Memory ek lambi list hai; har khaane (word) ka ek number (address). Address bhejne wale wires = address lines.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (problem step by step):</b><ol>
+<li>Register file: 32 registers × 32 bits = 1024 bits = sirf 128 bytes. ALU ke bilkul paas, ek cycle se kam mein access.</li>
+<li>Har bit ek flip-flop hai, aur ek flip-flop ≈ 20+ transistors.</li>
+<li>Agar 1 GB (≈ 8 × 10⁹ bits) flip-flops se banayein: 8 × 10⁹ × 20 = 1.6 × 10¹¹ transistors sirf memory mein. Chip itni badi aur mehengi ho jayegi ki banana practical nahi.</li>
+<li>Isliye chhoti cells chahiye: SRAM (6T) caches ke liye, DRAM (1T1C) main memory ke liye.</li>
+<li><b>Core tension:</b> fast memory = chhoti aur mehengi; badi memory = slow aur sasti. Solution: sab ko layer karo (memory hierarchy, 8.5).</li>
+</ol></div>
+<div class="fx"><b>Formula:</b> Address lines = <b>log₂(number of words)</b> &nbsp;·&nbsp; Capacity = <b>2^(address lines) × word width</b> &nbsp;·&nbsp; Transistors = bits × transistors per bit<br><small>Same rule as the register file (32 registers → 5 bits). Memory with 2ⁿ words needs n address lines.</small></div>
+<div class="ex"><b>Solved example 1 (transistors per bit):</b> <p class="qq">How many transistors are needed to store 1 KB (8192 bits) using flip-flops (20 T/bit), SRAM and DRAM?</p><ol>
+<li>1 KB = 1024 bytes × 8 = 8192 bits.</li>
+<li>Flip-flops: 8192 × 20 = 163,840 transistors.</li>
+<li>SRAM: 8192 × 6 = 49,152 transistors.</li>
+<li>DRAM: 8192 × 1 = 8,192 transistors (+ 8,192 capacitors).</li></ol>
+<p class="ans">Answer: FF ≈ 163,840; SRAM 49,152; DRAM 8,192 (+ 8,192 capacitors). Isliye badi memory DRAM se banti hai.</p></div>
+<div class="ex"><b>Solved example 2 (address lines):</b> <p class="qq">A memory has 64 K words of 8 bits each (64 K = 65,536). How many address lines does it need, and what is its capacity? How many address lines does a 1 M × 8 memory need?</p><ol>
+<li>65,536 = 2¹⁶ (2¹⁰ = 1024, 2⁶ = 64, 1024 × 64 = 65,536). Isliye address lines = 16.</li>
+<li>Capacity = 65,536 words × 8 bits = 65,536 bytes = 64 KB.</li>
+<li>1 M = 2²⁰ = 1,048,576 words → 20 address lines, 8 data lines, capacity 1 MB.</li></ol>
+<p class="ans">Answer: 16 address lines, 64 KB; 1 M × 8 needs 20 address lines.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Registers DRAM se bane hain" galat hai: registers flip-flops hain, caches SRAM, main memory DRAM. (2) "Register file aur bada kar do" free nahi hai: area, power aur access time teeno badhte hain. (3) Address lines width se nahi, <b>words ki ginti</b> se aate hain.</div>
+<p class="trick"><b>Trick:</b> Transistor count yaad rakho: <b>20 → 6 → 1</b> (flip-flop → SRAM → DRAM). Number jitna chhota, memory utni badi aur slow.</p>
+<div class="yr"><b>Ek line mein:</b> Flip-flop (20+ T/bit) bahut mehenga hai, isliye badi memory SRAM (6T) aur DRAM (1T1C) se banti hai; koi memory tez + badi + sasti ek saath nahi, isliye hierarchy.</div>
+</div>
+
+<div class="topic"><h3>8.2 SRAM: 6T Cell Structure and Behaviour</h3>
+<div class="why"><b>Pehle socho:</b> Ek <b>see-saw</b> socho jisko do log dono taraf se pakad ke rakhte hain: ek side neeche hai to woh neeche hi rahegi, kyunki dono log usse lagatar dhakel rahe hain. Thoda hila bhi to turant wapas apni jagah. SRAM ka bit aise hi "zinda" tarike se pakda rehta hai (<b>active storage</b>): do inverters ek doosre ko lagatar sahi value dete rehte hain. Isliye jab tak bijli hai, data rehta hai, refresh ki zarurat nahi. Isiliye naam <b>Static</b> RAM.</div>
+<div class="def"><b>Definition:</b> <b>SRAM (Static RAM)</b> stores each bit in a bistable latch made of two cross-coupled inverters (4 transistors) plus two access transistors that connect the latch to the bit lines when the word line is high, giving a 6-transistor (6T) cell. It keeps its data without refresh as long as power is applied, and its read is non-destructive.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>inverter</dt><dd>NOT gate: 1 andar → 0 bahar. CMOS mein 2 transistors (1 PMOS + 1 NMOS).</dd>
+<dt>cross-coupled inverters</dt><dd>Do inverters ek gol ghere mein: pehle ka output doosre ka input, doosre ka output pehle ka input. Q = 1 → doosra inverter Q' = 0 deta hai → pehla inverter Q = 1 hi rakhta hai. Ye loop khud ko sahi rakhta hai.</dd>
+<dt>bistable latch</dt><dd>Circuit jiski do stable halat hain (Q = 1 ya Q = 0) aur woh kisi ek mein tiki rehti hai. Unit 5 ka basic bistable yahi hai.</dd>
+<dt>access transistor (M5, M6)</dt><dd>Darwaze: ON hon to latch bit lines se jud jaata hai, OFF hon to latch akela band rehta hai.</dd>
+<dt>word line (WL)</dt><dd>Row select wire. WL = 1 → us row ke saare cells ke darwaze khul jaate hain. Matlab "ye cell chuno".</dd>
+<dt>bit lines (BL, BL')</dt><dd>Data wires: BL pe bit, BL' pe uska ulta (complement). Inhi se data andar-bahar jaata hai.</dd>
+<dt>pre-charge</dt><dd>Read se pehle dono bit lines ko 1 (high voltage) pe charge karke tayaar rakhna.</dd>
+<dt>sense amplifier</dt><dd>Ek sensitive circuit jo dono bit lines ka bahut chhota voltage farak pakad ke use poora 0 ya 1 bana deta hai.</dd>
+<dt>non-destructive read</dt><dd>Padhne se stored value nahi mit-ti.</dd>
+</dl></div>
+<figure data-d="D8.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left aur right mein do khadi lines BL aur BL' (data wires). Upar aadi line WL (highlighted). Beech ke box mein do inverters ek loop mein: left node Q, right node Q'. Q se BL tak M5, Q' se BL' tak M6, dono ke gate WL se jude. Count: inverters 2 × 2 = 4 transistors + M5 + M6 = 6. Trace: WL = 0 → M5, M6 OFF → latch akela, value hold. WL = 1 → Q BL se aur Q' BL' se jud jaate hain.</p>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Hold (kuch nahi ho raha):</b> WL = 0, darwaze band. Maan lo Q = 1, to doosra inverter Q' = 0 banata hai, jo pehle inverter ko Q = 1 rakhne pe majboor karta hai. Thoda leakage hua to power supply turant theek kar deti hai.</li>
+<li><b>Read step 1:</b> dono bit lines BL aur BL' ko high pe pre-charge karo.</li>
+<li><b>Read step 2:</b> WL = 1 karo, M5 aur M6 ON.</li>
+<li><b>Read step 3:</b> jis side 0 stored hai (yahan Q' = 0), woh apni bit line (BL') ko thoda neeche kheenchti hai. BL high hi rehti hai.</li>
+<li><b>Read step 4:</b> sense amplifier dekhta hai "BL' gira, BL nahi" → output 1. Latch apni value khud pakde hue hai, isliye read <b>non-destructive</b>.</li>
+<li><b>Write step 1:</b> nayi value bit lines pe zor se daalo: 0 likhna hai to BL = 0, BL' = 1.</li>
+<li><b>Write step 2:</b> WL = 1 karo.</li>
+<li><b>Write step 3:</b> bit line drivers latch se zyada strong hain, to Q ko 0 aur Q' ko 1 kar dete hain (overpower).</li>
+<li><b>Write step 4:</b> WL = 0. Latch palat chuka hai aur ab nayi value hold karta hai.</li>
+</ol></div>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Draw the 6T SRAM cell and explain how a stored bit is read. Why is the read non-destructive? (5 marks)</p><ol>
+<li>Draw D8.2a: two cross-coupled inverters (4 transistors) holding Q and Q'; access transistors M5, M6 connect Q to BL and Q' to BL'; their gates are driven by the word line WL.</li>
+<li>Read: both bit lines are pre-charged high; WL is raised; the side storing 0 pulls its bit line slightly low; a sense amplifier detects which bit line dropped and outputs the bit.</li>
+<li>Write: the bit lines are driven to the new value and its complement; WL is raised; the strong drivers overpower the latch, which flips and holds the new value.</li>
+<li>The read is non-destructive because the latch actively drives its nodes from the power supply, so it keeps its value while being read.</li>
+<li>SRAM is static (no refresh), fast (a few ns) but needs 6 transistors per bit, so it is used for caches and register files.</li></ol>
+<p class="ans">Answer: diagram + 4 read steps + 4 write steps + "active latch, so non-destructive".</p></div>
+<div class="fx"><b>Scorecard:</b> very fast (a few ns) · no refresh · non-destructive read · low density (6T/bit) · expensive · constant leakage (static) power → <b>caches L1/L2/L3, register files, buffers</b>.</div>
+<div class="trap"><b>Galti mat karna:</b> (1) "SRAM ko refresh chahiye" galat: refresh DRAM ko chahiye. (2) Latch mein 6 transistors bolna: latch = <b>4</b>, baaki 2 access transistors hain (M5, M6). (3) "SRAM read data mita deta hai" galat: woh DRAM hai. (4) Word line pe data nahi chalta, data bit lines pe chalta hai; WL sirf select karti hai.</div>
+<p class="trick"><b>Trick:</b> <b>6T = 4 + 2</b>: "4 pakadte hain (latch), 2 darwaza kholte hain (access)". <b>W</b>ord line = <b>W</b>hich cell; <b>B</b>it line = <b>B</b>it ka data.</p>
+<div class="yr"><b>Ek line mein:</b> SRAM 6T = 2 cross-coupled inverters (4T, bit ko zinda pakadte hain) + 2 access transistors (WL se khulte hain); read = pre-charge, WL, sense amp, non-destructive; refresh nahi, tez, mehenga → cache.</div>
+</div>
+
+<div class="topic"><h3>8.3 DRAM: 1T1C Cell, Refresh, Destructive Read</h3>
+<div class="why"><b>Pehle socho:</b> Ek <b>chhed wali baalti</b> socho. Baalti mein paani = 1, khaali = 0. Problem: paani dheere-dheere tapakta rehta hai, to thodi der mein "1" bhi "0" jaisa dikhne lagega. Isliye har thodi der mein koi aake baalti check karta hai aur bhar deta hai: ye <b>refresh</b> hai. Aur baalti itni chhoti hai ki paani dekhne ke liye use bade bartan (bit line) mein undelna padta hai, to baalti khaali ho jaati hai: ye <b>destructive read</b> hai, isliye padhne ke baad wapas bharna padta hai. Fayda: baalti bahut chhoti aur sasti hai, to lakhon-karodon rakh sakte ho. Yahi <b>DRAM</b> hai: <mark>passive storage, bahut dense, par refresh aur write-back chahiye</mark>.</div>
+<div class="def"><b>Definition:</b> <b>DRAM (Dynamic RAM)</b> stores each bit as charge on a tiny capacitor that is connected to the bit line through one access transistor (a 1T1C cell). Because the charge leaks away, every row must be refreshed periodically (about every 64 ms), and because reading shares the capacitor's charge with the bit line, the read is destructive and the value must be written back.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>capacitor</dt><dd>Charge (bijli) store karne wala chhota "bucket". Charged = 1, empty = 0.</dd>
+<dt>1T1C</dt><dd>1 transistor (darwaza) + 1 capacitor (bucket) per bit. Sabse chhota memory cell.</dd>
+<dt>leakage</dt><dd>Capacitor ka charge dheere-dheere apne aap nikal jaana, jaise baalti se paani tapakna.</dd>
+<dt>retention time</dt><dd>Kitni der tak charge itna rehta hai ki 1 pehchana ja sake. Class mein: 64 ms ke andar refresh karna hai.</dd>
+<dt>refresh</dt><dd>Row ko padh ke turant wapas poori value likhna, taaki charge phir se full ho jaaye. Har row lagbhag har 64 ms mein.</dd>
+<dt>row</dt><dd>DRAM cells ek grid mein hote hain; ek word line ek poori row ko ek saath kholti hai. Refresh row-by-row hota hai.</dd>
+<dt>charge sharing</dt><dd>Capacitor ko bit line se jodne pe uska charge bit line mein bant jaata hai. Bit line badi hai, to voltage bas thoda sa badalta hai, aur capacitor khaali ho jaata hai.</dd>
+<dt>sense amplifier</dt><dd>Bit line ke us chhote se badlaav ko pakad ke poora 0 ya 1 bana deta hai, aur wahi value wapas cell mein likh deta hai.</dd>
+<dt>write-back</dt><dd>Read ke baad value cell mein wapas likhna (kyunki read ne use mita diya).</dd>
+<dt>µs, ms, ns</dt><dd>1 ms = 1000 µs; 1 µs = 1000 ns. 64 ms = 64,000 µs.</dd>
+</dl></div>
+<figure data-d="D8.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein khadi line = bit line (BL). Upar aadi line = word line (WL). Beech mein ek transistor: ek taraf BL, doosri taraf capacitor (do parallel plates), capacitor ka doosra sira ground. Transistor ka gate WL se juda. Trace: WL = 1 → transistor ON → capacitor BL se juda. Write 1: BL ko high karo → capacitor charge. Write 0: BL low → capacitor khaali.</p>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li><b>Store:</b> WL = 0, transistor OFF, capacitor akela. Charge hai to 1, nahi to 0.</li>
+<li><b>Write:</b> BL ko desired value pe rakho, WL = 1. Capacitor charge (1) ya discharge (0) ho jaata hai. WL = 0.</li>
+<li><b>Leakage:</b> capacitor ka charge dheere-dheere nikalta hai. Class curve: 0 ms pe full, 20 ms pe kam hota hua, 50 ms pe weak, 64 ms tak sense threshold ke neeche (lost).</li>
+<li><b>Refresh:</b> DRAM controller har row ko ~64 ms ke andar padh ke wapas likhta hai. Us waqt woh hissa memory busy rehta hai (performance + power cost). Isiliye naam <b>Dynamic</b>.</li>
+<li><b>Read step 1 (access):</b> WL = 1. Capacitor ka charge bit line ke saath share hota hai.</li>
+<li><b>Read step 2 (tiny signal):</b> bit line ka voltage bahut thoda sa upar ya neeche hota hai. Capacitor ab apni value kho chuka hai.</li>
+<li><b>Read step 3 (sense amp):</b> sense amplifier us chhote farak ko poora 0 ya 1 bana deta hai.</li>
+<li><b>Read step 4 (write-back):</b> wahi poori value turant capacitor mein wapas likh di jaati hai. Har DRAM read asal mein <b>read + rewrite</b> hai.</li>
+<li><b>Speed:</b> 50–100 ns (sense time + row open karna + pre-charge), SRAM se 10 guna se zyada slow. Use: <b>main memory</b> (8/16/32 GB RAM stick), GPU memory (GDDR).</li>
+</ol></div>
+<figure data-d="D8.3b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> X-axis = time (ms), Y-axis = capacitor charge. Dashed curve = bina refresh ke charge girta jaata hai aur "sense threshold" line ke neeche chala jaata hai (data lost). Solid sawtooth = har 64 ms pe refresh charge ko wapas full kar deta hai, isliye charge kabhi threshold ke neeche nahi jaata.</p>
+<div class="fx"><b>Formula:</b> Per-row refresh interval = <b>retention time ÷ number of rows</b> &nbsp;·&nbsp; Refresh busy fraction = <b>time per row refresh ÷ per-row interval</b> (= rows × time per row ÷ retention time)<br><small>64 ms = 64,000 µs. 8192 rows → 64,000 ÷ 8192 = 7.8125 µs.</small></div>
+<div class="ex"><b>Solved example 1 (class homework):</b> <p class="qq">A DRAM with 8192 rows must refresh every row within 64 ms. What is the interval between row refreshes? Repeat for 4096 and 16384 rows.</p><ol>
+<li>ms ko µs mein badlo: 64 ms × 1000 = 64,000 µs.</li>
+<li>8192 rows: 64,000 ÷ 8192. 8192 × 8 = 65,536 (thoda zyada), 8192 × 7.8 = 63,897.6, 8192 × 7.8125 = 64,000. To 7.8125 µs ≈ 7.8 µs.</li>
+<li>4096 rows (aadhi rows → double time): 64,000 ÷ 4096 = 15.625 µs ≈ 15.6 µs.</li>
+<li>16384 rows (double rows → aadha time): 64,000 ÷ 16384 = 3.90625 µs ≈ 3.91 µs.</li></ol>
+<p class="ans">Answer: 7.8 µs (8192), 15.6 µs (4096), 3.91 µs (16384).</p></div>
+<div class="ex"><b>Solved example 2 (exam-level, refresh overhead):</b> <p class="qq">A DRAM bank has 8192 rows, a 64 ms retention window, and each row refresh blocks the bank for 50 ns. What fraction of time is spent refreshing? Repeat for 60 ns per row (mock 2).</p><ol>
+<li>Per-row interval = 7.8125 µs = 7812.5 ns (× 1000).</li>
+<li>Har 7812.5 ns mein 50 ns busy. Fraction = 50 ÷ 7812.5 = 0.0064.</li>
+<li>Percent: 0.0064 × 100 = 0.64 %.</li>
+<li>60 ns: 60 ÷ 7812.5 = 0.00768 → 0.77 %.</li>
+<li>Check doosre tarike se: 8192 × 60 ns = 491,520 ns = 0.49 ms busy har 64 ms mein; 0.49 ÷ 64 = 0.0077 → 0.77 %.</li></ol>
+<p class="ans">Answer: 0.64 % (50 ns), 0.77 % (60 ns).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Transistor bit store karta hai" galat: <b>capacitor</b> karta hai, transistor sirf darwaza hai. (2) DRAM read ke baad write-back bhool jaana. (3) Poori chip ka refresh period (64 ms) aur per-row interval (7.8 µs) mix karna. (4) ms ko µs mein badalna bhoolna (× 1000).</div>
+<p class="trick"><b>Trick:</b> <b>D</b>RAM = <b>D</b>ynamic = <b>D</b>rains (charge tapakta hai) → refresh. "<b>64 ÷ 8192 = 7.8</b>" seedha yaad kar lo.</p>
+<div class="yr"><b>Ek line mein:</b> DRAM = 1T1C (capacitor mein charge = bit); charge leak hota hai → har row ~64 ms mein refresh (8192 rows → 7.8 µs per row); read charge baant deta hai → sense amp + write-back; dense, sasta, 50–100 ns → main memory.</div>
+</div>
+
+<div class="topic"><h3>8.4 SRAM vs DRAM Comparison</h3>
+<div class="why"><b>Pehle socho:</b> Dono mein "better" koi nahi. SRAM ek <b>bodyguard</b> jaisa hai jo bit ko lagatar pakad ke rakhta hai: tez aur bharosemand, par mehenga aur jagah leta hai. DRAM ek <b>baalti</b> hai: sasti, chhoti, karodon rakh lo, par bharte rehna padta hai. <mark>Har farak ek hi baat se aata hai: SRAM active storage (latch), DRAM passive storage (charge).</mark></div>
+<div class="def"><b>Definition:</b> SRAM stores a bit actively in a 6-transistor latch, which makes it fast, refresh-free and non-destructive to read but low in density and expensive; DRAM stores a bit passively as charge in a 1T1C cell, which makes it dense and cheap but slower, and it needs refresh and a write-back after every read. SRAM trades density for speed; DRAM trades speed for density.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>active storage</dt><dd>Circuit khud power supply se value ko lagatar sahi rakhta hai (SRAM latch).</dd>
+<dt>passive storage</dt><dd>Value bas charge ke roop mein padi hai, koi use pakad ke nahi rakhta (DRAM capacitor).</dd>
+<dt>GDDR</dt><dd>Graphics card ki DRAM (GPU memory).</dd>
+</dl></div>
+<div class="how"><b>Kaise yaad karein (table + har row ka KYUN):</b>
+<table><tr><th>Point</th><th>SRAM</th><th>DRAM</th><th>Kyun?</th></tr>
+<tr><td>Cell</td><td>6 transistors</td><td>1 transistor + 1 capacitor</td><td>Latch ko 2 inverters (4T) + 2 darwaze chahiye; DRAM ko sirf bucket + darwaza.</td></tr>
+<tr><td>Storage</td><td>active (latch)</td><td>passive (charge)</td><td>Inverters lagatar drive karte hain; capacitor bas charge rakhta hai.</td></tr>
+<tr><td>Density</td><td>low</td><td>high (≈ 6× SRAM)</td><td>6 transistors vs 1: DRAM cell bahut chhota.</td></tr>
+<tr><td>Speed</td><td>fast (a few ns)</td><td>slower (50–100 ns)</td><td>Latch bit line ko zor se chalata hai; DRAM ka chhota charge sense karna, row kholna, pre-charge karna padta hai, aur chip CPU se bahar hai.</td></tr>
+<tr><td>Refresh</td><td>not needed</td><td>every row ≈ 64 ms</td><td>Latch khud ko theek rakhta hai; capacitor leak hota hai.</td></tr>
+<tr><td>Read</td><td>non-destructive</td><td>destructive (write-back)</td><td>Latch value pakde rehta hai; capacitor ka charge bit line mein bant jaata hai.</td></tr>
+<tr><td>Cost per bit</td><td>high</td><td>low</td><td>Zyada area per bit = zyada kharcha.</td></tr>
+<tr><td>Power</td><td>constant leakage (static) power</td><td>refresh power</td><td>SRAM ke inverters hamesha ON; DRAM ko baar-baar refresh karna padta hai.</td></tr>
+<tr><td>Volatile?</td><td>yes</td><td>yes</td><td>Dono ko power chahiye; power gayi to data gaya.</td></tr>
+<tr><td>Used for</td><td>L1/L2/L3 cache, register files, buffers</td><td>main memory, GPU memory (GDDR)</td><td>Chhota + tez kaam SRAM; bada + sasta kaam DRAM.</td></tr></table></div>
+<div class="ex"><b>Solved example 1 (class exit ticket):</b> <p class="qq">Give three reasons why SRAM is faster than DRAM.</p><ol>
+<li>SRAM ka latch bit lines ko actively drive karta hai: strong signal, jaldi sense hota hai. DRAM ka chhota capacitor sirf thoda sa signal deta hai.</li>
+<li>SRAM mein destructive read / write-back nahi, aur refresh ki rukawat nahi.</li>
+<li>SRAM chhote arrays mein CPU chip pe hi (same logic process) banti hai; DRAM chip ke bahar hai aur har access mein row activation + pre-charge chahiye.</li></ol>
+<p class="ans">Answer: active drive, no write-back/refresh, on-chip small arrays (DRAM off-chip with row activation and pre-charge).</p></div>
+<div class="ex"><b>Solved example 2 (match type + density):</b> <p class="qq">Match with SRAM or DRAM: needs refresh; six transistors per bit; used for L1 cache; destructive read; higher density. If DRAM is about 6× denser, how many DRAM bits fit in the area of 100 SRAM bits?</p><ol>
+<li>Needs refresh → DRAM (capacitor leaks).</li>
+<li>Six transistors → SRAM.</li>
+<li>L1 cache → SRAM (fast).</li>
+<li>Destructive read → DRAM.</li>
+<li>Higher density → DRAM.</li>
+<li>Density: 100 × 6 = 600.</li></ol>
+<p class="ans">Answer: DRAM, SRAM, SRAM, DRAM, DRAM; 600 bits.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "DRAM non-volatile hai" galat: dono power ke bina data kho dete hain (non-volatile = flash/SSD). (2) Uses ulta likhna: <b>cache = SRAM</b>, <b>main memory / RAM stick = DRAM</b>. (3) "SRAM better hai" likhna: dono alag kaam ke liye hain.</div>
+<p class="trick"><b>Trick:</b> <b>S</b>RAM = <b>S</b>peed, <b>S</b>table, <b>S</b>mall (cache). <b>D</b>RAM = <b>D</b>ense, <b>D</b>ynamic (refresh), <b>D</b>estructive read.</p>
+<div class="yr"><b>Ek line mein:</b> SRAM = 6T active latch (tez, refresh nahi, mehenga, cache); DRAM = 1T1C passive charge (dense ≈ 6×, sasta, refresh + write-back, main memory); har farak active vs passive se aata hai.</div>
+</div>
+
+<div class="topic"><h3>8.5 Memory Hierarchy and the Memory Wall</h3>
+<div class="why"><b>Pehle socho:</b> Tum desk pe padh rahe ho. Jo abhi chahiye woh desk pe (registers), thoda pehle wali kitaabein drawer mein (L1), shelf pe (L2/L3), library mein (DRAM), aur purana saamaan godown mein (disk). Tum 90 % baar desk/drawer se hi kaam chala lete ho kyunki <b>jo abhi use kiya woh phir use karoge</b>, aur <b>jo kitaab nikali uske paas wale page bhi padhoge</b>. Isse poora system <mark>upar jitna tez aur neeche jitna bada</mark> lagta hai. Problem (memory wall): CPU har saal bahut tez hota gaya, par library (DRAM) tak jaane ka time lagbhag waisa hi raha.</div>
+<div class="def"><b>Definition:</b> The <b>memory hierarchy</b> arranges storage in levels (registers, L1, L2, L3 caches, main memory, disk) from small, fast and expensive per bit to large, slow and cheap per bit; it works because programs show <b>locality</b>, so most accesses are served by the fast upper levels. The <b>memory wall</b> is the growing gap between processor speed and DRAM latency, which makes memory access, not computation, the main limit on performance.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>cache</dt><dd>CPU ke paas chhoti SRAM memory jo haal hi mein use hua data rakhti hai. L1 sabse chhota/tez, phir L2, L3.</dd>
+<dt>latency</dt><dd>Maangne se milne tak ka time. L1 ≈ 1 ns, DRAM ≈ 50–100 ns.</dd>
+<dt>temporal locality</dt><dd>"Time" wali: jo data abhi use hua, woh jaldi phir use hoga. Loop counter <code>i</code> har iteration mein.</dd>
+<dt>spatial locality</dt><dd>"Space/jagah" wali: jo address use hua, uske paas wale address jaldi use honge. Array ke elements a[0], a[1], a[2] ek ke baad ek.</dd>
+<dt>block (cache line)</dt><dd>Cache ek byte nahi, paas-paas ke bytes ka poora tukda (jaise 64 bytes) ek saath laata hai. Isse spatial locality ka fayda.</dd>
+<dt>hit / miss</dt><dd>Hit = data cache mein mil gaya (tez). Miss = nahi mila, neeche wale level se laana pada (slow).</dd>
+<dt>miss rate / miss penalty</dt><dd>Miss rate = kitne % access miss hue. Miss penalty = miss pe neeche se laane mein extra time.</dd>
+<dt>AMAT</dt><dd>Average Memory Access Time: average mein ek access kitna time leta hai.</dd>
+<dt>memory wall</dt><dd>CPU aur DRAM ki speed ka badhta farak, latency ka farak (capacity ka nahi).</dd>
+</dl></div>
+<figure data-d="D8.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Pyramid ka sabse patla upar wala hissa = registers (sabse chhote, sabse tez). Neeche jaate hue har band chauda: L1, L2, L3 (SRAM), main memory (DRAM), sabse neeche SSD/HDD (TBs). Right mein har level ka latency aur size likha hai. Left ka arrow: neeche jaao to bada, slow, sasta per bit. Upar = tez + chhota + mehenga.</p>
+<table><tr><th>Level</th><th>Technology</th><th>Latency</th><th>Size</th></tr>
+<tr><td>Registers</td><td>flip-flops</td><td>&lt; 1 ns</td><td>≈ 1 KB</td></tr>
+<tr><td>L1</td><td>SRAM</td><td>≈ 1 ns (4 cycles)</td><td>32–64 KB per core</td></tr>
+<tr><td>L2</td><td>SRAM</td><td>≈ 3–10 ns</td><td>256 KB – 2 MB</td></tr>
+<tr><td>L3</td><td>SRAM</td><td>≈ 10–40 ns</td><td>8 – 64 MB shared</td></tr>
+<tr><td>Main memory</td><td>DRAM</td><td>≈ 50–100 ns</td><td>8 – 64 GB</td></tr>
+<tr><td>SSD / HDD</td><td>flash / magnetic</td><td>≈ 100 µs / 10 ms</td><td>TBs</td></tr></table>
+<div class="how"><b>Kaise kaam karta hai:</b><ol>
+<li>CPU ko ek data chahiye. Pehle L1 cache dekhta hai.</li>
+<li>Mil gaya (<b>hit</b>) → ≈ 1 ns mein kaam ho gaya.</li>
+<li>Nahi mila (<b>miss</b>) → L2 dekho, phir L3, phir DRAM. Jahan mila, wahan se data (poora block) upar wale levels mein copy ho jaata hai.</li>
+<li>Har level apne neeche wale level ka ek chhota hissa (subset) rakhta hai.</li>
+<li><b>Temporal locality</b> ka fayda: abhi laya data cache mein rehta hai, agli baar hit. Example:
+<pre>sum = 0;
+for (i = 0; i &lt; 1000; i++)
+    sum = sum + a[i];</pre>
+<code>sum</code> aur <code>i</code> har iteration mein phir use hote hain → temporal. Loop ke instructions bhi baar-baar chalte hain → temporal.</li>
+<li><b>Spatial locality</b> ka fayda: a[0] laane pe poora block (a[0] se a[15], agar 64-byte block aur 4-byte int) aa jaata hai, to a[1] se a[15] sab hit. Instructions bhi ek ke baad ek address pe hain → spatial.</li>
+<li>Result: zyadatar accesses upar ke tez levels se, isliye average time chhota.</li>
+</ol></div>
+<div class="fx"><b>Formula:</b> <b>AMAT = hit time + miss rate × miss penalty</b><br><small>hit time = fast level ka time; miss rate = fraction (5 % = 0.05); miss penalty = neeche se laane ka extra time.</small></div>
+<div class="ex"><b>Solved example 1 (AMAT):</b> <p class="qq">L1 hit time 1 ns, miss rate 5 %, miss penalty 80 ns. Find AMAT. What if the miss rate is halved?</p><ol>
+<li>5 % = 0.05.</li>
+<li>0.05 × 80 = 4 ns.</li>
+<li>AMAT = 1 + 4 = 5 ns.</li>
+<li>Miss rate 2.5 % = 0.025: 0.025 × 80 = 2; AMAT = 1 + 2 = 3 ns.</li></ol>
+<p class="ans">Answer: 5 ns; halving the miss rate gives 3 ns (isliye cache itna important hai).</p></div>
+<div class="ex"><b>Solved example 2 (exam-level):</b> <p class="qq">Hit time 2 ns, miss rate 10 %, miss penalty 100 ns. AMAT? Also order L2, DRAM, registers, L1, SSD from fastest to slowest.</p><ol>
+<li>10 % = 0.1. 0.1 × 100 = 10 ns.</li>
+<li>AMAT = 2 + 10 = 12 ns.</li>
+<li>Order: registers (flip-flops, ALU ke paas) → L1 (chhota number = CPU ke paas) → L2 → DRAM → SSD.</li></ol>
+<p class="ans">Answer: 12 ns; registers, L1, L2, DRAM, SSD.</p></div>
+<figure data-d="D8.5b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> X-axis = year (1980 se 2010), Y-axis = relative performance (log scale: har step 10 guna). Upar ki steep line = Processor (≈ 50 % per year, 1986–2004). Neeche ki lagbhag flat line = DRAM latency (≈ 7 % per year). Dono ke beech ka double arrow = "the gap" = memory wall. Gap har saal badhta gaya.</p>
+<div class="how"><b>Memory wall step by step:</b><ol>
+<li>CPU performance ≈ 50 % per year badha (1986–2004); DRAM latency sirf ≈ 7 % per year sudhri.</li>
+<li>Rough idea: 10 saal mein CPU 1.5¹⁰ ≈ 58 guna, DRAM 1.07¹⁰ ≈ 2 guna. Farak ≈ 29 guna badh gaya.</li>
+<li>Aaj: 3 GHz CPU ka ek cycle = 0.33 ns. DRAM access 100 ns = 100 × 3 = <b>300 cycles</b> ka intezaar.</li>
+<li>Matlab ALU khaali baitha rehta hai, memory hi limit hai (Wulf &amp; McKee, 1995).</li>
+<li>Responses: deep multi-level caches, prefetching (data pehle se le aana), out-of-order execution (wait karte hue doosre instructions chalana), wider/faster DRAM interfaces, 3-D stacked memory (HBM).</li>
+</ol></div>
+<div class="ex"><b>Solved example 3 (write the answer like this):</b> <p class="qq">Draw the memory hierarchy and explain locality and the memory wall. (5 marks)</p><ol>
+<li>Draw D8.5a: registers, L1, L2, L3 (SRAM), main memory (DRAM), SSD/HDD, with latency and size; going down, levels are larger, slower and cheaper per bit.</li>
+<li>The hierarchy works because of locality. Temporal locality: recently used data is reused soon (loop variables). Spatial locality: nearby addresses are used soon (arrays, sequential code); caches fetch whole blocks.</li>
+<li>So most accesses hit the small fast levels; AMAT = hit time + miss rate × miss penalty.</li>
+<li>Memory wall: processor performance grew about 50 % per year while DRAM latency improved about 7 % per year, so a DRAM access now costs hundreds of CPU cycles.</li>
+<li>Remedies: multi-level caches, prefetching, out-of-order execution, wider/faster DRAM interfaces, HBM.</li></ol>
+<p class="ans">Answer: pyramid + two types of locality with examples + 50 % vs 7 % gap + remedies.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) L2 ko L1 ke upar rakhna: chhota number = CPU ke zyada paas = zyada tez. (2) "Memory wall = memory capacity ruk gayi" galat: ye <b>latency (speed) ka gap</b> hai. (3) Temporal aur spatial ulta karna: <b>temporal = same data phir se</b>, <b>spatial = paas wala data</b>. (4) Registers hata dena memory wall ka solution nahi; registers sabse tez level hain.</div>
+<p class="trick"><b>Trick:</b> <b>T</b>emporal = <b>T</b>ime = "phir se wahi". <b>S</b>patial = <b>S</b>pace = "padosi". Hierarchy = desk → drawer → shelf → library → godown (registers → L1 → L2/L3 → DRAM → disk).</p>
+<div class="yr"><b>Ek line mein:</b> Registers → L1 → L2 → L3 → DRAM → SSD/HDD (neeche bada, slow, sasta); locality (temporal + spatial) se zyadatar access upar se serve hote hain; AMAT = hit + miss rate × penalty; memory wall = CPU 50 %/yr vs DRAM 7 %/yr ka latency gap.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Why several memory types / why not flip-flops for RAM</td><td>Flip-flop 20+ T/bit, SRAM 6T, DRAM 1T1C; fast = small + expensive, big = slow + cheap; no single memory is all three → hierarchy.</td></tr>
+<tr><td>Transistors / address lines numericals</td><td>Transistors = bits × T per bit (20, 6, 1). Address lines = log₂(words); capacity = 2^lines × width.</td></tr>
+<tr><td>Draw + explain 6T SRAM, read/write</td><td>1. D8.2a with WL, BL, BL', Q, Q', M5, M6. 2. Read: pre-charge, WL high, 0-side bit line dips, sense amp, non-destructive. 3. Write: drive bit lines, WL high, overpower latch. 4. Static = no refresh.</td></tr>
+<tr><td>MCQ: transistors in SRAM latch / cell</td><td>Latch 4, access 2, cell 6. DRAM 1T1C.</td></tr>
+<tr><td>Draw 1T1C DRAM, why refresh, why destructive</td><td>1. D8.3a. 2. Capacitor leaks → refresh every row ~64 ms (D8.3b). 3. Read = charge sharing → tiny signal → sense amp → write-back.</td></tr>
+<tr><td>Refresh interval per row</td><td>1. ms → µs (× 1000). 2. Divide by rows. 64 ms / 8192 = 7.8 µs; / 4096 = 15.6 µs; / 16384 = 3.91 µs.</td></tr>
+<tr><td>Refresh overhead fraction</td><td>1. Per-row interval in ns. 2. Time per row refresh ÷ interval × 100. 50 ns → 0.64 %; 60 ns → 0.77 %.</td></tr>
+<tr><td>SRAM vs DRAM table (six points) + uses</td><td>Cell, storage, density, speed, refresh, read, cost, use; add one "why" from active vs passive. SRAM: caches/RF; DRAM: main memory/GDDR.</td></tr>
+<tr><td>Three reasons SRAM is faster</td><td>Active drive of bit lines; no write-back / refresh; small on-chip arrays (DRAM off-chip, row activation + pre-charge).</td></tr>
+<tr><td>Order the levels</td><td>registers &lt; L1 &lt; L2 &lt; L3 &lt; DRAM &lt; SSD &lt; HDD (fastest to slowest).</td></tr>
+<tr><td>AMAT</td><td>Convert % to decimal; AMAT = hit time + miss rate × miss penalty (1 + 0.05 × 80 = 5 ns; 2 + 0.1 × 100 = 12 ns).</td></tr>
+<tr><td>Locality example MCQ</td><td>Same variable reused (i, sum, loop code) = temporal; neighbouring addresses (array elements, sequential instructions, same block) = spatial.</td></tr>
+<tr><td>Memory wall</td><td>Latency gap: CPU ~50 %/yr vs DRAM ~7 %/yr (D8.5b); hundreds of cycles per DRAM access; fixes: caches, prefetch, out-of-order, wider DRAM, HBM.</td></tr>
+</table></div>
+</section>

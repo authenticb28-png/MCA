@@ -1,0 +1,218 @@
+<section>
+<h2>Unit 14 · Pipelining</h2>
+<div class="story"><b>Is unit ki kahani:</b> Unit 13 ka single-cycle processor ek instruction poora khatam karke hi agla shuru karta hai, aur har cycle lw jitna lamba (800 ps) hai. Is unit mein idea hai: <b>kaam ko 5 stages mein kaato aur alag-alag instructions ko alag stages mein ek saath chalao</b>, jaise laundry ya factory assembly line. Clock chhota ho jaata hai aur har cycle ek instruction khatam hota hai. Kuch formulas (cycles, speedup) aur pipeline diagram yahan se aate hain. Jab instructions ek doosre pe depend karte hain to problem aati hai: woh hazards hain (Unit 15). (Is unit ki class slides nahi thi; content Patterson &amp; Hennessy se hai.)</div>
+
+<!-- ======================= 14.1–14.2 ======================= -->
+<div class="topic"><h3>14.1–14.2 The Problem with Single-Cycle, and the Laundry Analogy</h3>
+<div class="why"><b>Pehle socho:</b> Hostel mein 4 dosto ke kapde (loads A, B, C, D) dhone hain. Har load: <b>wash</b> 30 min, <b>dry</b> 30 min, <b>fold</b> 30 min, <b>stash</b> (almirah mein rakhna) 30 min. Bewakoof tareeka: A ka poora kaam (2 ghante) khatam, phir B shuru. Smart tareeka: A washer se nikal ke dryer mein gaya, <mark>usi waqt B washer mein daal do</mark>. Machine khaali kyun baithe? Ek load ko utna hi time lagta hai, lekin saare loads bahut jaldi khatam ho jaate hain. CPU mein: single-cycle mein jab ALU kaam kar raha hai, instruction memory khaali baithi hai. Pipelining us khaali machine ko agle instruction ke liye use karta hai.</div>
+<div class="def"><b>Definition:</b> <b>Pipelining</b> is an implementation technique in which the execution of an instruction is divided into stages and multiple instructions are overlapped, each in a different stage, so that (once the pipeline is full) one instruction completes every clock cycle. It improves <b>throughput</b> (instructions completed per unit time), not the <b>latency</b> of a single instruction.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>stage</dt><dd>Kaam ka ek tukda jo ek hardware hissa karta hai. Laundry mein wash / dry / fold / stash; CPU mein IF / ID / EX / MEM / WB.</dd>
+<dt>latency</dt><dd>Ek item ko shuru se khatam hone mein kitna time. Ek load ki latency = 2 ghante, pipelining ke baad bhi 2 ghante.</dd>
+<dt>throughput</dt><dd>Har unit time mein kitne items khatam hote hain. Pipelined laundry mein har 30 min ek load ready.</dd>
+<dt>fill time</dt><dd>Shuru mein pipeline bharne ka time: pehla load akela 4 stages se guzarta hai, tab tak kuch khatam nahi hota.</dd>
+<dt>idle</dt><dd>Khaali baitha hua. Single-cycle mein ALU kaam kare to instruction memory idle.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (laundry, 4 loads, 4 stages × 30 min):</b><ol>
+<li><b>Sequential:</b> har load 4 × 30 = 120 min = 2 h. 4 loads × 2 h = <b>8 h</b>.</li>
+<li><b>Pipelined:</b> 30-min ke "slots" mein socho. Slot 1: A wash. Slot 2: A dry, B wash. Slot 3: A fold, B dry, C wash. Slot 4: A stash, B fold, C dry, D wash (sab machines busy). Slot 5: B stash, C fold, D dry. Slot 6: C stash, D fold. Slot 7: D stash.</li>
+<li>Total slots = 7 = (4 stages + 4 loads − 1). Time = 7 × 30 min = 210 min = <b>3.5 h</b>.</li>
+<li>Har load ki latency abhi bhi 2 h (A: slot 1 se 4). Lekin pipeline full hone ke baad <b>har 30 min ek load</b> khatam hota hai.</li>
+<li>Speedup = 8 / 3.5 ≈ 2.29. Bahut saare loads ho to speedup → 4 (= number of stages).</li>
+<li><b>CPU pe lagao:</b> single-cycle mein cycle = 800 ps (lw). Datapath ko 5 stages (har ek ≈ 200 ps) mein kaato, beech mein registers lagao. Clock = 200 ps, aur full pipeline mein har 200 ps ek instruction khatam.</li>
+</ol>
+<table class="tt"><tr><th>Load</th><th>Slot 1</th><th>Slot 2</th><th>Slot 3</th><th>Slot 4</th><th>Slot 5</th><th>Slot 6</th><th>Slot 7</th></tr>
+<tr><td>A</td><td>Wash</td><td>Dry</td><td>Fold</td><td>Stash</td><td></td><td></td><td></td></tr>
+<tr><td>B</td><td></td><td>Wash</td><td>Dry</td><td>Fold</td><td>Stash</td><td></td><td></td></tr>
+<tr><td>C</td><td></td><td></td><td>Wash</td><td>Dry</td><td>Fold</td><td>Stash</td><td></td></tr>
+<tr><td>D</td><td></td><td></td><td></td><td>Wash</td><td>Dry</td><td>Fold</td><td>Stash</td></tr></table>
+<p><b>Laundry ke rules jo CPU pe bhi lagte hain:</b> (1) sab stages same time lein to best; <mark>sabse slow stage speed decide karta hai</mark> (dryer 60 min ho to har 60 min ek load). (2) Stages ke beech kaam rakhne ki jagah chahiye (CPU mein pipeline registers). (3) Problem tab aati hai jab ek load ko kuch chahiye jo pichhla load abhi khatam nahi kiya (CPU mein hazards).</p></div>
+<figure data-d="D14.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar wala chart sequential hai: 16 rangeen boxes ek ke baad ek, seedhi seedhi (staircase), 8 h tak. Neeche wala pipelined hai: har load ki row ek slot right khiski hui, boxes overlap karte hain, 3.5 h pe khatam. Har rang ek stage (legend: Wash, Dry, Fold, Stash). Kisi bhi ek vertical line (time) pe neeche wale chart mein dekho: zyada se zyada 4 alag rang = 4 machines ek saath busy.</p>
+<div class="ex"><b>Solved example 1 (easy):</b> <p class="qq">Laundry with 4 stages of 30 min each. How long do 6 loads take (a) sequentially, (b) pipelined? (c) Speedup?</p><ol>
+<li>(a) Ek load = 4 × 30 = 120 min = 2 h. 6 loads = 6 × 2 = 12 h.</li>
+<li>(b) Slots = stages + loads − 1 = 4 + 6 − 1 = 9. Time = 9 × 30 min = 270 min = 4.5 h.</li>
+<li>(c) Speedup = 12 / 4.5 = 2.67.</li></ol>
+<p class="ans">Answer: 12 h sequential, 4.5 h pipelined, speedup ≈ 2.67.</p></div>
+<div class="ex"><b>Solved example 2:</b> <p class="qq">The dryer takes 60 min, the other three stages 30 min. Once the pipeline is full, how often does a load finish?</p><ol>
+<li>Washer har 30 min ek load de sakta hai, lekin dryer har load pe 60 min leta hai.</li>
+<li>Loads dryer ke aage line mein ruk jaayenge. Pipeline ki speed = sabse slow stage.</li></ol>
+<p class="ans">Answer: one load every 60 min (slowest stage sets the pace).</p></div>
+<div class="ex"><b>Solved example 3 (write the answer like this):</b> <p class="qq">Why is a single-cycle processor inefficient, and how does pipelining help? (3 marks)</p><ol>
+<li>In a single-cycle processor the clock period is fixed by the slowest instruction (lw, 800 ps); shorter instructions (R-type 600, beq 500 ps) waste the rest of the cycle.</li>
+<li>Each unit is busy only for part of the cycle; e.g. the instruction memory is idle while the ALU works.</li>
+<li>Pipelining divides the datapath into stages separated by pipeline registers and overlaps instructions, so all units work at once. The clock period becomes one stage (about 200 ps) and, once full, one instruction completes per cycle.</li></ol>
+<p class="ans">Answer: wasted time + idle units → split into stages and overlap → shorter clock, CPI ≈ 1, higher throughput.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) "Pipelining se ek instruction jaldi khatam hota hai" galat hai: latency same rehti hai (ya thodi badhti hai). Throughput badhta hai. (2) Pipelined time = n × stage time mat likho; shuru ka fill time (k − 1) bhoolna common galti hai.</div>
+<p class="trick"><b>Trick:</b> <b>"Machine kabhi khaali na baithe."</b> Pipelining = har machine ko har slot mein koi na koi kaam.</p>
+<div class="yr"><b>Ek line mein:</b> Single-cycle mein units idle aur chhote instructions time waste karte hain; pipelining kaam ko stages mein kaat ke instructions overlap karta hai: latency same, throughput zyada.</div>
+</div>
+
+<!-- ======================= 14.3 ======================= -->
+<div class="topic"><h3>14.3 The 5-Stage MIPS Pipeline and Pipeline Registers</h3>
+<div class="why"><b>Pehle socho:</b> Factory assembly line mein har station ke beech ek <b>tray</b> hota hai. Station 1 apna kaam tray mein rakhta hai; bell bajti hai (clock); tray agle station ko milta hai aur station 1 naya kaam shuru karta hai. Bina tray ke, station 1 ka naya kaam purane ko overwrite kar dega. CPU mein ye trays hi <mark>pipeline registers</mark> hain.</div>
+<div class="def"><b>Definition:</b> The classic MIPS pipeline has five stages: <b>IF</b> (instruction fetch), <b>ID</b> (instruction decode and register read), <b>EX</b> (execute or address calculation), <b>MEM</b> (data memory access) and <b>WB</b> (write back). Between consecutive stages are <b>pipeline registers</b>, named <b>IF/ID, ID/EX, EX/MEM, MEM/WB</b>, which hold everything a stage produced (data, register numbers and control signals) for the next stage.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>pipeline register</dt><dd>Do stages ke beech ka register (tray). Naam dono stages ka: IF/ID = IF aur ID ke beech. Total 4.</dd>
+<dt>control travels with the instruction</dt><dd>Control signals ID mein bante hain, phir instruction ke saath tray se tray aage jaate hain. EX wale (RegDst, ALUOp, ALUSrc) EX mein use, MEM wale (Branch, MemRead, MemWrite) MEM mein, WB wale (MemtoReg, RegWrite) WB mein.</dd>
+<dt>write first half, read second half</dt><dd>Register file cycle ke pehle aadhe mein likhta hai, doosre aadhe mein padhta hai. Isliye WB mein likha value usi cycle ID wala instruction padh leta hai.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (har stage ka kaam):</b>
+<table><tr><th>Stage</th><th>Kya hota hai</th><th>Hardware</th></tr>
+<tr><td><b>IF</b> instruction fetch</td><td>IR ← IMem[PC], PC ← PC + 4</td><td>PC, instruction memory, +4 adder</td></tr>
+<tr><td><b>ID</b> decode / register read</td><td>rs, rt padho; immediate sign-extend; control signals banao</td><td>register file (read), sign-extend, control</td></tr>
+<tr><td><b>EX</b> execute</td><td>ALU operation, lw / sw address, beq compare + target</td><td>ALU, ALUSrc MUX, branch adder</td></tr>
+<tr><td><b>MEM</b> memory access</td><td>lw padhta, sw likhta; baaki kuch nahi</td><td>data memory</td></tr>
+<tr><td><b>WB</b> write back</td><td>result rd / rt mein likho</td><td>MemtoReg MUX, register file (write)</td></tr></table>
+<ol>
+<li>Har clock edge pe har stage apna result aage wale pipeline register mein daalta hai.</li>
+<li>Usi edge pe har stage peeche wale register se naya instruction le leta hai.</li>
+<li>Isliye kisi bhi cycle mein 5 alag instructions 5 alag stages mein hote hain.</li>
+<li>Destination register number (rd / rt) bhi ID/EX → EX/MEM → MEM/WB mein saath chalta hai, kyunki WB tak IF/ID mein koi aur instruction aa chuka hota hai.</li>
+<li>Clock period = sabse slow stage (+ pipeline register ka thoda overhead).</li>
+</ol>
+<p><b>MIPS pipeline ke liye aasaan kyun hai (Lecture 10):</b> (1) saare instructions 32-bit fixed length: IF bina decode kiye agla fetch kar sakta hai; (2) kam formats, rs / rt hamesha same bits mein: decode ke saath hi registers padh lo; (3) memory sirf lw / sw: address EX mein, access MEM mein; (4) memory access aligned.</p></div>
+<figure data-d="D14.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar IF, ID, EX, MEM, WB labels batate hain kaunsa hissa kaunsa stage. Neele lambe patle bars pipeline registers hain (IF/ID, ID/EX, EX/MEM, MEM/WB). Left se right: PC + instruction memory (IF) → register file + sign-extend (ID) → ALU (EX) → data memory (MEM) → MUX (WB). Orange wire WB se <b>wapas left</b> register file tak jaata hai: result likhne ke liye (ye ek hi wire right-to-left chalti hai). Trace lw: CC1 IF, CC2 ID (base register padha), CC3 EX (address), CC4 MEM (data), CC5 WB (register mein).</p>
+<div class="ex"><b>Solved example 1 (MCQ type):</b> <p class="qq">(a) In which stage does lw compute its memory address? (b) How many pipeline registers are there? (c) Why must the destination register number travel to WB?</p><ol>
+<li>(a) Address = base + offset ek addition hai → ALU → <b>EX</b>. Memory padhna MEM mein.</li>
+<li>(b) Stages ke beech ki jagah: 5 stages → 4 gaps → IF/ID, ID/EX, EX/MEM, MEM/WB = <b>4</b>.</li>
+<li>(c) Jab lw WB mein pahunchta hai, IF/ID mein 3 instructions baad wala instruction hai. Uske rd / rt bits galat honge. Isliye lw ka apna destination number tray-dar-tray saath chalna chahiye.</li></ol>
+<p class="ans">Answer: (a) EX, (b) 4, (c) because each pipeline register holds a different instruction by then.</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this, 5 marks):</b> <p class="qq">Draw the 5-stage MIPS pipeline with its pipeline registers and explain each stage.</p><ol>
+<li>Draw D14.3a: PC/IMem | IF/ID | Reg file + sign-extend | ID/EX | ALU | EX/MEM | Data memory | MEM/WB | write-back MUX, with the write-back wire returning to the register file.</li>
+<li>IF: fetch instruction at PC, PC ← PC + 4. ID: decode, read rs and rt, sign-extend, generate control. EX: ALU operation or address calculation, branch compare. MEM: lw reads / sw writes data memory. WB: write the result to rd or rt.</li>
+<li>Pipeline registers hold data, register numbers and control for the next stage; control is generated in ID and carried along.</li>
+<li>Register file is written in the first half and read in the second half of a cycle.</li></ol>
+<p class="ans">Answer: 5 stages IF ID EX MEM WB + 4 pipeline registers IF/ID, ID/EX, EX/MEM, MEM/WB.</p></div>
+<div class="trap"><b>Galti mat karna:</b> Pipeline register ka naam ek stage pe mat rakho ("ID register" galat), naam hai IF/ID (do stages ke beech). Aur WB ka wire right se left jaata hai, ise diagram mein bhoolna mat.</div>
+<p class="trick"><b>Trick:</b> <b>"I Do EXercise, MEMorize, Write Back"</b> = IF, ID, EX, MEM, WB.</p>
+<div class="yr"><b>Ek line mein:</b> IF → ID → EX → MEM → WB, beech mein 4 trays (IF/ID, ID/EX, EX/MEM, MEM/WB) jo data, register number aur control aage le jaate hain.</div>
+</div>
+
+<!-- ======================= 14.4 ======================= -->
+<div class="topic"><h3>14.4 Pipeline Diagrams (stages × cycles)</h3>
+<div class="why"><b>Pehle socho:</b> Railway timetable ek table hai: rows mein trains, columns mein time, aur cell mein station ka naam. Pipeline diagram bilkul yahi hai: <mark>rows = instructions, columns = clock cycles, cell = us cycle mein instruction kis stage mein hai</mark>. Isse turant dikhta hai kitne cycles lage aur kaun kab kahan tha.</div>
+<div class="def"><b>Definition:</b> A <b>multi-cycle pipeline diagram</b> shows instructions as rows and clock cycles (CC1, CC2, CC3) as columns; each cell names the stage the instruction occupies in that cycle. In an ideal pipeline instruction i enters IF in cycle i, and n instructions in a k-stage pipeline take <b>k + (n − 1)</b> cycles.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>CC (clock cycle)</dt><dd>CC1 = pehla cycle, CC5 = paanchwa.</dd>
+<dt>staircase / diagonal</dt><dd>Har agli row ek column right khiski: kyunki har cycle ek naya instruction aata hai.</dd>
+<dt>in flight</dt><dd>Abhi pipeline ke andar (shuru ho gaya, khatam nahi hua).</dd>
+<dt>independent instructions</dt><dd>Jo ek doosre ka result use nahi karte, isliye koi rukawat (stall) nahi.</dd>
+</dl></div>
+<div class="how"><b>Kaise banayein:</b><ol>
+<li>Left mein instructions likho, upar CC1, CC2 likho.</li>
+<li>Instruction 1: CC1 IF, CC2 ID, CC3 EX, CC4 MEM, CC5 WB.</li>
+<li>Instruction 2: ek column right: CC2 se shuru.</li>
+<li>Instruction i: CC i mein IF. Stage s (IF = 1, ID = 2, EX = 3, MEM = 4, WB = 5) cycle <b>i + s − 1</b> mein.</li>
+<li>Last instruction (n) ka WB = cycle n + 5 − 1 = n + 4. Yahi total cycles.</li>
+<li>Kisi column ko upar se neeche padho: us cycle mein kaun kis stage mein.</li>
+</ol>
+<table class="tt"><tr><th>Instruction</th><th>CC1</th><th>CC2</th><th>CC3</th><th>CC4</th><th>CC5</th><th>CC6</th><th>CC7</th><th>CC8</th><th>CC9</th></tr>
+<tr><td>lw $10, 20($1)</td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>sub $11, $2, $3</td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td><td></td></tr>
+<tr><td>add $12, $3, $4</td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td><td></td></tr>
+<tr><td>lw $13, 24($1)</td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td><td></td></tr>
+<tr><td>add $14, $5, $6</td><td></td><td></td><td></td><td></td><td>IF</td><td>ID</td><td>EX</td><td>MEM</td><td>WB</td></tr></table>
+<p>CC5 column dekho: WB, MEM, EX, ID, IF. Paanchon stages busy, paanch instructions in flight. Ye "pipeline full" ka matlab hai.</p></div>
+<figure data-d="D14.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Upar CC1 to CC9. Har row ek instruction, rangeen boxes us cycle ki stage. Har rang ek stage hai (IF ek rang, ID doosra). Rows ek ek column right khiskti hain (staircase). Last box CC9 mein (add $14 ka WB) = total 9 cycles.</p>
+<div class="fx"><b>Formula:</b> Total cycles (no stalls) = <b>k + (n − 1)</b> · instruction i, stage s → cycle <b>i + s − 1</b><br><small>k = number of stages (5), n = number of instructions. Pehle instruction ko k cycles, phir har naye instruction ke liye +1.</small></div>
+<div class="ex"><b>Solved example 1 (easy):</b> <p class="qq">How many cycles do 5 independent instructions take in a 5-stage pipeline? And 100 instructions?</p><ol>
+<li>k = 5, n = 5: 5 + (5 − 1) = 5 + 4 = 9 cycles.</li>
+<li>k = 5, n = 100: 5 + (100 − 1) = 5 + 99 = 104 cycles.</li>
+<li>Check: non-pipelined 5-stage machine pe 100 × 5 = 500 cycles lagte.</li></ol>
+<p class="ans">Answer: 9 cycles and 104 cycles.</p></div>
+<div class="ex"><b>Solved example 2:</b> <p class="qq">In the diagram above, which stage is the third instruction (add $12) in during CC5? Which instruction is in MEM during CC6?</p><ol>
+<li>add $12 = instruction 3 → IF in CC3. CC5 − CC3 = 2 stages aage: IF (3) → ID (4) → EX (5). Formula: s = 5 − 3 + 1 = 3 = EX.</li>
+<li>CC6 mein MEM (s = 4): i = 6 − 4 + 1 = 3 → instruction 3 = add $12.</li></ol>
+<p class="ans">Answer: add $12 is in EX during CC5; add $12 is in MEM during CC6.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Doosre instruction ko bhi CC1 se shuru karna: har instruction ek cycle baad aata hai. (2) Total = 5 × n likhna: woh non-pipelined hai. Pipelined = 5 + n − 1.</div>
+<div class="yr"><b>Ek line mein:</b> Rows = instructions, columns = cycles, har row ek column right; n instructions, k stages → k + n − 1 cycles.</div>
+</div>
+
+<!-- ======================= 14.5 ======================= -->
+<div class="topic"><h3>14.5 Throughput, Latency and Speedup (numericals)</h3>
+<div class="why"><b>Pehle socho:</b> Pipelining kitna fayda deta hai? Laundry mein 4 stages the to max 4 guna. Lekin agar ek machine (dryer) slow ho, ya har tray ko shift karne mein thoda time lage, to fayda kam. Exam mein yahi numericals aate hain: <mark>non-pipelined time, pipelined time, speedup, aur "speedup exactly k kyun nahi"</mark>.</div>
+<div class="def"><b>Definition:</b> <b>Latency</b> is the time one instruction takes from IF to WB. <b>Throughput</b> is the number of instructions completed per unit time. <b>Speedup</b> = (execution time without pipelining) / (execution time with pipelining). With k perfectly balanced stages, no register overhead and no hazards, speedup approaches <b>k</b> for a large number of instructions (ideal speedup).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>balanced stages</dt><dd>Saare stages ka delay barabar (jaise sab 200 ps). Unbalanced = alag alag (250, 350, 150).</dd>
+<dt>register overhead</dt><dd>Har pipeline register ka extra time (setup + clock-to-Q). Jaise 20 ps. Har cycle mein jud jaata hai.</dd>
+<dt>cycle time (t<sub>cycle</sub>)</dt><dd>Pipelined clock period = sabse slow stage + overhead. Clock sabke liye ek hai, to slowest stage ke hisaab se.</dd>
+<dt>T (non-pipelined time per instruction)</dt><dd>Saare stages ka total delay (bina registers ke). Ek instruction ek baar mein poora.</dd>
+</dl></div>
+<div class="how"><b>Kaise solve karein (har numerical mein yahi 6 steps):</b><ol>
+<li>T = saare stage delays ka sum (non-pipelined, ek instruction).</li>
+<li>Non-pipelined total = n × T.</li>
+<li>t<sub>cycle</sub> = max(stage delays) + register overhead.</li>
+<li>Pipelined total = (k + n − 1) × t<sub>cycle</sub>.</li>
+<li>Speedup = non-pipelined / pipelined. Bahut bade n ke liye speedup ≈ T / t<sub>cycle</sub>.</li>
+<li>Latency (pipelined) = k × t<sub>cycle</sub>; throughput ≈ 1 instruction per t<sub>cycle</sub>.</li>
+</ol></div>
+<div class="fx"><b>Formula:</b><br>Non-pipelined time = n × T, where T = sum of stage delays<br>Pipelined time = (k + n − 1) × t<sub>cycle</sub>, where t<sub>cycle</sub> = slowest stage + register overhead<br>Speedup = n × T / [(k + n − 1) × t<sub>cycle</sub>] · balanced, no overhead: Speedup = n·k / (k + n − 1) → <b>k</b><br>Latency = k × t<sub>cycle</sub> · Throughput = 1 / t<sub>cycle</sub> (pipeline full)<br><small>n = instructions, k = stages.</small></div>
+<div class="ex"><b>Solved example 1 (equal stages, easy):</b> <p class="qq">A 5-stage pipeline has each stage 2 ns (ignore register overhead). For 100 instructions find the non-pipelined time, pipelined time, speedup, latency and throughput.</p><ol>
+<li>T = 5 × 2 = 10 ns.</li>
+<li>Non-pipelined = n × T = 100 × 10 = 1000 ns.</li>
+<li>t<sub>cycle</sub> = max = 2 ns (sab barabar).</li>
+<li>Pipelined = (5 + 100 − 1) × 2 = 104 × 2 = 208 ns.</li>
+<li>Speedup = 1000 / 208 = 4.81 (ideal 5; n bada ho to aur 5 ke paas).</li>
+<li>Latency = 5 × 2 = 10 ns (same as non-pipelined). Throughput = 1 instruction / 2 ns = 0.5 × 10<sup>9</sup> instructions/s = 500 million per second.</li></ol>
+<p class="ans">Answer: 1000 ns vs 208 ns, speedup ≈ 4.81, latency 10 ns, throughput 1 per 2 ns.</p></div>
+<div class="ex"><b>Solved example 2 (unequal stages + overhead, exam-level):</b> <p class="qq">Stage delays are 250, 350, 150, 300, 200 ps and each pipeline register adds 20 ps. For 1000 instructions find the non-pipelined time, pipelined time, speedup, the limit of speedup for very many instructions, and the latency of one instruction.</p><ol>
+<li>T = 250 + 350 + 150 + 300 + 200 = 1250 ps.</li>
+<li>Non-pipelined = 1000 × 1250 = 1,250,000 ps = 1.25 µs.</li>
+<li>Slowest stage = 350 ps. t<sub>cycle</sub> = 350 + 20 = 370 ps.</li>
+<li>Pipelined = (5 + 1000 − 1) × 370 = 1004 × 370 = 371,480 ps ≈ 0.371 µs.</li>
+<li>Speedup = 1,250,000 / 371,480 = 3.36.</li>
+<li>Very many instructions: speedup → T / t<sub>cycle</sub> = 1250 / 370 = 3.38 (5 nahi, kyunki stages unbalanced + overhead).</li>
+<li>Latency = 5 × 370 = 1850 ps: non-pipelined ke 1250 ps se <b>zyada</b>! Har instruction ko har stage mein 370 ps milta hai chahe use 150 chahiye.</li></ol>
+<p class="ans">Answer: 1.25 µs vs 0.371 µs; speedup ≈ 3.36 (limit 3.38); latency 1850 ps.</p></div>
+<div class="ex"><b>Solved example 3 (P&amp;H textbook, single-cycle vs pipelined):</b> <p class="qq">Stage delays 200 (IF), 100 (ID), 200 (EX), 200 (MEM), 100 (WB) ps. Compare 3 lw instructions on the single-cycle (800 ps) and pipelined machine. What is the speedup for a very long program? Why not 5?</p><ol>
+<li>Single-cycle clock = 200 + 100 + 200 + 200 + 100 = 800 ps. 3 lw = 3 × 800 = 2400 ps.</li>
+<li>Pipelined clock = slowest stage = 200 ps. 3 lw = (5 + 3 − 1) × 200 = 7 × 200 = 1400 ps.</li>
+<li>Long program: speedup → 800 / 200 = 4.</li>
+<li>Not 5 because the stages are unbalanced (ID and WB need only 100 ps but get 200 ps). Register overhead and hazards reduce it further.</li>
+<li>One lw latency = 5 × 200 = 1000 ps (more than 800!), but one lw finishes every 200 ps.</li></ol>
+<p class="ans">Answer: 2400 ps vs 1400 ps; long-run speedup 4, not 5, because of unbalanced stages.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) Clock = average stage delay lena: clock = <b>maximum</b> (+ overhead). (2) Overhead sirf ek baar jodna: har cycle mein judta hai. (3) "Latency kam hoti hai" likhna: latency same ya zyada; throughput badhta hai.</div>
+<p class="trick"><b>Trick:</b> <b>"Slowest + overhead = cycle; k + n − 1 cycles; ideal speedup = k."</b></p>
+<div class="yr"><b>Ek line mein:</b> Pipelined time = (k + n − 1) × (slowest stage + overhead); speedup → k sirf balanced, bina overhead, bina hazards; latency nahi ghatti, throughput badhta hai.</div>
+</div>
+
+<!-- ======================= 14.6 ======================= -->
+<div class="topic"><h3>14.6 Hazards Preview</h3>
+<div class="why"><b>Pehle socho:</b> Laundry mein teen tarah ki problem ho sakti hai: (1) washer-dryer combo ek hi machine hai, do loads ek saath nahi (resource ki kami); (2) load B ka "fold" tabhi ho sakta hai jab A ka dupatta bhi aa jaaye jo abhi dryer mein hai (data ka intezaar); (3) pata nahi agla load kaunsa daalna hai jab tak koi decide na kare (decision ka intezaar). CPU mein yahi teen <mark>hazards</mark> hain.</div>
+<div class="def"><b>Definition:</b> A <b>hazard</b> is a situation in which the next instruction cannot execute in its planned clock cycle. <b>Structural hazard:</b> two instructions need the same hardware resource in the same cycle. <b>Data hazard:</b> an instruction needs a result that an earlier instruction has not yet produced. <b>Control hazard:</b> the next instruction to fetch depends on a branch whose outcome is not yet known.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>stall / bubble</dt><dd>Pipeline mein ek cycle ka "khaali" slot, instruction rok diya gaya. Detail Unit 15.</dd>
+<dt>forwarding</dt><dd>Result ko register file mein likhe jaane se pehle hi seedha agle instruction ke ALU tak bhej dena. Detail Unit 15.</dd>
+<dt>split I / D memory</dt><dd>Instruction aur data ke liye alag memories (alag L1 caches), isliye IF aur MEM ek saath chal sakte hain.</dd>
+</dl></div>
+<div class="how"><b>Teen hazards, ek ek example ke saath:</b><ol>
+<li><b>Structural:</b> agar ek hi memory ho to CC4 mein lw ka MEM aur 4th instruction ka IF dono memory maangenge. MIPS fix: alag instruction aur data memory; register file pehle aadhe mein likhe, doosre mein padhe.</li>
+<li><b>Data:</b> <code>add $s0, $t0, $t1</code> phir <code>sub $t2, $s0, $t3</code>. sub ko $s0 CC3 mein (ID) chahiye, lekin add use CC5 (WB) mein likhega. Fix: forwarding; load ke baad 1 stall.</li>
+<li><b>Control:</b> <code>beq</code> ke baad kaunsa instruction fetch karein? Branch ka faisla baad mein hota hai, IF tab tak ruk nahi sakta. Fix: stall, predict (not-taken), delayed branch.</li>
+<li>RISC ka load/store rule hazards ko pakadna aasaan banata hai: sirf lw / sw memory chhoote hain, aur sab registers ID mein padhte hain, WB mein likhte hain.</li>
+</ol></div>
+<div class="ex"><b>Solved example (write the answer like this, 3 marks):</b> <p class="qq">Name and explain the three types of pipeline hazards with one example each.</p><ol>
+<li><b>Structural:</b> two instructions need the same resource in the same cycle, e.g. a single memory needed by lw (MEM) and a later instruction (IF) in CC4. Solved by separate instruction and data memories.</li>
+<li><b>Data:</b> an operand is not ready, e.g. add $s0, $t0, $t1 followed by sub $t2, $s0, $t3. Solved by forwarding (and stalls).</li>
+<li><b>Control:</b> the next PC depends on an unresolved branch, e.g. beq. Solved by stalling, branch prediction or delayed branch.</li></ol>
+<p class="ans">Answer: structural (resource), data (operand not ready), control (branch decides next PC).</p></div>
+<div class="trap"><b>Galti mat karna:</b> Branch ki problem ko data hazard mat bolo, woh <b>control</b> hazard hai. Aur MIPS mein single-memory structural hazard nahi hota, kyunki memories alag hain.</div>
+<p class="trick"><b>Trick:</b> <b>S-D-C = Seat, Data, Choice</b>: seat (hardware) nahi, data nahi aaya, choice (branch) nahi pata.</p>
+<div class="yr"><b>Ek line mein:</b> Hazard = agla instruction apne time pe nahi chal sakta; structural (hardware), data (value ready nahi), control (branch).</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Laundry analogy, sequential vs pipelined time</td><td>Sequential = loads × stages × stage time. Pipelined = (stages + loads − 1) × stage time. Latency same, throughput badhta.</td></tr>
+<tr><td>Cycles for n instructions in a k-stage pipeline</td><td>k + (n − 1). Example: 5 stages, 100 instructions → 104.</td></tr>
+<tr><td>Draw a pipeline diagram / which stage in CC x</td><td>Rows = instructions, columns = CC; row i starts IF in CC i; stage s in cycle i + s − 1.</td></tr>
+<tr><td>Non-pipelined vs pipelined time, speedup</td><td>1. T = sum of stages. 2. n × T. 3. t<sub>cycle</sub> = max stage + overhead. 4. (k + n − 1) × t<sub>cycle</sub>. 5. Divide.</td></tr>
+<tr><td>Ideal speedup / why not k</td><td>Ideal = k (balanced, no overhead, no hazards, large n). Real less: unbalanced stages, register overhead, hazards, fill time.</td></tr>
+<tr><td>Latency vs throughput (define + compute)</td><td>Latency = k × t<sub>cycle</sub> (can exceed single-cycle). Throughput = 1 instruction per t<sub>cycle</sub>.</td></tr>
+<tr><td>Five stages + pipeline registers (draw / explain)</td><td>IF ID EX MEM WB table (work + hardware); registers IF/ID, ID/EX, EX/MEM, MEM/WB carry data, register numbers, control; WB wire goes back left.</td></tr>
+<tr><td>Name the three hazards with examples</td><td>Structural (one memory, CC4), data (add $s0 → sub uses $s0), control (beq).</td></tr>
+</table></div>
+</section>

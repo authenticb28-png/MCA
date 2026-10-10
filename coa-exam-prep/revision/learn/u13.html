@@ -1,0 +1,402 @@
+<section>
+<h2>Unit 13 · The Single-Cycle Datapath</h2>
+<div class="story"><b>Is unit ki kahani:</b> Units 1–12 mein humne parts banaye (MUX, adder, ALU, register file, memory) aur MIPS ki "language" seekhi (R / I / J formats, lw, sw, beq). Ab in parts ko wires se jod ke ek <b>chalta hua processor</b> banayenge jo har instruction ko <b>ek hi clock cycle</b> mein poora kar de. Exam ka sabse pakka sawaal yahin se aata hai: "Trace &lt;instruction&gt; and fill the control signals". Unit ke end mein dekhenge ki ye design slow kyun hai, aur wahi problem Unit 14 (pipelining) solve karta hai.</div>
+
+<!-- ======================= 13.1 ======================= -->
+<div class="topic"><h3>13.1 Recap: ISA → Hardware</h3>
+<div class="why"><b>Pehle socho:</b> Restaurant ka <b>menu</b> batata hai kya order kar sakte ho (paneer tikka, dal, roti). <b>Kitchen</b> batata hai woh dish banti kaise hai (kaunsa chef, kaunsa tawa, kis order mein). Same menu ke liye alag-alag kitchen ho sakte hain: ek chhota dhaba, ek bada hotel. Computer mein <mark>ISA = menu</mark> (kaunse instructions hain: add, lw, sw, beq) aur <mark>microarchitecture = kitchen</mark> (hardware jo unhe chalata hai). Is unit mein hum kitchen banayenge.</div>
+<div class="def"><b>Definition:</b> The <b>ISA</b> (instruction set architecture) is the programmer-visible contract: the instructions, registers and formats. The <b>microarchitecture</b> is the hardware implementation of the ISA and consists of the <b>datapath</b> (the units that store, move and transform data) and the <b>control unit</b> (which decodes the opcode and tells the datapath what to do). In a <b>single-cycle</b> implementation every instruction completes in exactly one clock cycle (CPI = 1).</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>datapath</dt><dd>Woh saare hardware blocks jinse data guzarta hai: PC, memories, register file, ALU, MUX, adders. Kitchen ke tawe, chulhe, bartan.</dd>
+<dt>control unit</dt><dd>Chef ka "head". Instruction ka opcode padh ke batata hai: is baar kaunsa MUX kaunsa input le, register mein likhna hai ya nahi, memory padhni hai ya nahi.</dd>
+<dt>clock cycle / clock period (T<sub>c</sub>)</dt><dd>Clock ki ek "tick" se agli tick tak ka time. Jaise 800 ps (picosecond, 1 ps = 10<sup>−12</sup> s).</dd>
+<dt>CPI</dt><dd>Cycles Per Instruction: ek instruction ko kitne clock cycles lagte hain. Single-cycle mein har instruction = 1 cycle, to CPI = 1.</dd>
+<dt>subset</dt><dd>Hum poora MIPS nahi banate, sirf ye instructions: <b>add, sub, and, or, slt</b> (R-type), <b>lw, sw</b> (memory), <b>beq</b> (branch), aur extension mein <b>addi, j</b>.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (ISA se hardware tak ka plan):</b><ol>
+<li>ISA ki list dekho: kaunse instructions chalane hain (upar wala subset).</li>
+<li>Har instruction ko kya chahiye, likho. Sabko instruction memory se fetch chahiye. Zyada-tar ko registers padhne hain. Sabko ALU chahiye (add, address, compare). Sirf lw / sw ko data memory chahiye. R-type, lw, addi ko register mein likhna hai.</li>
+<li>Har zaroorat ke liye ek hardware block rakho (13.3a mein list).</li>
+<li>Jahan ek input pe do alag source aa sakte hain, wahan ek MUX lagao (13.3b).</li>
+<li>Control unit banao jo opcode dekh ke saare MUX aur enable signals set kare (13.3c).</li>
+<li>Single-cycle mein ye sab ek hi lambe clock cycle mein ho jaata hai. Cycle ke end wale clock edge pe PC, register file aur data memory update hote hain.</li>
+</ol>
+<p>Teen design possible hain same ISA ke liye: <b>single-cycle</b> (ek lamba cycle per instruction, CPI = 1, slow clock), <b>multicycle</b> (har instruction kai chhote cycles), aur <b>pipelined</b> (kai instructions ek saath alag stages mein, Units 14–15).</p></div>
+<div class="fx"><b>Formula (performance):</b> Execution time = Instruction count × CPI × T<sub>c</sub><br><small>Single-cycle: CPI = 1, lekin T<sub>c</sub> = sabse slow instruction (lw) ka time. Example: 10<sup>6</sup> instructions × 1 × 800 ps = 800 × 10<sup>6</sup> ps = 0.8 ms.</small></div>
+<div class="ex"><b>Solved example (write the answer like this):</b> <p class="qq">Differentiate ISA and microarchitecture. What are the characteristics of a single-cycle implementation? (3 marks)</p><ol>
+<li><b>ISA</b> is the contract between software and hardware: instruction formats, registers, opcodes (the "what"). <b>Microarchitecture</b> is how a particular processor implements it: datapath + control (the "how"). One ISA (MIPS) can have many microarchitectures.</li>
+<li><b>Single-cycle characteristics:</b> (a) each instruction finishes in one clock cycle, so CPI = 1; (b) the clock period must fit the slowest instruction (lw), so the clock is slow; (c) each hardware unit can be used only once per cycle, so we need separate instruction and data memories and separate adders (PC + 4, branch target) besides the ALU.</li></ol>
+<p class="ans">Answer: ISA = what (contract); microarchitecture = how (datapath + control). Single-cycle: CPI = 1, period = slowest instruction, units duplicated.</p></div>
+<div class="trap"><b>Galti mat karna:</b> "Single-cycle = ek cycle = fast" sochna galat hai. CPI 1 hai, lekin woh ek cycle <b>bahut lamba</b> hai (lw jitna). Speed = CPI × T<sub>c</sub> dono se decide hoti hai.</div>
+<div class="yr"><b>Ek line mein:</b> ISA = menu, microarchitecture = kitchen (datapath + control); single-cycle mein har instruction ek lambe cycle mein, CPI = 1.</div>
+</div>
+
+<!-- ======================= 13.2 ======================= -->
+<div class="topic"><h3>13.2 Fetch–Decode–Execute Cycle</h3>
+<div class="why"><b>Pehle socho:</b> Tum recipe book se khana bana rahe ho. Har step ke liye: (1) bookmark wale page se agla step <b>padho</b>, bookmark aage khiskao; (2) samjho kya karna hai, kaunsa masala chahiye; (3) <b>karo</b>; (4) zaroorat ho to fridge (storage) se cheez lo ya rakho; (5) result plate mein <b>rakh do</b>. Phir agla step. CPU bhi har instruction ke saath yahi 5 kaam karta hai, forever. Bookmark ka naam hai <b>PC</b>.</div>
+<div class="def"><b>Definition:</b> The <b>instruction cycle</b> is the sequence a CPU repeats for every instruction: <b>Fetch</b> the instruction from memory at address PC and set PC ← PC + 4; <b>Decode</b> it and read the source registers; <b>Execute</b> the operation in the ALU; access data <b>Memory</b> if the instruction is a load or store; and <b>Write back</b> the result to a register.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>PC (Program Counter)</dt><dd>32-bit register jisme <b>agle instruction ka address</b> hota hai. Bookmark. Jaise PC = 0x00400000 matlab agla instruction memory address 0x00400000 pe pada hai.</dd>
+<dt>IR (Instruction Register)</dt><dd>Fetch kiya hua 32-bit instruction yahan rakha jaata hai (single-cycle mein ye seedha instruction memory ka output hai).</dd>
+<dt>PC + 4</dt><dd>Har MIPS instruction 32 bit = <b>4 bytes</b> ka hai, aur memory ka har address ek byte ko point karta hai. Isliye agla instruction 4 address aage hai. PC = 0x0040000C → PC + 4 = 0x00400010 (hex: C + 4 = 12 + 4 = 16 = 0x10, to 0C → 10).</dd>
+<dt>decode</dt><dd>Instruction ke bits ko todna: opcode [31-26] dekh ke pata chalta hai kaunsa instruction hai, rs / rt fields se registers padhe jaate hain.</dd>
+<dt>write-back</dt><dd>Result ko destination register mein likhna.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (ek instruction ke 5 steps):</b><ol>
+<li><b>F (Fetch):</b> PC jo address bata raha hai, instruction memory se us address ka 32-bit word padho. Saath hi PC ← PC + 4 (agle instruction pe bookmark).</li>
+<li><b>D (Decode):</b> Opcode control unit ko jaata hai. rs aur rt registers register file se padhe jaate hain.</li>
+<li><b>E (Execute):</b> ALU kaam karta hai: R-type ke liye operation (add, sub), lw / sw ke liye address = base + offset, beq ke liye compare (subtract karke dekho zero aaya ya nahi).</li>
+<li><b>M (Memory):</b> Sirf lw (memory se padho) aur sw (memory mein likho). Baaki instructions ye step skip karte hain.</li>
+<li><b>WB (Write-back):</b> R-type, lw, addi apna result register mein likhte hain. sw aur beq kuch nahi likhte.</li>
+<li>Phir PC naya instruction point kar raha hai → wapas step 1. Single-cycle mein ye paanchon steps <mark>ek hi clock cycle ke andar</mark> ho jaate hain.</li>
+</ol>
+<table><tr><th>Step</th><th>add $t2, $t0, $t1</th><th>lw $t0, 4($t1)</th><th>sw $t0, 4($t1)</th><th>beq $t0, $t1, L</th></tr>
+<tr><td><b>F</b></td><td>IR ← Mem[PC], PC ← PC + 4</td><td>same</td><td>same</td><td>same</td></tr>
+<tr><td><b>D</b></td><td>read $t0, $t1</td><td>read $t1</td><td>read $t1, $t0</td><td>read $t0, $t1</td></tr>
+<tr><td><b>E</b></td><td>ALU: $t0 + $t1</td><td>ALU: $t1 + 4 (address)</td><td>ALU: $t1 + 4 (address)</td><td>ALU: $t0 − $t1 (compare); target = PC + 4 + offset × 4</td></tr>
+<tr><td><b>M</b></td><td>skip</td><td>read Mem[address]</td><td>Mem[address] ← $t0</td><td>skip</td></tr>
+<tr><td><b>WB</b></td><td>$t2 ← sum</td><td>$t0 ← data</td><td>skip</td><td>skip (but may replace PC)</td></tr></table></div>
+<figure data-d="D13.2a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left se right paanch boxes: FETCH → DECODE → EXECUTE → MEMORY → WRITE-BACK. Har box ke neeche likha hai us step mein kya hota hai. Neeche wala lamba arrow WRITE-BACK se wapas FETCH pe jaata hai: matlab ek instruction khatam, agla shuru. Trace lw ka: FETCH (instruction lao, PC + 4) → DECODE ($t1 padho) → EXECUTE ($t1 + 4) → MEMORY (us address se data) → WRITE-BACK ($t0 mein data).</p>
+<div class="ex"><b>Solved example 1 (Lab question type):</b> <p class="qq">Which steps does add $t2, $t0, $t1 use? Which instruction skips the write-back step?</p><ol>
+<li>add ko instruction chahiye → <b>Fetch</b> haan.</li>
+<li>$t0, $t1 padhne hain → <b>Decode</b> haan.</li>
+<li>ALU mein jodna hai → <b>Execute</b> haan.</li>
+<li>add memory ko chhoota hi nahi (MIPS mein sirf lw / sw memory use karte hain) → <b>Memory</b> nahi.</li>
+<li>Result $t2 mein jaata hai → <b>Write-back</b> haan.</li>
+<li>sw memory mein likhta hai, kisi register mein nahi → sw write-back skip karta hai.</li></ol>
+<p class="ans">Answer: add uses F, D, E, WB (skips M). sw skips WB.</p></div>
+<div class="ex"><b>Solved example 2:</b> <p class="qq">An instruction is fetched from address 0x0040001C. What is the PC after the fetch step?</p><ol>
+<li>PC + 4 karna hai. Last hex digit: C = 12. 12 + 4 = 16.</li>
+<li>16 hex mein = 0x10: last digit 0, aur 1 ka carry agle digit mein jaata hai.</li>
+<li>Agla digit 1 tha → 1 + 1 = 2.</li>
+<li>Baaki digits same: 0x00400020.</li></ol>
+<p class="ans">Answer: PC = 0x00400020 (PC is incremented by 4 bytes).</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) PC + 1 mat likho, MIPS mein PC + 4 hai (byte address, 4-byte instruction). (2) "add memory step use karta hai" galat hai. (3) "sw register mein likhta hai" galat hai: sw ka $t0 sirf <i>padha</i> jaata hai.</div>
+<p class="trick"><b>Trick:</b> <b>add M skip, sw WB skip, beq dono skip.</b> Sirf lw paanchon steps use karta hai, isliye wahi sabse lamba hai (13.5).</p>
+<div class="yr"><b>Ek line mein:</b> Har instruction: Fetch (IR ← Mem[PC], PC ← PC + 4) → Decode (registers padho) → Execute (ALU) → Memory (sirf lw / sw) → Write-back (R-type, lw, addi).</div>
+</div>
+
+<!-- ======================= 13.3a ======================= -->
+<div class="topic"><h3>13.3a The Datapath Components (what each part does and why it is there)</h3>
+<div class="why"><b>Pehle socho:</b> Kitchen setup karne se pehle list banate ho: fridge (ingredients), recipe stand, chopping board, gas, plates. Har cheez kisi zaroorat ki wajah se hai. Datapath ka bhi aisa hi ek "shopping list" hai. Har block ko <mark>"ye kya karta hai" aur "iske bina kaunsa instruction nahi chalega"</mark> ke saath yaad karo, to diagram khud ban jaayega.</div>
+<div class="def"><b>Definition:</b> The single-cycle datapath consists of <b>state elements</b> (PC, register file, instruction memory, data memory), which hold values, and <b>combinational elements</b> (ALU, adders, sign-extend unit, shift-left-2, multiplexers), which compute outputs from inputs. Each element is used at most once per clock cycle.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>state element</dt><dd>Jo value <b>yaad rakhta</b> hai (clock edge pe likhta hai). PC, register file, data memory.</dd>
+<dt>combinational element</dt><dd>Jiska output sirf abhi ke inputs pe depend karta hai, kuch yaad nahi rakhta. ALU, adder, MUX.</dd>
+<dt>sign-extend</dt><dd>16-bit number ko 32-bit banana, <b>sign bit (bit 15) ko upar copy karke</b>. 0x0004 (+4) → 0x00000004. 0xFFFC (−4) → 0xFFFFFFFC (abhi bhi −4). Upar zero bhar dete to −4 galti se +65532 ban jaata.</dd>
+<dt>shift-left-2</dt><dd>Bits ko 2 jagah left khiskao, right mein do 0 daalo = <b>× 4</b>. 3 = 0011 → 1100 = 12. Branch offset "kitne instructions" mein hota hai, address "bytes" mein chahiye, isliye × 4.</dd>
+<dt>MUX (multiplexer)</dt><dd>Railway points: do (ya zyada) tracks mein se ek ko aage jaane deta hai. Select = 0 → input 0 pass, select = 1 → input 1 pass.</dd>
+<dt>Zero flag</dt><dd>ALU ka 1-bit output: result 0 hai to Zero = 1. beq ise use karta hai: $t1 − $t2 = 0 matlab dono barabar.</dd>
+<dt>read port / write port</dt><dd>Register file ek saath 2 registers padh sakta hai (Read data 1, Read data 2) aur 1 register likh sakta hai (Write register + Write data, tabhi jab RegWrite = 1).</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (har component, ek ek karke):</b><ol>
+<li><b>PC:</b> 32-bit register, agle instruction ka address. Har clock edge pe naya value leta hai (PC + 4, ya branch / jump target). <i>Kyun:</i> bina PC ke pata hi nahi kahan se instruction lena hai.</li>
+<li><b>Instruction memory:</b> Input = address (PC), output = 32-bit instruction. Sirf padhi jaati hai. <i>Kyun:</i> program yahin rakha hai.</li>
+<li><b>PC + 4 adder:</b> Ek alag adder jiska ek input PC aur doosra constant 4. <i>Kyun alag:</i> ALU us cycle mein instruction ka kaam kar raha hai (single-cycle mein ek unit ek hi baar use ho sakti hai).</li>
+<li><b>Register file:</b> 32 registers. Read register 1 ← bits [25-21] (rs), Read register 2 ← bits [20-16] (rt), Write register ← rt ya rd (RegDst MUX se). Outputs Read data 1, Read data 2. <i>Kyun:</i> MIPS ke saare operands registers mein hote hain.</li>
+<li><b>Sign-extend:</b> bits [15-0] (immediate / offset) ko 32 bit banata hai. <i>Kyun:</i> ALU 32-bit hai; lw / sw ka offset, addi ka constant, beq ka offset 16-bit hote hain.</li>
+<li><b>ALU:</b> do 32-bit inputs, ek 4-bit "ALU control" input (kaunsa operation), outputs = result + Zero. <i>Kyun:</i> add / sub / and / or / slt, address calculation, beq ka compare, sab yahin.</li>
+<li><b>Data memory:</b> Address (ALU result se), Write data (Read data 2 se), Read data output; MemRead aur MemWrite signals. <i>Kyun:</i> lw / sw ke liye.</li>
+<li><b>Shift-left-2 + branch adder:</b> sign-extended offset × 4, phir PC + 4 mein jodo → branch target. <i>Kyun alag adder:</i> ALU us waqt compare kar raha hai.</li>
+<li><b>MUXes (4 basic + 1 for jump):</b> RegDst, ALUSrc, MemtoReg, PCSrc (+ Jump). Har MUX wahan hai jahan ek input ke do possible source hain (13.3b mein detail).</li>
+<li><b>Control unit + ALU control:</b> opcode [31-26] → main control (saare signals); ALUOp + funct [5-0] → ALU control (4 bits).</li>
+</ol>
+<table><tr><th>Bits</th><th>Field</th><th>Kahan jaata hai</th></tr>
+<tr><td>[31-26]</td><td>opcode</td><td>main control unit</td></tr>
+<tr><td>[25-21]</td><td>rs</td><td>Read register 1</td></tr>
+<tr><td>[20-16]</td><td>rt</td><td>Read register 2 <b>and</b> RegDst MUX input 0</td></tr>
+<tr><td>[15-11]</td><td>rd</td><td>RegDst MUX input 1</td></tr>
+<tr><td>[15-0]</td><td>immediate / offset</td><td>sign-extend</td></tr>
+<tr><td>[5-0]</td><td>funct</td><td>ALU control</td></tr>
+<tr><td>[25-0]</td><td>jump address</td><td>shift-left-2 → jump target</td></tr></table></div>
+<figure data-d="D13.3b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left mein PC box. Uska output do jagah jaata hai: (1) seedha instruction memory ke "Read address" pe, (2) upar Add box mein jahan doosra input "4" hai. Add ka output (PC + 4) lamba wire banke wapas PC ke input pe aata hai: agle clock edge pe PC = PC + 4. Neeche CLK ka triangle batata hai ki PC sirf clock edge pe badalta hai. Trace: PC = 0x00400000 → instruction memory 0x00400000 wala word deta hai → adder 0x00400004 banata hai → edge pe PC = 0x00400004.</p>
+<div class="ex"><b>Solved example 1 (MCQ type):</b> <p class="qq">Which instruction bits drive Read register 1, and which drive Read register 2?</p><ol>
+<li>R-format: op [31-26] | rs [25-21] | rt [20-16] | rd [15-11] | shamt [10-6] | funct [5-0].</li>
+<li>rs hamesha padha jaata hai → Read register 1 ← [25-21].</li>
+<li>rt bhi padha jaata hai (R-type ka doosra operand, sw ka data, beq ka doosra register) → Read register 2 ← [20-16].</li>
+<li>rd sirf <i>likhne</i> ke liye hai, isliye woh RegDst MUX mein jaata hai, read port pe nahi.</li></ol>
+<p class="ans">Answer: Read register 1 ← [25-21] (rs); Read register 2 ← [20-16] (rt).</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this):</b> <p class="qq">Why does the single-cycle datapath need separate instruction and data memories and extra adders?</p><ol>
+<li>In a single-cycle design, every instruction finishes in one clock cycle, so each hardware unit can be used <b>only once</b> per cycle.</li>
+<li>lw and sw need to fetch the instruction <b>and</b> access data in the same cycle, so one memory is not enough → separate instruction memory and data memory.</li>
+<li>In the same cycle the ALU is busy with the instruction's own operation, so PC + 4 and the branch target (PC + 4 + offset × 4) need their own adders.</li></ol>
+<p class="ans">Answer: one use per unit per cycle → two memories + PC + 4 adder + branch adder.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) rd ko Read register 2 pe mat jodo, woh rt [20-16] hai. (2) Branch offset pe shift-left-2 bhoolna: offset instructions mein hai, × 4 karke bytes banao. (3) Sign-extend ko zero-extend mat samjho: upar sign bit copy hota hai.</div>
+<div class="yr"><b>Ek line mein:</b> PC → instruction memory → (rs, rt) register file + sign-extend → ALU → data memory → wapas register file; saath mein PC + 4 adder aur branch adder (shift-left-2), aur jahan do source milte hain wahan MUX.</div>
+</div>
+
+<!-- ======================= 13.3b ======================= -->
+<div class="topic"><h3>13.3b Building the Datapath Step by Step (why each MUX is added)</h3>
+<div class="why"><b>Pehle socho:</b> Ek gaon mein pehle ek hi sadak hai. Jab doosre gaon se bhi sadak aa ke <b>usi pul</b> pe milni hai, to pul pe ek signal / gate lagana padta hai jo batata hai abhi kis taraf ki gaadi jaayegi. Datapath mein bhi: pehle sirf R-type ke liye wires banao. Jab lw aata hai aur kisi input pe <mark>doosra source</mark> chahiye hota hai, wahan ek MUX lagao. Har MUX ek "do raaste, ek pul" ki kahani hai.</div>
+<div class="def"><b>Definition:</b> The datapath is built incrementally: start with the fetch unit, add the parts needed for R-type, then extend it for lw, sw, beq and j. Whenever two different sources must drive the same input, a <b>multiplexer</b> is inserted and its select line becomes a control signal.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>select line</dt><dd>MUX ka control input. 2:1 MUX mein 1 bit: 0 → upar wala (input 0), 1 → neeche wala (input 1).</dd>
+<dt>branch target</dt><dd>Jahan beq jump karega: PC + 4 + (offset × 4). Offset 16-bit signed hai (−32768 se +32767 instructions), isliye peeche (loop) aur aage dono ja sakte ho.</dd>
+<dt>PCSrc</dt><dd>PC ke aage wale MUX ka select. PCSrc = Branch AND Zero.</dd>
+<dt>jump target</dt><dd>j ke liye: (PC + 4) ke upar ke 4 bits [31:28] + 26-bit address × 4. Total 4 + 26 + 2 = 32 bits.</dd>
+</dl></div>
+<div class="how"><b>Kaise kaam karta hai (6 building steps):</b><ol>
+<li><b>Fetch:</b> PC → instruction memory; PC → adder (+4) → wapas PC. (Diagram D13.3b.)</li>
+<li><b>R-type (add $t1, $t2, $t3):</b> rs, rt register file mein → Read data 1 aur Read data 2 → ALU ke dono inputs → ALU result → register file ka Write data; Write register = rd [15-11]. Abhi koi MUX nahi chahiye.</li>
+<li><b>lw ($t2 ← Mem[$t1 + 4]):</b> teen nayi problems aati hain.
+<br>(a) ALU ka doosra input ab register nahi, <b>offset</b> hai → sign-extend jodo, aur ALU ke doosre input pe ab do source (Read data 2 ya immediate) → <b>ALUSrc MUX</b>.
+<br>(b) Data memory jodo (address = ALU result). Register mein ab likhna hai memory ka data, R-type mein ALU result → Write data pe do source → <b>MemtoReg MUX</b>.
+<br>(c) lw ka destination <b>rt</b> [20-16] hai (I-format mein rd field hai hi nahi), R-type ka rd [15-11] → Write register pe do source → <b>RegDst MUX</b>.</li>
+<li><b>sw (Mem[$t1 + 4] ← $t2):</b> address lw jaisa hi. Store karne wala data $t2 = rt, jo already Read data 2 pe aa raha hai → bas ek wire Read data 2 → data memory "Write data". <b>Koi naya MUX nahi.</b></li>
+<li><b>beq ($t1 == $t2 ? jump):</b> ALU subtract karta hai, Zero flag nikalta hai. Target banane ke liye sign-extend → shift-left-2 → <b>branch adder</b> (PC + 4 + offset × 4). Ab agla PC do jagah se aa sakta hai (PC + 4 ya target) → <b>PCSrc MUX</b>, jiska select = Branch AND Zero (ek AND gate).</li>
+<li><b>j (extension):</b> target = PC+4[31:28] joined with (instr[25-0] × 4). Agla PC ka teesra source → <b>Jump MUX</b> (PCSrc MUX ke baad), select = Jump.</li>
+</ol>
+<table><tr><th>MUX</th><th>Input 0</th><th>Input 1</th><th>Kis instruction ki wajah se aaya</th></tr>
+<tr><td><b>RegDst</b></td><td>rt [20-16]</td><td>rd [15-11]</td><td>lw (destination rt) vs R-type (rd)</td></tr>
+<tr><td><b>ALUSrc</b></td><td>Read data 2 (register)</td><td>sign-extended immediate</td><td>lw / sw / addi need the offset</td></tr>
+<tr><td><b>MemtoReg</b></td><td>ALU result</td><td>data memory Read data</td><td>lw writes memory data</td></tr>
+<tr><td><b>PCSrc</b></td><td>PC + 4</td><td>branch target</td><td>beq (select = Branch · Zero)</td></tr>
+<tr><td><b>Jump</b></td><td>output of PCSrc MUX</td><td>jump target</td><td>j</td></tr></table></div>
+<figure data-d="D13.3a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Left se right paanch bade blocks: PC, Instruction memory, Registers, ALU, Data memory. Upar wala adder PC + 4 banata hai; uske right mein doosra adder (branch adder) jisme shift-left-2 ka output aata hai. Patle lambe boxes jin pe "MUX" likha hai, woh MUX hain (har input ke paas 0 / 1 likha hai): register file ke Write register ke aage RegDst, ALU ke neeche wale input pe ALUSrc, data memory ke right mein MemtoReg, top-right mein PCSrc. <b>Dashed lines</b> control signals hain jo beech ke "Control" oval se nikalte hain (opcode [31-26] usme jaata hai). ALU ke neeche "ALU control" box hai jisme funct [5-0] aur ALUOp jaate hain. Trace R-type: rs, rt → Read data 1, 2 → ALUSrc 0 → ALU → MemtoReg 0 → Write data; rd → RegDst 1 → Write register.</p>
+<div class="ex"><b>Solved example 1 (exam favourite):</b> <p class="qq">State the function of each multiplexer in the single-cycle datapath.</p><ol>
+<li><b>RegDst:</b> chooses the destination register number: rt [20-16] (0) for lw / addi, rd [15-11] (1) for R-type.</li>
+<li><b>ALUSrc:</b> chooses the ALU's second operand: Read data 2 (0) for R-type / beq, sign-extended immediate (1) for lw / sw / addi.</li>
+<li><b>MemtoReg:</b> chooses the value written to the register: ALU result (0) or data read from memory (1, lw).</li>
+<li><b>PCSrc:</b> chooses the next PC: PC + 4 (0) or branch target (1); select = Branch AND Zero.</li></ol>
+<p class="ans">Answer: RegDst = which register, ALUSrc = which ALU operand, MemtoReg = which data to write back, PCSrc = which next PC. (Basic datapath has 4 MUXes; with jump, 5.)</p></div>
+<div class="ex"><b>Solved example 2:</b> <p class="qq">A j instruction is at address 0x00400018 and its 26-bit address field is 0x0100008. Find the jump target.</p><ol>
+<li>PC + 4 = 0x0040001C. Iske upar ke 4 bits [31:28] = hex ka pehla digit = 0 → 0000.</li>
+<li>Address field × 4 (shift-left-2): 0x0100008 × 4 = 0x0400020 (8 × 4 = 32 = 0x20, 1 × 4 = 4 at the 0x100000 place).</li>
+<li>Jodo: 0000 (4 bits) + 0x0400020 ka 28-bit roop = 0x00400020.</li></ol>
+<p class="ans">Answer: jump target = 0x00400020.</p></div>
+<div class="trap"><b>Galti mat karna:</b> PCSrc ko control unit ka seedha output mat bolo. Control sirf <b>Branch</b> deta hai; PCSrc = Branch AND Zero (ALU se). Branch = 1 lekin registers unequal → Zero = 0 → PCSrc = 0 → PC + 4.</div>
+<p class="trick"><b>Trick:</b> Har MUX ka naam batata hai woh kya chunta hai: <b>Reg-Dst</b> = register destination, <b>ALU-Src</b> = ALU source, <b>Mem-to-Reg</b> = memory to register (1 matlab haan, memory ka data). <b>Input 1 hamesha "naya / special" wala</b> hai (rd, immediate, memory data, branch target).</p>
+<div class="yr"><b>Ek line mein:</b> R-type se shuru, lw ne 3 MUX joda (ALUSrc, MemtoReg, RegDst), sw ne sirf ek wire, beq ne branch adder + PCSrc MUX, j ne Jump MUX.</div>
+</div>
+
+<!-- ======================= 13.3c ======================= -->
+<div class="topic"><h3>13.3c Control Signals and the Main Control Table</h3>
+<div class="why"><b>Pehle socho:</b> Railway station pe tracks (datapath) hamesha wahi rehte hain. <b>Station master</b> (control unit) har train (instruction) ke liye decide karta hai: kaunse points kis taraf karne hain (MUX selects) aur kaunse signal green karne hain (write enables). Train ka number (opcode) dekh ke woh ek fixed chart se settings uthata hai. Woh chart hi <mark>control table</mark> hai, aur exam mein yahi bharna hota hai.</div>
+<div class="def"><b>Definition:</b> The <b>main control unit</b> is a combinational circuit that takes the 6-bit opcode and produces the control signals RegDst, ALUSrc, MemtoReg, RegWrite, MemRead, MemWrite, Branch, ALUOp (2 bits) and Jump. The <b>ALU control</b> unit uses ALUOp and the funct field to produce the 4-bit ALU operation (two-level decoding). A value <b>X (don't care)</b> means the signal may be 0 or 1 because its effect is not used by that instruction.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>control signal</dt><dd>Ek wire jiska 0 / 1 datapath ko ek decision batata hai. Jaise MemWrite = 1 → "is cycle memory mein likho".</dd>
+<dt>asserted / deasserted</dt><dd>Asserted = 1 (ON), deasserted = 0 (OFF).</dd>
+<dt>write enable</dt><dd>RegWrite, MemWrite. Ye 1 ho tabhi clock edge pe likhai hoti hai. 0 → kuch nahi badlega, chahe input pe kuch bhi ho.</dd>
+<dt>X (don't care)</dt><dd>"Farak nahi padta". Jaise RegWrite = 0 hai to Write register kaunsa chuna (RegDst) koi farak nahi, kyunki likhna hi nahi hai. Designer X ko 0 ya 1 jo sasta ho rakh sakta hai.</dd>
+<dt>ALUOp</dt><dd>2-bit signal main control se: 00 = "add karo", 01 = "subtract karo", 10 = "funct field dekho".</dd>
+<dt>funct</dt><dd>R-type ke bits [5-0]: add 100000, sub 100010, and 100100, or 100101, slt 101010. Saare R-type ka opcode 000000 hai, funct batata hai asli operation.</dd>
+<dt>two-level decoding</dt><dd>Pehle main control opcode se ALUOp banata hai, phir ALU control (ALUOp + funct) se 4-bit operation. Main control chhota rehta hai.</dd>
+</dl></div>
+<div class="how"><b>Har signal, simple words mein:</b>
+<table><tr><th>Signal</th><th>0 matlab</th><th>1 matlab</th></tr>
+<tr><td><b>RegDst</b></td><td>Write register = rt [20-16]</td><td>Write register = rd [15-11]</td></tr>
+<tr><td><b>ALUSrc</b></td><td>ALU ka 2nd input = Read data 2 (register)</td><td>ALU ka 2nd input = sign-extended immediate</td></tr>
+<tr><td><b>MemtoReg</b></td><td>register mein ALU result likho</td><td>register mein memory se aaya data likho</td></tr>
+<tr><td><b>RegWrite</b></td><td>register file mein kuch mat likho</td><td>clock edge pe Write register mein Write data likho</td></tr>
+<tr><td><b>MemRead</b></td><td>data memory mat padho</td><td>Address wale location ka data Read data pe do</td></tr>
+<tr><td><b>MemWrite</b></td><td>memory mat badlo</td><td>Address pe Write data likho</td></tr>
+<tr><td><b>Branch</b></td><td>ye branch nahi hai</td><td>ye beq hai; Zero = 1 ho to PC = target</td></tr>
+<tr><td><b>ALUOp</b> (2 bits)</td><td colspan="2">00 = add (lw / sw / addi), 01 = subtract (beq), 10 = funct dekho (R-type)</td></tr>
+<tr><td><b>Jump</b></td><td>normal next PC</td><td>PC = jump target</td></tr></table>
+<p><b>Full main control table</b> (exam mein yahi bharna hai):</p>
+<table class="tt"><tr><th>Instr</th><th>RegDst</th><th>ALUSrc</th><th>MemtoReg</th><th>RegWrite</th><th>MemRead</th><th>MemWrite</th><th>Branch</th><th>ALUOp</th><th>Jump</th></tr>
+<tr><td>R-type</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>10</td><td>0</td></tr>
+<tr><td>lw</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>00</td><td>0</td></tr>
+<tr><td>sw</td><td>X</td><td>1</td><td>X</td><td>0</td><td>0</td><td>1</td><td>0</td><td>00</td><td>0</td></tr>
+<tr><td>beq</td><td>X</td><td>0</td><td>X</td><td>0</td><td>0</td><td>0</td><td>1</td><td>01</td><td>0</td></tr>
+<tr><td>addi</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>00</td><td>0</td></tr>
+<tr><td>j</td><td>X</td><td>X</td><td>X</td><td>0</td><td>0</td><td>0</td><td>X</td><td>XX</td><td>1</td></tr></table>
+<p><b>Har value ka WHY (row by row):</b></p><ol>
+<li><b>R-type:</b> destination rd → RegDst 1. Dono operands registers → ALUSrc 0. Result ALU se → MemtoReg 0. Register likhna hai → RegWrite 1. Memory nahi → MemRead 0, MemWrite 0. Branch nahi → 0. Operation funct batayega → ALUOp 10.</li>
+<li><b>lw:</b> destination rt → RegDst 0. Address = rs + offset → ALUSrc 1. Register mein memory data → MemtoReg 1. RegWrite 1. Memory padhni hai → MemRead 1, MemWrite 0. Branch 0. Address ke liye add → ALUOp 00.</li>
+<li><b>sw:</b> koi register nahi likhna → RegWrite 0, isliye RegDst aur MemtoReg ka chunav bekaar → <b>X</b>. Address = rs + offset → ALUSrc 1. Memory mein likhna → MemWrite 1, MemRead 0. Branch 0. ALUOp 00 (add).</li>
+<li><b>beq:</b> register nahi likhna → RegWrite 0 → RegDst, MemtoReg = X. Compare do registers ka → ALUSrc 0. Memory nahi → 0, 0. Branch 1. Compare = subtract → ALUOp 01.</li>
+<li><b>addi:</b> destination rt → RegDst 0. Constant → ALUSrc 1. Result ALU se → MemtoReg 0. RegWrite 1. Memory 0, 0. Branch 0. Add → ALUOp 00.</li>
+<li><b>j:</b> sirf PC badalna hai. Jump MUX PCSrc wale raaste ko ignore karta hai, isliye Branch bhi X; ALU ka output kahin use nahi → ALUSrc, ALUOp X. Lekin RegWrite, MemRead, MemWrite = 0 pakka.</li>
+</ol>
+<p><b>X ka rule:</b> X sirf un signals pe jinka asar is instruction mein kahin nahi pahunchta. <mark>Write enables (RegWrite, MemWrite) kabhi X nahi</mark>: agar galti se 1 ho gaya to koi register ya memory word kharab ho jaayega. MemRead bhi 0 rakhte hain (bekaar read na ho). Branch sirf j mein X.</p>
+<p><b>ALU control (second level):</b></p>
+<table class="tt"><tr><th>ALUOp</th><th>funct</th><th>Operation</th><th>ALU control (4 bits)</th></tr>
+<tr><td>00</td><td>XXXXXX</td><td>add (lw, sw, addi)</td><td>0010</td></tr>
+<tr><td>01</td><td>XXXXXX</td><td>subtract (beq)</td><td>0110</td></tr>
+<tr><td>10</td><td>100000</td><td>add</td><td>0010</td></tr>
+<tr><td>10</td><td>100010</td><td>sub</td><td>0110</td></tr>
+<tr><td>10</td><td>100100</td><td>AND</td><td>0000</td></tr>
+<tr><td>10</td><td>100101</td><td>OR</td><td>0001</td></tr>
+<tr><td>10</td><td>101010</td><td>slt</td><td>0111</td></tr></table></div>
+<div class="ex"><b>Solved example 1 (mock question):</b> <p class="qq">Fill the control signals (Branch, MemtoReg, MemRead, MemWrite, ALUOp, ALUSrc, RegWrite, RegDst) for addi $t0, $t1, −4.</p><ol>
+<li>addi I-format hai: rs = $t1 padho, constant −4 jodo, result rt = $t0 mein.</li>
+<li>Branch? Nahi → <b>Branch = 0</b>.</li>
+<li>Register mein ALU ka result jaata hai, memory ka nahi → <b>MemtoReg = 0</b>.</li>
+<li>Memory chhooni nahi → <b>MemRead = 0, MemWrite = 0</b>.</li>
+<li>ALU ko add karna hai → <b>ALUOp = 00</b>.</li>
+<li>Doosra operand constant (0xFFFC sign-extend → 0xFFFFFFFC = −4) → <b>ALUSrc = 1</b>.</li>
+<li>$t0 likhna hai → <b>RegWrite = 1</b>; $t0 rt field mein hai → <b>RegDst = 0</b>.</li></ol>
+<p class="ans">Answer: Branch 0, MemtoReg 0, MemRead 0, MemWrite 0, ALUOp 00, ALUSrc 1, RegWrite 1, RegDst 0.</p></div>
+<div class="ex"><b>Solved example 2:</b> <p class="qq">sub $s0, $s1, $s2: give the ALUOp and the 4-bit ALU control input. Why does the main control not output the ALU operation directly?</p><ol>
+<li>sub R-type hai → main control ALUOp = 10 ("funct dekho").</li>
+<li>funct of sub = 100010 → table se ALU control = 0110 (subtract).</li>
+<li>Saare R-type ka opcode same (000000) hai, isliye opcode se operation pata hi nahi chal sakta; funct chahiye. Two-level decoding se main control sirf opcode dekhta hai aur chhota rehta hai.</li></ol>
+<p class="ans">Answer: ALUOp = 10, ALU control = 0110; R-type operation is in funct, not opcode.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) ALUOp khaali chhodna (class ki har sample sheet mein chhoda gaya tha; free marks gaye). (2) lw ke liye RegDst = 1 likhna: lw ka destination rt hai → 0. (3) R-type mein MemRead = X likhna: 0 likho. (4) RegWrite ya MemWrite pe X likhna: kabhi nahi.</div>
+<p class="trick"><b>Trick:</b> Columns RegDst ALUSrc MemtoReg RegWrite MemRead MemWrite Branch ALUOp ke order mein: <b>R = 1001 000 10</b>, <b>lw = 0111 100 00</b>, <b>sw = X1X0 010 00</b>, <b>beq = X0X0 001 01</b>. ALUOp: <b>"lw/sw add, beq sub, R funct"</b> = 00, 01, 10.</p>
+<div class="yr"><b>Ek line mein:</b> Opcode → control signals; MUX selects batate hain kaunsa raasta, RegWrite / MemWrite batate hain likhna hai ya nahi; X sirf RegDst / MemtoReg pe jab RegWrite = 0 (aur j mein unused signals pe).</div>
+</div>
+
+<!-- ======================= 13.4 ======================= -->
+<div class="topic"><h3>13.4 Tracing Different Instruction Types (add, lw, sw, beq)</h3>
+<div class="why"><b>Pehle socho:</b> Courier ka parcel track karte ho: "Delhi hub → Jaipur hub → local office → ghar". Trace karna matlab yahi: instruction ka data <mark>kis block se kis block tak jaata hai</mark>, aur raaste mein har MUX pe kaunsa gate khula tha. Class ki chaaron worksheets yahi poochti hain: "Trace &lt;instruction&gt; and Fill the Control Signals".</div>
+<div class="def"><b>Definition:</b> <b>Tracing</b> an instruction on the datapath means highlighting the path its data takes from the PC to its destination (register, memory or PC), stating which MUX input is selected at each multiplexer, and writing the value of every control signal for that instruction.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>active path</dt><dd>Woh wires jinpe is instruction ka kaam ka data chal raha hai (diagram mein orange). Baaki wires pe bhi kuch value hoti hai, par use nahi hoti.</dd>
+<dt>Zero flag (reminder)</dt><dd>ALU result 0 → Zero = 1. beq mein $t1 − $t2 = 0 → barabar.</dd>
+<dt>offset (beq)</dt><dd>"PC + 4 se kitne instructions aage". 3 → 3 × 4 = 12 bytes aage.</dd>
+<dt>base + offset</dt><dd>lw / sw ka address: register (base) + constant (offset). 4($t1) = $t1 + 4.</dd>
+</dl></div>
+<div class="how"><b>Kaise trace karein (4 steps, har baar):</b><ol>
+<li><b>Fetch path</b> darken karo: PC → instruction memory; PC → +4 adder.</li>
+<li><b>Fields follow karo:</b> [25-21] → Read reg 1, [20-16] → Read reg 2 (aur RegDst input 0), [15-11] → RegDst input 1, [15-0] → sign-extend, [5-0] → ALU control.</li>
+<li><b>Har MUX pe</b> jo input use hua usse darken karo aur uska 0 / 1 likho.</li>
+<li><b>Destination pe khatam karo</b> (register, memory ya PC) aur control row bharo; jis MUX ka output use nahi hua wahan X.</li>
+</ol></div>
+
+<p><b>Trace 1 (actual numbers): add $t1, $t2, $t3</b> at PC = 0x00400000, with $t2 = 7, $t3 = 5.</p>
+<ol>
+<li>Fetch: instruction memory[0x00400000] = 0x014B4820 = 000000 01010 01011 01001 00000 100000. Adder: PC + 4 = 0x00400004.</li>
+<li>Fields: op = 000000 (R-type), rs = 01010 = 10 = $t2, rt = 01011 = 11 = $t3, rd = 01001 = 9 = $t1, funct = 100000 (add).</li>
+<li>Register file: Read data 1 = $t2 = 7, Read data 2 = $t3 = 5.</li>
+<li>ALUSrc = 0 → ALU ko 5 milta hai (immediate nahi). ALUOp = 10 + funct 100000 → ALU control 0010 (add). ALU result = 7 + 5 = 12, Zero = 0.</li>
+<li>Data memory use nahi (MemRead 0, MemWrite 0). MemtoReg = 0 → Write data = 12.</li>
+<li>RegDst = 1 → Write register = rd = 9 ($t1). RegWrite = 1.</li>
+<li>Branch = 0 → PCSrc = 0 → next PC = 0x00400004. Clock edge pe: $t1 = 12, PC = 0x00400004.</li></ol>
+<figure data-d="D13.4a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Orange = active path. Upar se: PC → instruction memory, PC → +4 → PCSrc MUX ka input 0 → wapas PC. Instruction se rs, rt register file mein; rd neeche se RegDst MUX ke input 1 mein. Read data 1 seedha ALU, Read data 2 ALUSrc MUX ke input 0 se ALU. ALU result data memory ko bypass karke MemtoReg MUX ke input 0 se neeche wale lambe wire se wapas Write data pe. Funct [5-0] wire neeche ALU control tak jaata hai. Control oval se nikalti har dashed line pe uski value likhi hai (Branch = 0, MemRead = 0, MemtoReg = 0, ALUOp = 10, MemWrite = 0, ALUSrc = 0, RegWrite = 1, RegDst = 1). Dhyan do: MemtoReg MUX mein <b>1 upar</b> (memory data) aur <b>0 neeche</b> (ALU result) hai.</p>
+
+<p><b>Trace 2: lw $t2, 4($t1)</b> (0x8D2A0004) with $t1 = 0x10010000 and Mem[0x10010004] = 99.</p>
+<ol>
+<li>Fetch + PC + 4 (same as before).</li>
+<li>Fields: op 100011 (lw), rs = 01001 = $t1, rt = 01010 = $t2, imm = 0x0004.</li>
+<li>Read data 1 = $t1 = 0x10010000. (Read data 2 = $t2 ka purana value bhi niklega, par use nahi hoga.)</li>
+<li>Sign-extend: 0x0004 → 0x00000004. ALUSrc = 1 → ALU ka 2nd input = 4.</li>
+<li>ALUOp = 00 → add. ALU result = 0x10010000 + 4 = 0x10010004 → data memory Address.</li>
+<li>MemRead = 1 → Read data = 99.</li>
+<li>MemtoReg = 1 → Write data = 99. RegDst = 0 → Write register = rt = $t2. RegWrite = 1. Edge pe $t2 = 99.</li></ol>
+<figure data-d="D13.4b"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Ye <b>sabse lamba raasta</b> hai: instruction memory → register file → (immediate sign-extend → ALUSrc input 1) → ALU → data memory → MemtoReg input 1 → register file. rt wala wire RegDst MUX ke input 0 pe orange hai. Isi lambai ki wajah se lw clock period decide karta hai (13.5).</p>
+
+<p><b>Trace 3: sw $t2, 4($t1)</b> (0xAD2A0004) with $t1 = 0x10010000 and $t2 = 42.</p>
+<ol>
+<li>Fetch + PC + 4.</li>
+<li>rs = $t1 → Read data 1 = 0x10010000; rt = $t2 → Read data 2 = 42.</li>
+<li>Sign-extend 4, ALUSrc = 1, ALUOp = 00 → Address = 0x10010004.</li>
+<li>Read data 2 (42) seedha data memory ke "Write data" pe. MemWrite = 1 → edge pe Mem[0x10010004] = 42.</li>
+<li>RegWrite = 0: koi register nahi badla, isliye RegDst = X, MemtoReg = X.</li></ol>
+<figure data-d="D13.4c"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> lw jaisa address path, lekin data memory pe raasta khatam: neeche se Read data 2 ka wire memory ke Write data mein jaata hai. Register file ki taraf wapas koi orange wire nahi.</p>
+
+<p><b>Trace 4: beq $t1, $t2, L1</b> at PC = 0x00400010, offset = 3 (0x112A0003).</p>
+<ol>
+<li>Fetch; PC + 4 = 0x00400014.</li>
+<li>Read data 1 = $t1, Read data 2 = $t2. ALUSrc = 0 → ALU ko dono registers. ALUOp = 01 → subtract.</li>
+<li>Saath mein: offset 3 → sign-extend → shift-left-2 = 12 = 0xC → branch adder: 0x00400014 + 0xC = 0x00400020.</li>
+<li><b>Case A:</b> $t1 = 5, $t2 = 5 → 5 − 5 = 0 → Zero = 1. Branch = 1 → PCSrc = 1 AND 1 = 1 → PC = 0x00400020 (branch taken).</li>
+<li><b>Case B:</b> $t1 = 5, $t2 = 7 → 5 − 7 = −2 ≠ 0 → Zero = 0 → PCSrc = 0 → PC = 0x00400014 (not taken).</li>
+<li>RegWrite = 0, MemRead = 0, MemWrite = 0; RegDst = X, MemtoReg = X.</li></ol>
+<figure data-d="D13.4d"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Orange = taken path: offset → sign-extend → shift-left-2 → branch adder → PCSrc input 1 → PC. Blue = not-taken path (PC + 4 → PCSrc input 0). ALU se Zero wire upar AND gate tak jaata hai, AND ka doosra input Branch (dashed, control se).</p>
+
+<p><b>Kaunsa instruction kaunse units use karta hai:</b></p>
+<table class="tt"><tr><th>Instr</th><th>Instr mem</th><th>Reg read</th><th>ALU</th><th>Data mem</th><th>Reg write</th><th>Branch adder used</th></tr>
+<tr><td>R-type</td><td>✓</td><td>✓ (rs, rt)</td><td>✓ op</td><td>no</td><td>✓ rd</td><td>no</td></tr>
+<tr><td>lw</td><td>✓</td><td>✓ (rs)</td><td>✓ address</td><td>✓ read</td><td>✓ rt</td><td>no</td></tr>
+<tr><td>sw</td><td>✓</td><td>✓ (rs, rt)</td><td>✓ address</td><td>✓ write</td><td>no</td><td>no</td></tr>
+<tr><td>beq</td><td>✓</td><td>✓ (rs, rt)</td><td>✓ subtract</td><td>no</td><td>no</td><td>✓</td></tr></table>
+
+<div class="ex"><b>Solved example 1 (mock passage, exam-level):</b> <p class="qq">lw $s0, 8($sp) runs on the single-cycle datapath. $sp = 0x7FFFEFF8 and the word at 0x7FFFF000 is 25. (a) What address does the ALU compute? (b) What is written into $s0 and with which MemtoReg? (c) Machine code? (d) Control row.</p><ol>
+<li>(a) Address = $sp + 8. Last digits: 0xF8 + 0x08 = 248 + 8 = 256 = 0x100 → last two digits 00, carry 1. Carry chain: 0xEF + 1 = 0xF0. So 0x7FFFEFF8 + 8 = <b>0x7FFFF000</b>.</li>
+<li>(b) MemRead = 1 → memory gives 25. MemtoReg = 1 → <b>25</b> goes to $s0 (not the address).</li>
+<li>(c) op = 100011, rs = $sp = 29 = 11101, rt = $s0 = 16 = 10000, imm = 0000 0000 0000 1000. Group in 4s: 1000 1111 1011 0000 0000 0000 0000 1000 = <b>0x8FB00008</b>.</li>
+<li>(d) Branch 0, MemtoReg 1, MemRead 1, MemWrite 0, ALUOp 00, ALUSrc 1, RegWrite 1, RegDst 0.</li></ol>
+<p class="ans">Answer: address 0x7FFFF000; $s0 = 25 via MemtoReg = 1; code 0x8FB00008; row 0 1 1 0 00 1 1 0.</p></div>
+<div class="ex"><b>Solved example 2 (write the answer like this, 5 marks):</b> <p class="qq">Trace sw $t2, 4($t1) and fill the control signals.</p><ol>
+<li><b>Fetch:</b> PC → instruction memory gives the instruction; PC + 4 computed by the adder.</li>
+<li><b>Register read:</b> rs = $t1 (Read data 1, base address) and rt = $t2 (Read data 2, data to store).</li>
+<li><b>Address:</b> offset 4 is sign-extended, ALUSrc = 1 selects it, ALUOp = 00 → ALU adds: address = $t1 + 4.</li>
+<li><b>Memory:</b> Read data 2 goes to Write data; MemWrite = 1 → Mem[$t1 + 4] ← $t2.</li>
+<li><b>No write-back:</b> RegWrite = 0, so RegDst and MemtoReg are don't care. PCSrc = 0 → PC = PC + 4.</li></ol>
+<p class="ans">Answer: Branch 0, MemtoReg X, MemRead 0, MemWrite 1, ALUOp 00, ALUSrc 1, RegWrite 0, RegDst X.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) lw mein MemtoReg = 0 likhna → register mein address chala jaayega, data nahi. (2) beq mein ALUSrc = 1 likhna: beq do <i>registers</i> compare karta hai, offset ALU mein nahi jaata (woh branch adder mein jaata hai). (3) beq target = PC + offset likhna: sahi = PC + 4 + offset × 4.</div>
+<div class="yr"><b>Ek line mein:</b> Trace = fetch path + fields + har MUX ka chuna hua input + destination; R-type rd mein ALU result, lw rt mein memory data, sw memory mein Read data 2, beq PC mein target (sirf Zero = 1 pe).</div>
+</div>
+
+<!-- ======================= 13.5 ======================= -->
+<div class="topic"><h3>13.5 Critical Path and Clock Period</h3>
+<div class="why"><b>Pehle socho:</b> School trip ki bus har stop pe utna rukti hai jitna <b>sabse slow</b> bachche ko time lagta hai, kyunki sab ek hi bus mein hain. Single-cycle CPU mein har instruction ko <b>ek hi size ka</b> clock cycle milta hai. To cycle itna lamba hona chahiye ki sabse slow instruction (lw) bhi khatam ho jaaye. Baaki instructions (add, beq) jaldi khatam ho ke bas <mark>khaali baithe intezaar karte hain</mark>. Yahi waste pipelining ki wajah hai.</div>
+<div class="def"><b>Definition:</b> The <b>critical path</b> is the longest combinational delay path between two state elements; it sets the minimum clock period. In the single-cycle MIPS datapath the critical path is that of <b>lw</b>: instruction memory → register read → ALU → data memory → register write (setup). Clock period T<sub>c</sub> = delay of the slowest instruction, and clock frequency f = 1 / T<sub>c</sub>.</div>
+<div class="words"><b>Mushkil shabd, aasaan matlab:</b><dl>
+<dt>propagation delay</dt><dd>Input badalne ke baad output sahi hone mein lagne wala time. Jaise ALU = 200 ps.</dd>
+<dt>critical path</dt><dd>Sabse lamba raasta (delay ka total sabse zyada). Chain ki sabse kamzor kadi jaisa: poora system usi ki speed se chalega.</dd>
+<dt>ps, ns, GHz</dt><dd>1 ps = 10<sup>−12</sup> s, 1 ns = 1000 ps. f = 1 / T. 1 / 1 ns = 1 GHz. 1 / 800 ps = 1 / 0.8 ns = 1.25 GHz.</dd>
+<dt>instruction class</dt><dd>Same raasta lene wale instructions ka group: R-type, lw, sw, beq, j.</dd>
+</dl></div>
+<div class="how"><b>Kaise calculate karein:</b><ol>
+<li>Har instruction class ke liye likho kaunse units use hote hain (13.4 wali table): R-type = IMem + Reg read + ALU + Reg write; lw = IMem + Reg read + ALU + DMem + Reg write; sw = IMem + Reg read + ALU + DMem; beq = IMem + Reg read + ALU; j = IMem.</li>
+<li>Diye hue delays jodo, har class ka total.</li>
+<li>Sabse bada total = clock period (ye hamesha lw aayega).</li>
+<li>Frequency = 1 / period.</li>
+<li>Waste = period − us instruction ka apna time.</li>
+</ol>
+<table class="tt"><tr><th>Class</th><th>IMem</th><th>Reg read</th><th>ALU</th><th>DMem</th><th>Reg write</th><th>Total</th></tr>
+<tr><td>R-type</td><td>200</td><td>100</td><td>200</td><td>no</td><td>100</td><td>600 ps</td></tr>
+<tr><td>lw</td><td>200</td><td>100</td><td>200</td><td>200</td><td>100</td><td><b>800 ps</b></td></tr>
+<tr><td>sw</td><td>200</td><td>100</td><td>200</td><td>200</td><td>no</td><td>700 ps</td></tr>
+<tr><td>beq</td><td>200</td><td>100</td><td>200</td><td>no</td><td>no</td><td>500 ps</td></tr>
+<tr><td>j</td><td>200</td><td>no</td><td>no</td><td>no</td><td>no</td><td>200 ps</td></tr></table>
+<p><small>(Patterson &amp; Hennessy delays; MUX, sign-extend aur PC setup ko 0 maana hai.)</small></p></div>
+<figure data-d="D13.5a"></figure>
+<p class="read"><b>Diagram kaise padhein:</b> Har row ek instruction class hai, rangeen tukde uske units (Instr mem, Reg read, ALU, Data mem, Reg write) ki lambai = delay. Right mein total. Vertical line 800 ps pe = clock period, lw ki lambai ne set ki. beq ki bar 500 pe khatam, line tak ka khaali hissa = 300 ps waste. j ka waste 600 ps.</p>
+<div class="fx"><b>Formula:</b> T<sub>c</sub> = max(total delay of each instruction class) = t<sub>IMem</sub> + t<sub>RegRead</sub> + t<sub>ALU</sub> + t<sub>DMem</sub> + t<sub>RegWrite</sub> (lw)<br>f = 1 / T<sub>c</sub> · Program time = N × 1 × T<sub>c</sub><br><small>Harris &amp; Harris version (more detailed): T<sub>c</sub> = t<sub>pcq,PC</sub> + t<sub>mem</sub> + t<sub>RFread</sub> + t<sub>ALU</sub> + t<sub>mem</sub> + t<sub>mux</sub> + t<sub>RFsetup</sub>; t<sub>pcq</sub> = PC ka clock-to-Q delay, t<sub>RFsetup</sub> = register file setup time.</small></div>
+<div class="ex"><b>Solved example 1 (easy):</b> <p class="qq">Delays: instruction memory 200, register read 100, ALU 200, data memory 200, register write 100 ps. Find the single-cycle clock period, frequency, and the time wasted by beq in each cycle.</p><ol>
+<li>lw = 200 + 100 + 200 + 200 + 100 = 800 ps (sabse lamba).</li>
+<li>T<sub>c</sub> = 800 ps.</li>
+<li>f = 1 / 800 ps = 1 / (0.8 × 10<sup>−9</sup> s) = 1.25 × 10<sup>9</sup> Hz = 1.25 GHz.</li>
+<li>beq = 200 + 100 + 200 = 500 ps. Waste = 800 − 500 = 300 ps.</li></ol>
+<p class="ans">Answer: T<sub>c</sub> = 800 ps, f = 1.25 GHz, beq wastes 300 ps per cycle.</p></div>
+<div class="ex"><b>Solved example 2 (mock exam-level):</b> <p class="qq">Single-cycle delays: instruction memory 250, register read 150, ALU 200, data memory 250, register write 150 ps. Find the delay of each instruction class, the clock period, the clock frequency, and the time to run 10<sup>6</sup> instructions.</p><ol>
+<li>R-type = 250 + 150 + 200 + 150 = 750 ps.</li>
+<li>lw = 250 + 150 + 200 + 250 + 150 = 1000 ps.</li>
+<li>sw = 250 + 150 + 200 + 250 = 850 ps.</li>
+<li>beq = 250 + 150 + 200 = 600 ps. j = 250 ps.</li>
+<li>Sabse bada = lw = 1000 ps → T<sub>c</sub> = 1000 ps = 1 ns.</li>
+<li>f = 1 / 1 ns = 1 GHz.</li>
+<li>Time = 10<sup>6</sup> × 1 (CPI) × 1 ns = 10<sup>6</sup> ns = 1 ms.</li></ol>
+<p class="ans">Answer: R 750, lw 1000, sw 850, beq 600, j 250 ps; T<sub>c</sub> = 1000 ps; f = 1 GHz; 10<sup>6</sup> instructions take 1 ms.</p></div>
+<div class="ex"><b>Solved example 3 (Harris &amp; Harris formula):</b> <p class="qq">t<sub>pcq</sub> = 30, t<sub>mem</sub> = 250, t<sub>RFread</sub> = 150, t<sub>ALU</sub> = 200, t<sub>mux</sub> = 25, t<sub>RFsetup</sub> = 20 ps. Find T<sub>c</sub>.</p><ol>
+<li>Memory do baar aata hai (instruction memory aur data memory).</li>
+<li>T<sub>c</sub> = 30 + 250 + 150 + 200 + 250 + 25 + 20.</li>
+<li>30 + 250 = 280; + 150 = 430; + 200 = 630; + 250 = 880; + 25 = 905; + 20 = 925.</li></ol>
+<p class="ans">Answer: T<sub>c</sub> = 925 ps (f = 1 / 925 ps ≈ 1.08 GHz).</p></div>
+<div class="ex"><b>Solved example 4 (why single-cycle is inefficient, write like this):</b> <p class="qq">Why is the single-cycle design inefficient? How much faster would an ideal variable-length clock be for a mix of 25 % lw, 10 % sw, 45 % R-type, 15 % beq, 5 % j (P&amp;H delays)?</p><ol>
+<li>Every instruction gets the full 800 ps, although R-type needs only 600, beq 500, j 200. Also each unit is busy only for a part of the cycle (when the ALU works, the instruction memory sits idle).</li>
+<li>Average needed time = 0.25 × 800 + 0.10 × 700 + 0.45 × 600 + 0.15 × 500 + 0.05 × 200.</li>
+<li>= 200 + 70 + 270 + 75 + 10 = 625 ps.</li>
+<li>Speedup = 800 / 625 = 1.28.</li>
+<li>Better fix: cut the datapath into 5 stages of about 200 ps and overlap instructions (pipelining, Unit 14): one instruction can finish every 200 ps → up to 800 / 200 = 4 times faster.</li></ol>
+<p class="ans">Answer: time wasted on short instructions and idle units; variable clock would be 1.28× faster; pipelining fixes it better.</p></div>
+<div class="trap"><b>Galti mat karna:</b> (1) R-type ka delay clock period le lena: period = <b>max</b> = lw. (2) beq ya R-type mein data memory ka delay jod dena. (3) Average delay ko clock period bolna: single-cycle mein har cycle same length ka hota hai, average sirf "ideal variable clock" ke comparison ke liye hai.</div>
+<p class="trick"><b>Trick:</b> P&amp;H numbers yaad: <b>8-7-6-5-2</b> (×100 ps) = lw, sw, R, beq, j.</p>
+<div class="yr"><b>Ek line mein:</b> Single-cycle clock = lw ka poora raasta (IMem + Reg + ALU + DMem + Reg); CPI 1 hai par clock slow, chhote instructions time waste karte hain, isliye pipelining.</div>
+</div>
+
+<div class="qtypes"><b>Exam mein is unit se kya aata hai → kaise solve karein</b>
+<table><tr><th>Question type</th><th>Method (steps)</th></tr>
+<tr><td>Trace &lt;instruction&gt; and fill the control signals (5 marks, diagram)</td><td>1. Datapath draw karo (5 blocks + adders + 4 MUX + control). 2. Fetch path darken. 3. Fields follow: rs, rt, rd / imm. 4. Har MUX pe chuna input mark (0 / 1). 5. Control row: Branch, MemtoReg, MemRead, MemWrite, <b>ALUOp</b>, ALUSrc, RegWrite, RegDst; X sirf RegDst / MemtoReg jab RegWrite = 0.</td></tr>
+<tr><td>Fill one control signal (MCQ: RegDst for lw, ALUOp for beq)</td><td>Instruction ka kaam socho: destination rt ya rd? Doosra operand register ya constant? Memory padhni / likhni? ALU add / sub / funct? Table se match karo.</td></tr>
+<tr><td>Function of a MUX / match MUX to what it selects</td><td>RegDst = rt / rd, ALUSrc = Read data 2 / immediate, MemtoReg = ALU / memory, PCSrc = PC + 4 / branch target (Branch AND Zero).</td></tr>
+<tr><td>Which bits go where</td><td>[31-26] control, [25-21] Read reg 1, [20-16] Read reg 2 + RegDst 0, [15-11] RegDst 1, [15-0] sign-extend, [5-0] ALU control.</td></tr>
+<tr><td>beq: next PC / branch target</td><td>1. PC + 4. 2. offset × 4. 3. Jodo = target. 4. Registers barabar → Zero = 1 → PC = target, warna PC + 4.</td></tr>
+<tr><td>lw with values (address, value written)</td><td>Address = base register + sign-extended offset (hex addition carefully). Written value = memory data (MemtoReg = 1), address nahi.</td></tr>
+<tr><td>ALU control input</td><td>ALUOp 00 → 0010, 01 → 0110, 10 → funct: add 0010, sub 0110, and 0000, or 0001, slt 0111.</td></tr>
+<tr><td>Critical path / clock period numerical</td><td>1. Har class ke units ka delay jodo. 2. Max = T<sub>c</sub> (lw). 3. f = 1 / T<sub>c</sub>. 4. Program time = N × T<sub>c</sub>. 5. Waste = T<sub>c</sub> − instruction ka time.</td></tr>
+<tr><td>Fetch–decode–execute steps / which step an instruction skips</td><td>F D E M WB likho; add M skip, sw WB skip, beq dono skip; PC ← PC + 4 in fetch.</td></tr>
+<tr><td>ISA vs microarchitecture; single-cycle traits; why separate memories</td><td>Menu vs kitchen; CPI = 1, period = slowest (lw); har unit ek baar per cycle → 2 memories + 2 extra adders.</td></tr>
+</table></div>
+</section>
